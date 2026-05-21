@@ -4,6 +4,7 @@ backend/bin/
 backend/.gradle/
 backend/*.log
 backend/logs/
+application-local.yml
 
 # Frontend
 frontend/node_modules/
