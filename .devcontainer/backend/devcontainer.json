@@ -1,0 +1,40 @@
+{
+  "name": "Omok Backend (Spring Boot)",
+  "dockerComposeFile": ["../../docker-compose.dev.yml"],
+  "service": "backend",
+  "workspaceFolder": "/app",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-spring-boot",
+        "vscjava.vscode-spring-boot-dashboard",
+        "vscjava.vscode-spring-initializr",
+        "GabrielBB.vscode-lombok",
+        "redhat.java",
+        "vscjava.vscode-gradle"
+      ],
+      "settings": {
+        "java.configuration.runtimes": [
+          {
+            "name": "JavaSE-21",
+            "default": true
+          }
+        ],
+        "java.compile.nullAnalysis.mode": "automatic",
+        "editor.formatOnSave": true,
+        "spring-boot.ls.java.home": "/opt/java/openjdk"
+      }
+    }
+  },
+
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": { "label": "Spring Boot", "onAutoForward": "notify" }
+  },
+
+  "postCreateCommand": "echo 'Backend container ready'",
+
+  "remoteUser": "root"
+}

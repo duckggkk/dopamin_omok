@@ -1,0 +1,248 @@
+.container {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: calc(100vh - 60px);
+}
+
+.gameArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: calc(100vh - 60px);
+  color: #888;
+  font-size: 1.1rem;
+}
+
+.playerCard {
+  background: #1a1a2e;
+  border-radius: 10px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 640px;
+  border: 1px solid #2a2a3e;
+}
+
+.stoneBlack {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  border: 2px solid #555;
+  box-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+  flex-shrink: 0;
+}
+
+.stoneWhite {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f0f0ea;
+  border: 2px solid #ccc;
+  box-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+
+.playerName {
+  color: #e0e0e0;
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.playerLabel {
+  color: #888;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.turnIndicator {
+  color: #50c878;
+  margin-left: auto;
+  font-size: 1.2rem;
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.boardWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.status {
+  color: #e0c97f;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  min-height: 1.5rem;
+}
+
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.roomInfo {
+  background: #1a1a2e;
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px solid #2a2a3e;
+}
+
+.roomCode {
+  color: #888;
+  font-size: 0.9rem;
+  margin: 0 0 4px;
+}
+
+.roomCode strong {
+  color: #e0c97f;
+  font-family: monospace;
+  letter-spacing: 2px;
+  font-size: 1.1rem;
+}
+
+.moveCount {
+  color: #888;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.waitingInfo {
+  background: #1a1a2e;
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid #2a2a3e;
+}
+
+.waitingInfo p {
+  color: #888;
+  font-size: 0.85rem;
+  margin: 0 0 12px;
+}
+
+.copyBtn {
+  background: #2a3a5e;
+  color: #c8d6f0;
+  border: 1px solid #3a4a6e;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s;
+}
+
+.copyBtn:hover {
+  background: #3a4a6e;
+}
+
+.surrenderBtn {
+  background: rgba(224, 80, 80, 0.1);
+  color: #e05050;
+  border: 1px solid #e05050;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  width: 100%;
+  transition: all 0.2s;
+}
+
+.surrenderBtn:hover {
+  background: #e05050;
+  color: white;
+}
+
+.lobbyBtn {
+  background: #e0c97f;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  width: 100%;
+  transition: background 0.2s;
+}
+
+.lobbyBtn:hover {
+  background: #f0d98f;
+}
+
+.moveHistory {
+  background: #1a1a2e;
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px solid #2a2a3e;
+  flex: 1;
+}
+
+.moveHistory h3 {
+  color: #e0c97f;
+  font-size: 0.9rem;
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+
+.moveList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.moveItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #aaa;
+}
+
+.blackDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #333;
+  border: 1px solid #666;
+  flex-shrink: 0;
+}
+
+.whiteDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f0f0ea;
+  border: 1px solid #ccc;
+  flex-shrink: 0;
+}
+
+.movePos {
+  margin-left: auto;
+  color: #666;
+  font-family: monospace;
+}

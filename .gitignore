@@ -1,0 +1,25 @@
+# Backend
+backend/build/
+backend/bin/
+backend/.gradle/
+backend/*.log
+backend/logs/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.production
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.DS_Store
+
+# Env (예시 파일은 커밋, 실제 값 파일은 제외)
+.env
+*.env.local
+
+# Docker
+mysql/data/

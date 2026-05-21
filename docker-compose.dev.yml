@@ -1,0 +1,82 @@
+name: dopamin-omok-dev
+
+services:
+  # ── Database ─────────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: omok_db_dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root1234}   # dev 전용 기본값
+      MYSQL_DATABASE: dopamin_omok
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    ports:
+      - "${DB_PORT:-3307}:3306"    # 개발 시 DB클라이언트(DBeaver 등)로 직접 접근
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root1234}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - omok_dev_net
+
+  # ── Backend (개발) ────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: omok_backend_dev
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_URL: jdbc:mysql://db:3306/dopamin_omok?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+      DB_USERNAME: ${DB_USERNAME:-omok_user}
+      DB_PASSWORD: ${DB_PASSWORD:-omok_pass}
+      JWT_SECRET: ${JWT_SECRET:-dopamin-omok-dev-secret-key-32-characters-minimum}
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - ./backend:/app
+      - gradle_cache:/root/.gradle
+      - gradle_build:/app/build
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - omok_dev_net
+
+  # ── Frontend (개발) ───────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: omok_frontend_dev
+    restart: unless-stopped
+    environment:
+      VITE_BACKEND_URL: http://backend:8080
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - omok_dev_net
+
+volumes:
+  mysql_dev_data:
+  gradle_cache:
+  gradle_build:
+  frontend_node_modules:
+
+networks:
+  omok_dev_net:
+    driver: bridge

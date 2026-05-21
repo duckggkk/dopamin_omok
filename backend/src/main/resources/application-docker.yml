@@ -1,0 +1,43 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: update      # 컨테이너 초기 실행 시 스키마 자동 생성
+    show-sql: false
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiration: 1800000
+    refresh-token-expiration: 604800000
+
+  cors:
+    allowed-origins:
+      - http://localhost:3000       # dev: 호스트에서 직접 접근
+      - http://localhost:80         # prod: nginx
+      - http://frontend             # prod: 컨테이너 내부
+      - http://frontend:80
+
+  oauth2:
+    kakao:
+      client-id: ${KAKAO_CLIENT_ID:}
+      client-secret: ${KAKAO_CLIENT_SECRET:}
+    google:
+      client-id: ${GOOGLE_CLIENT_ID:}
+      client-secret: ${GOOGLE_CLIENT_SECRET:}
+
+logging:
+  level:
+    com.dopamin.omok: INFO
+    org.hibernate.SQL: WARN

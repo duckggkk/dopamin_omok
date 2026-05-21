@@ -1,0 +1,137 @@
+package com.dopamin.omok.user.domain;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Entity
+@Table(name = "users", indexes = {
+        @Index(name = "idx_users_email", columnList = "email"),
+        @Index(name = "idx_users_nickname", columnList = "nickname"),
+        @Index(name = "idx_users_public_id", columnList = "public_id")
+})
+@EntityListeners(AuditingEntityListener.class)
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@ToString(exclude = "password")
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "public_id", nullable = false, unique = true, updatable = false, columnDefinition = "BINARY(16)")
+    private UUID publicId;
+
+    @Column(nullable = false, unique = true, length = 100)
+    private String email;
+
+    @Column(length = 200)
+    private String password;
+
+    @Column(nullable = false, unique = true, length = 30)
+    private String nickname;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UserRole role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private AuthProvider provider;
+
+    @Column(length = 200)
+    private String providerId;
+
+    @Column(length = 500)
+    private String profileImageUrl;
+
+    @Column(nullable = false)
+    private Integer wins = 0;
+
+    @Column(nullable = false)
+    private Integer losses = 0;
+
+    @Column(nullable = false)
+    private Integer draws = 0;
+
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Builder
+    private User(String email, String password, String nickname,
+                 UserRole role, AuthProvider provider, String providerId,
+                 String profileImageUrl) {
+        this.publicId = UUID.randomUUID();
+        this.email = email;
+        this.password = password;
+        this.nickname = nickname;
+        this.role = role;
+        this.provider = provider;
+        this.providerId = providerId;
+        this.profileImageUrl = profileImageUrl;
+        this.wins = 0;
+        this.losses = 0;
+        this.draws = 0;
+    }
+
+    public static User createLocalUser(String email, String encodedPassword, String nickname) {
+        return User.builder()
+                .email(email)
+                .password(encodedPassword)
+                .nickname(nickname)
+                .role(UserRole.USER)
+                .provider(AuthProvider.LOCAL)
+                .build();
+    }
+
+    public static User createSocialUser(String email, String nickname, AuthProvider provider,
+                                         String providerId, String profileImageUrl) {
+        return User.builder()
+                .email(email)
+                .nickname(nickname)
+                .role(UserRole.USER)
+                .provider(provider)
+                .providerId(providerId)
+                .profileImageUrl(profileImageUrl)
+                .build();
+    }
+
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public void updateProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    public void recordWin() {
+        this.wins++;
+    }
+
+    public void recordLoss() {
+        this.losses++;
+    }
+
+    public void recordDraw() {
+        this.draws++;
+    }
+
+    public int getTotalGames() {
+        return wins + losses + draws;
+    }
+}

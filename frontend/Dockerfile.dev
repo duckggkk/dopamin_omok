@@ -1,0 +1,10 @@
+# 개발용: node_modules는 컨테이너 내부 익명 볼륨으로 분리
+FROM node:20-alpine
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+RUN npm install --silent
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

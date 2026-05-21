@@ -1,0 +1,33 @@
+{
+  "name": "Omok Frontend (React + Vite)",
+  "dockerComposeFile": ["../../docker-compose.dev.yml"],
+  "service": "frontend",
+  "workspaceFolder": "/app",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "ms-vscode.vscode-typescript-next",
+        "formulahendry.auto-rename-tag",
+        "christian-kohler.path-intellisense"
+      ],
+      "settings": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "typescript.preferences.importModuleSpecifier": "non-relative"
+      }
+    }
+  },
+
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": { "label": "Vite Dev Server", "onAutoForward": "openBrowser" }
+  },
+
+  "postCreateCommand": "npm install",
+
+  "remoteUser": "node"
+}

@@ -1,0 +1,167 @@
+.container {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 0 24px;
+}
+
+.card {
+  background: #1a1a2e;
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  border: 1px solid #2a2a3e;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #2a3a5e;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: #e0c97f;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nicknameRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.nickname {
+  color: #e0e0e0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.editBtn {
+  background: transparent;
+  border: 1px solid #555;
+  color: #888;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.editBtn:hover {
+  border-color: #e0c97f;
+  color: #e0c97f;
+}
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.nicknameInput {
+  background: #0f0f1e;
+  border: 1px solid #e0c97f;
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 1.1rem;
+  padding: 8px 14px;
+  text-align: center;
+  outline: none;
+}
+
+.editActions {
+  display: flex;
+  gap: 8px;
+}
+
+.saveBtn {
+  background: #e0c97f;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cancelBtn {
+  background: transparent;
+  border: 1px solid #555;
+  color: #888;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.email {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 4px 0 8px;
+}
+
+.provider {
+  background: #2a3a5e;
+  color: #7090c0;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.error {
+  color: #e05050;
+  font-size: 0.85rem;
+}
+
+.success {
+  color: #50c878;
+  font-size: 0.85rem;
+  margin: 8px 0;
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #2a2a3e;
+  flex-wrap: wrap;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.statValue {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e0e0e0;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.win { color: #50c878; }
+.loss { color: #e05050; }
+.rate { color: #e0c97f; }

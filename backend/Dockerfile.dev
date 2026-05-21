@@ -1,0 +1,14 @@
+# 개발용: 소스는 볼륨 마운트, Gradle 캐시는 named volume으로 유지
+FROM eclipse-temurin:21-jdk-alpine
+WORKDIR /app
+
+# Gradle wrapper만 미리 받아 캐시
+COPY gradlew .
+COPY gradle/ gradle/
+COPY build.gradle.kts settings.gradle.kts ./
+RUN chmod +x gradlew && ./gradlew dependencies --no-daemon -q
+
+EXPOSE 8080
+
+# docker-compose.dev.yml에서 볼륨 마운트 후 실행
+CMD ["./gradlew", "bootRun", "--no-daemon", "-Pprofile=docker"]
