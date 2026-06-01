@@ -5,18 +5,23 @@ import com.dopamin.omok.auth.application.port.in.LoginUseCase;
 import com.dopamin.omok.auth.application.port.in.LogoutUseCase;
 import com.dopamin.omok.auth.application.port.in.RefreshTokenUseCase;
 import com.dopamin.omok.auth.application.port.in.RegisterUseCase;
+import com.dopamin.omok.auth.application.port.in.ResendVerificationEmailUseCase;
+import com.dopamin.omok.auth.application.port.in.VerifyEmailUseCase;
 import com.dopamin.omok.auth.application.port.out.DeleteRefreshTokenPort;
 import com.dopamin.omok.auth.application.port.out.LoadRefreshTokenPort;
 import com.dopamin.omok.auth.application.port.out.SaveRefreshTokenPort;
+import com.dopamin.omok.auth.application.service.support.EmailVerificationService;
 import com.dopamin.omok.auth.domain.RefreshToken;
+import com.dopamin.omok.global.common.exception.ErrorCode;
+import com.dopamin.omok.global.common.exception.OmokException;
+import com.dopamin.omok.global.event.UserRegisteredEvent;
+import com.dopamin.omok.global.security.jwt.JwtProvider;
 import com.dopamin.omok.user.application.port.out.CheckUserExistsPort;
 import com.dopamin.omok.user.application.port.out.LoadUserPort;
 import com.dopamin.omok.user.application.port.out.SaveUserPort;
 import com.dopamin.omok.user.domain.User;
-import com.dopamin.omok.global.common.exception.ErrorCode;
-import com.dopamin.omok.global.common.exception.OmokException;
-import com.dopamin.omok.global.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +31,8 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenUseCase, LogoutUseCase {
+public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenUseCase, LogoutUseCase,
+        VerifyEmailUseCase, ResendVerificationEmailUseCase {
 
     private final LoadUserPort loadUserPort;
     private final SaveUserPort saveUserPort;
@@ -36,10 +42,12 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
     private final DeleteRefreshTokenPort deleteRefreshTokenPort;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final EmailVerificationService emailVerificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
-    public TokenResponse register(String email, String password, String nickname) {
+    public void register(String email, String password, String nickname) {
         if (checkUserExistsPort.existsByEmail(email)) {
             throw new OmokException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
@@ -50,7 +58,10 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
         User user = User.createLocalUser(email, passwordEncoder.encode(password), nickname);
         saveUserPort.save(user);
 
-        return issueTokens(user);
+        // 가입 직후 기본 아이템(기본 착수음 등) 지급 — shop 모듈이 수신해 처리
+        eventPublisher.publishEvent(new UserRegisteredEvent(user.getId()));
+
+        emailVerificationService.sendCode(user);
     }
 
     @Override
@@ -63,7 +74,26 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
             throw new OmokException(ErrorCode.INVALID_CREDENTIALS);
         }
 
+        if (!user.isEmailVerified()) {
+            throw new OmokException(ErrorCode.EMAIL_NOT_VERIFIED);
+        }
+
+        user.incrementTokenVersion();
+        saveUserPort.save(user);
+
         return issueTokens(user);
+    }
+
+    @Override
+    @Transactional
+    public void verifyEmail(String email, String code) {
+        emailVerificationService.verifyEmail(email, code);
+    }
+
+    @Override
+    @Transactional
+    public void resendVerificationEmail(String email) {
+        emailVerificationService.resendVerificationEmail(email);
     }
 
     @Override
@@ -96,7 +126,7 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
 
     private TokenResponse issueTokens(User user) {
         String accessToken = jwtProvider.generateAccessToken(
-                user.getId(), user.getEmail(), user.getRole().name()
+                user.getId(), user.getEmail(), user.getRole().name(), user.getTokenVersion()
         );
         String refreshTokenValue = jwtProvider.generateRefreshToken(user.getId());
 

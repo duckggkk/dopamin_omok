@@ -1,24 +1,33 @@
 import { useState, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi, userApi } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
+import { tokenStorage } from '@/utils/token';
 import styles from './AuthPage.module.css';
+import pageStyles from './LoginPage.module.css';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login } = useAuthStore();
+  const [searchParams] = useSearchParams();
+  const isJustVerified = searchParams.get('verified') === '1';
+  const isSessionExpired = searchParams.get('reason') === 'session_expired';
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [isEmailNotVerified, setIsEmailNotVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsEmailNotVerified(false);
     setIsLoading(true);
 
     try {
       const tokenRes = await authApi.login(form);
       const { accessToken, refreshToken } = tokenRes.data.data!;
+
+      tokenStorage.setTokens(accessToken, refreshToken);
 
       const userRes = await userApi.getMe();
       if (userRes.data.data) {
@@ -26,8 +35,14 @@ const LoginPage = () => {
         navigate('/lobby');
       }
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message ?? '로그인에 실패했습니다.');
+      const axiosErr = err as { response?: { status?: number; data?: { message?: string } } };
+      const status = axiosErr.response?.status;
+      const message = axiosErr.response?.data?.message ?? '로그인에 실패했습니다.';
+
+      if (status === 403) {
+        setIsEmailNotVerified(true);
+      }
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -38,6 +53,16 @@ const LoginPage = () => {
       <div className={styles.card}>
         <h1 className={styles.title}>로그인</h1>
         <p className={styles.subtitle}>도파민 오목에 오신 것을 환영합니다</p>
+        {isJustVerified && (
+          <p style={{ color: '#4caf90', background: 'rgba(76,175,144,0.1)', borderRadius: '6px', padding: '10px', textAlign: 'center', fontSize: '0.9rem', marginBottom: '8px' }}>
+            이메일 인증이 완료되었습니다! 로그인해주세요.
+          </p>
+        )}
+        {isSessionExpired && (
+          <p style={{ color: '#e57373', background: 'rgba(229,115,115,0.1)', borderRadius: '6px', padding: '10px', textAlign: 'center', fontSize: '0.9rem', marginBottom: '8px' }}>
+            다른 기기에서 로그인되어 자동 로그아웃되었습니다.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
@@ -66,7 +91,18 @@ const LoginPage = () => {
             />
           </div>
 
-          {error && <p className={styles.error}>{error}</p>}
+          {error && (
+            <div>
+              <p className={styles.error}>{error}</p>
+              {isEmailNotVerified && (
+                <p className={pageStyles.resendHint}>
+                  <Link to={`/email-sent?email=${encodeURIComponent(form.email)}`}>
+                    인증 메일 재발송하기
+                  </Link>
+                </p>
+              )}
+            </div>
+          )}
 
           <button type="submit" disabled={isLoading} className={styles.submitBtn}>
             {isLoading ? '로그인 중...' : '로그인'}

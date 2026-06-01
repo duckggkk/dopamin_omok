@@ -1,7 +1,7 @@
 package com.dopamin.omok.game.application.port.in;
 
-import com.dopamin.omok.game.application.dto.GameRoomResponse;
+import com.dopamin.omok.game.application.dto.GameResponse;
 
 public interface SurrenderUseCase {
-    GameRoomResponse surrender(String roomCode, Long userId);
+    GameResponse surrender(String roomCode, Long userId);
 }

@@ -5,6 +5,8 @@ import path from 'path'
 // Docker 컨테이너 내부에서는 VITE_BACKEND_URL 환경변수로 백엔드 주소 주입
 // 로컬 실행 시에는 localhost:8080 사용
 const backendUrl = process.env.VITE_BACKEND_URL ?? 'http://localhost:8080'
+const backendWsUrl = (process.env.VITE_BACKEND_URL ?? 'http://localhost:8080')
+  .replace(/^http/, 'ws')
 
 export default defineConfig({
   plugins: [react()],
@@ -25,9 +27,10 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/ws': {
-        target: backendUrl,
+        target: backendWsUrl,
         changeOrigin: true,
         ws: true,
+        rewrite: (path) => `/api${path}`,
       },
     },
   },

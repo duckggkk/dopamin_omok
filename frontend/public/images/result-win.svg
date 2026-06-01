@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 230" width="380" height="230">
+  <defs>
+    <!-- 배경 황금 글로우 -->
+    <radialGradient id="win-bg-glow" cx="50%" cy="55%" r="48%">
+      <stop offset="0%"   stop-color="#f8e060" stop-opacity="0.45"/>
+      <stop offset="60%"  stop-color="#d09820" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#c08000" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 텍스트 그라디언트 (위→아래 밝은금→진한금) -->
+    <linearGradient id="win-text-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#fffde8"/>
+      <stop offset="35%"  stop-color="#f5d840"/>
+      <stop offset="75%"  stop-color="#d09820"/>
+      <stop offset="100%" stop-color="#a06800"/>
+    </linearGradient>
+    <!-- 크라운 그라디언트 -->
+    <linearGradient id="crown-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#ffe060"/>
+      <stop offset="100%" stop-color="#c08000"/>
+    </linearGradient>
+    <!-- 텍스트 글로우 필터 -->
+    <filter id="win-text-glow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="5" result="blur1"/>
+      <feGaussianBlur stdDeviation="2" in="SourceGraphic" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <!-- 크라운 드롭섀도 -->
+    <filter id="crown-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#a06000" flood-opacity="0.6"/>
+    </filter>
+    <!-- 별 글로우 -->
+    <filter id="star-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 배경 글로우 -->
+  <ellipse cx="190" cy="125" rx="170" ry="105" fill="url(#win-bg-glow)"/>
+
+  <!-- 방사형 빛줄기 -->
+  <g opacity="0.18" stroke="#f8e060" stroke-width="1.5">
+    <line x1="190" y1="115" x2="50"  y2="15"/>
+    <line x1="190" y1="115" x2="330" y2="15"/>
+    <line x1="190" y1="115" x2="10"  y2="100"/>
+    <line x1="190" y1="115" x2="370" y2="100"/>
+    <line x1="190" y1="115" x2="60"  y2="220"/>
+    <line x1="190" y1="115" x2="320" y2="220"/>
+    <line x1="190" y1="115" x2="190" y2="5"/>
+  </g>
+
+  <!-- 크라운 -->
+  <g transform="translate(190, 62)" filter="url(#crown-shadow)">
+    <!-- 크라운 몸체 -->
+    <path d="M-42 26 L-42 0 L-24 20 L0 -26 L24 20 L42 0 L42 26 Z"
+          fill="url(#crown-grad)" stroke="#a07000" stroke-width="1.5" stroke-linejoin="round"/>
+    <!-- 크라운 밴드 -->
+    <rect x="-42" y="18" width="84" height="10" rx="3"
+          fill="#c09000" stroke="#a07000" stroke-width="1"/>
+    <!-- 보석 — 루비 (좌) -->
+    <ellipse cx="-21" cy="9" rx="5.5" ry="5.5" fill="#e03030"/>
+    <ellipse cx="-22.5" cy="7.5" rx="2" ry="1.5" fill="#ff9999" opacity="0.8"/>
+    <!-- 보석 — 사파이어 (중) -->
+    <ellipse cx="0" cy="0" rx="7" ry="7" fill="#2060e0"/>
+    <ellipse cx="-2" cy="-2" rx="2.5" ry="2" fill="#80c0ff" opacity="0.8"/>
+    <!-- 보석 — 에메랄드 (우) -->
+    <ellipse cx="21" cy="9" rx="5.5" ry="5.5" fill="#20b050"/>
+    <ellipse cx="19.5" cy="7.5" rx="2" ry="1.5" fill="#90ffb0" opacity="0.8"/>
+    <!-- 작은 장식 보석 (밴드 위) -->
+    <circle cx="-35" cy="22" r="3" fill="#f0c030"/>
+    <circle cx="0"   cy="22" r="3" fill="#f0c030"/>
+    <circle cx="35"  cy="22" r="3" fill="#f0c030"/>
+  </g>
+
+  <!-- 메인 텍스트 "승리!" -->
+  <text x="190" y="168"
+        text-anchor="middle"
+        font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif"
+        font-size="76" font-weight="900" letter-spacing="-3"
+        fill="url(#win-text-grad)"
+        stroke="#b07800" stroke-width="2"
+        filter="url(#win-text-glow)">승리!</text>
+
+  <!-- 8각별 (좌) -->
+  <g transform="translate(48, 128)" filter="url(#star-glow)">
+    <path d="M0,-18 L4,-4 L18,0 L4,4 L0,18 L-4,4 L-18,0 L-4,-4 Z"
+          fill="#f5d840" opacity="0.95"/>
+    <circle cx="0" cy="0" r="3" fill="#fff" opacity="0.7"/>
+  </g>
+  <!-- 8각별 (우) -->
+  <g transform="translate(332, 128)" filter="url(#star-glow)">
+    <path d="M0,-18 L4,-4 L18,0 L4,4 L0,18 L-4,4 L-18,0 L-4,-4 Z"
+          fill="#f5d840" opacity="0.95"/>
+    <circle cx="0" cy="0" r="3" fill="#fff" opacity="0.7"/>
+  </g>
+
+  <!-- 작은 별들 -->
+  <g transform="translate(28, 168)">
+    <path d="M0,-11 L2.5,-2.5 L11,0 L2.5,2.5 L0,11 L-2.5,2.5 L-11,0 L-2.5,-2.5 Z"
+          fill="#f5d840" opacity="0.65"/>
+  </g>
+  <g transform="translate(352, 168)">
+    <path d="M0,-11 L2.5,-2.5 L11,0 L2.5,2.5 L0,11 L-2.5,2.5 L-11,0 L-2.5,-2.5 Z"
+          fill="#f5d840" opacity="0.65"/>
+  </g>
+
+  <!-- 반짝이 (십자) -->
+  <g opacity="0.8" stroke="#f8e060" stroke-width="2" stroke-linecap="round">
+    <line x1="72"  y1="72"  x2="72"  y2="84"/>
+    <line x1="66"  y1="78"  x2="78"  y2="78"/>
+    <line x1="308" y1="72"  x2="308" y2="84"/>
+    <line x1="302" y1="78"  x2="314" y2="78"/>
+  </g>
+  <g opacity="0.5" stroke="#f8e060" stroke-width="1.5" stroke-linecap="round">
+    <line x1="35"  y1="50"  x2="35"  y2="58"/>
+    <line x1="31"  y1="54"  x2="39"  y2="54"/>
+    <line x1="345" y1="50"  x2="345" y2="58"/>
+    <line x1="341" y1="54"  x2="349" y2="54"/>
+  </g>
+
+  <!-- 작은 원형 파티클 -->
+  <circle cx="90"  cy="42"  r="3.5" fill="#f8e060" opacity="0.55"/>
+  <circle cx="290" cy="42"  r="3.5" fill="#f8e060" opacity="0.55"/>
+  <circle cx="60"  cy="190" r="2.5" fill="#f8e060" opacity="0.4"/>
+  <circle cx="320" cy="190" r="2.5" fill="#f8e060" opacity="0.4"/>
+  <circle cx="130" cy="28"  r="2"   fill="#fffde0" opacity="0.5"/>
+  <circle cx="250" cy="28"  r="2"   fill="#fffde0" opacity="0.5"/>
+</svg>

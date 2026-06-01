@@ -34,7 +34,7 @@ public class GameMove {
     @Column(nullable = false, length = 10)
     private StoneColor color;
 
-    @Column(nullable = false)
+    @Column(name = "row_pos", nullable = false)
     private Integer row;
 
     @Column(nullable = false)

@@ -1,0 +1,71 @@
+.iconWrap {
+  font-size: 3rem;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.infoBox {
+  background: rgba(224, 201, 127, 0.08);
+  border: 1px solid rgba(224, 201, 127, 0.2);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.emailText {
+  color: #e0c97f;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 12px;
+  word-break: break-all;
+}
+
+.desc {
+  color: #c8d6f0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.expire {
+  color: #888;
+  font-size: 0.82rem;
+}
+
+.expire strong {
+  color: #e0c97f;
+}
+
+.successMsg {
+  color: #4caf90;
+  background: rgba(76, 175, 144, 0.1);
+  border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+.resendBtn {
+  width: 100%;
+  background: transparent;
+  color: #e0c97f;
+  border: 1px solid #e0c97f;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  margin-bottom: 4px;
+}
+
+.resendBtn:hover:not(:disabled) {
+  background: rgba(224, 201, 127, 0.1);
+}
+
+.resendBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -35,8 +35,8 @@ public class JwtProvider {
         return cachedKey;
     }
 
-    public String generateAccessToken(Long userId, String email, String role) {
-        return buildToken(userId, email, role, jwtProperties.getAccessTokenExpiration());
+    public String generateAccessToken(Long userId, String email, String role, Long tokenVersion) {
+        return buildToken(userId, email, role, tokenVersion, jwtProperties.getAccessTokenExpiration());
     }
 
     public String generateRefreshToken(Long userId) {
@@ -51,7 +51,7 @@ public class JwtProvider {
                 .compact();
     }
 
-    private String buildToken(Long userId, String email, String role, long expiration) {
+    private String buildToken(Long userId, String email, String role, Long tokenVersion, long expiration) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expiration);
 
@@ -59,10 +59,18 @@ public class JwtProvider {
                 .subject(String.valueOf(userId))
                 .claim("email", email)
                 .claim("role", role)
+                .claim("tokenVersion", tokenVersion)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(getSigningKey())
                 .compact();
+    }
+
+    public Long extractTokenVersion(String token) {
+        Object version = parseToken(token).get("tokenVersion");
+        if (version instanceof Integer) return ((Integer) version).longValue();
+        if (version instanceof Long) return (Long) version;
+        return 0L;
     }
 
     public Claims parseToken(String token) {

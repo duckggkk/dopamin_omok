@@ -18,8 +18,30 @@ server:
   servlet:
     context-path: /api
 
+app:
+  assets:
+    # classpath: resources/skins/ 에서 직접 서빙 (기본값, 소규모 적합)
+    # s3: S3SkinAssetAdapter 활성화 — S3 서명 URL 방식으로 전환
+    storage: classpath
+  shop:
+    # 충전 패키지 (가격/구성 변경 시 코드 수정 없이 여기만 변경)
+    packages:
+      - { id: SMALL,   currency: 50,   priceKrw: 5000 }
+      - { id: BASIC,   currency: 100,  priceKrw: 10000 }
+      - { id: MEDIUM,  currency: 200,  priceKrw: 20000 }
+      - { id: LARGE,   currency: 550,  priceKrw: 50000 }
+      - { id: PREMIUM, currency: 1200, priceKrw: 100000 }
+    # 뽑기 상자 (상자에서 나오는 아이템 풀은 DB items 테이블에서 자동 조회)
+    gacha:
+      - { type: DEFEAT_MESSAGE, name: "문구 랜덤 뽑기 상자",      price: 30 }
+      - { type: BOARD_SKIN,     name: "바둑판 스킨 랜덤 뽑기 상자", price: 50 }
+      - { type: STONE_SOUND,    name: "착수음 랜덤 뽑기 상자",      price: 40 }
+
 logging:
+  charset:
+    console: UTF-8
+    file: UTF-8
   level:
     com.dopamin.omok: DEBUG
     org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
+    org.hibernate.orm.jdbc.bind: DEBUG

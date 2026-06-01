@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { authApi } from '@/api/auth';
 import styles from './Navbar.module.css';
@@ -6,8 +6,15 @@ import styles from './Navbar.module.css';
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => {
+    const inGame = location.pathname.startsWith('/game/');
+    if (inGame) {
+      if (!window.confirm('로그아웃하면 방에서 퇴장됩니다.\n(방장이라면 방이 폭파됩니다)\n정말 로그아웃하시겠습니까?')) {
+        return;
+      }
+    }
     try {
       await authApi.logout();
     } finally {
@@ -26,6 +33,10 @@ const Navbar = () => {
           {isAuthenticated ? (
             <>
               <Link to="/lobby" className={styles.link}>로비</Link>
+              <Link to="/shop" className={styles.shopLink}>상점</Link>
+              {user?.currency !== undefined && (
+                <span className={styles.currencyBadge}>🪨 {user.currency.toLocaleString()}</span>
+              )}
               <Link to="/profile" className={styles.link}>
                 {user?.nickname}
               </Link>

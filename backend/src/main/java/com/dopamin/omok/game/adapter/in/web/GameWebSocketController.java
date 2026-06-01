@@ -1,20 +1,36 @@
 package com.dopamin.omok.game.adapter.in.web;
 
+import com.dopamin.omok.game.adapter.in.web.dto.ChatMessageRequest;
 import com.dopamin.omok.game.adapter.in.web.dto.GameMoveRequest;
+import com.dopamin.omok.game.application.dto.ChatMessageResponse;
 import com.dopamin.omok.game.application.dto.GameMoveResponse;
-import com.dopamin.omok.game.application.dto.GameRoomResponse;
+import com.dopamin.omok.game.application.dto.RoomResponse;
+import com.dopamin.omok.game.application.port.in.GetRoomUseCase;
 import com.dopamin.omok.game.application.port.in.PlaceStoneUseCase;
+import com.dopamin.omok.game.application.port.in.ReadyGameUseCase;
+import com.dopamin.omok.game.application.port.in.StartGameUseCase;
 import com.dopamin.omok.game.application.port.in.SurrenderUseCase;
+import com.dopamin.omok.game.application.port.out.LoadGamePlayerPort;
+import com.dopamin.omok.game.application.port.out.LoadRoomPort;
+import com.dopamin.omok.game.domain.GamePlayer;
+import com.dopamin.omok.game.domain.Room;
+import com.dopamin.omok.game.domain.StoneColor;
 import com.dopamin.omok.global.common.response.ApiResponse;
 import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.websocket.WebSocketSessionRegistry;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Controller;
+
+import java.time.LocalDateTime;
 
 @Slf4j
 @Controller
@@ -23,16 +39,29 @@ public class GameWebSocketController {
 
     private final PlaceStoneUseCase placeStoneUseCase;
     private final SurrenderUseCase surrenderUseCase;
+    private final GetRoomUseCase getRoomUseCase;
+    private final ReadyGameUseCase readyGameUseCase;
+    private final StartGameUseCase startGameUseCase;
+    private final LoadRoomPort loadRoomPort;
+    private final LoadGamePlayerPort loadGamePlayerPort;
+    private final WebSocketSessionRegistry sessionRegistry;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @MessageMapping("/game/{roomCode}/move")
-    @SendTo("/topic/game/{roomCode}")
+    @SendTo("/topic/room/{roomCode}")
     public ApiResponse<GameMoveResponse> handleMove(
             @DestinationVariable String roomCode,
             @Valid GameMoveRequest request,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            SimpMessageHeaderAccessor headerAccessor) {
+        Long userId = extractUserId(headerAccessor);
+        registerSession(headerAccessor, roomCode, userId);
+        if (userId == null) return ApiResponse.error("인증이 필요합니다.");
         try {
-            GameMoveResponse response = placeStoneUseCase.placeStone(
-                    roomCode, userDetails.getId(), request.row(), request.col());
+            GameMoveResponse response = placeStoneUseCase.placeStone(roomCode, userId, request.row(), request.col());
+            // 매 수마다 방 상태(currentTurn 포함) 브로드캐스트 — 클라이언트 턴 동기화
+            RoomResponse roomStatus = getRoomUseCase.getRoom(roomCode);
+            messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/status",
+                    ApiResponse.success(roomStatus));
             return ApiResponse.success(response);
         } catch (Exception e) {
             log.warn("WebSocket move error for room {}: {}", roomCode, e.getMessage());
@@ -41,16 +70,104 @@ public class GameWebSocketController {
     }
 
     @MessageMapping("/game/{roomCode}/surrender")
-    @SendTo("/topic/game/{roomCode}/status")
-    public ApiResponse<GameRoomResponse> handleSurrender(
+    @SendTo("/topic/room/{roomCode}/status")
+    public ApiResponse<RoomResponse> handleSurrender(
             @DestinationVariable String roomCode,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            SimpMessageHeaderAccessor headerAccessor) {
+        Long userId = extractUserId(headerAccessor);
+        registerSession(headerAccessor, roomCode, userId);
+        if (userId == null) return ApiResponse.error("인증이 필요합니다.");
         try {
-            GameRoomResponse response = surrenderUseCase.surrender(roomCode, userDetails.getId());
+            surrenderUseCase.surrender(roomCode, userId);
+            RoomResponse response = getRoomUseCase.getRoom(roomCode);
             return ApiResponse.success(response);
         } catch (Exception e) {
             log.warn("WebSocket surrender error for room {}: {}", roomCode, e.getMessage());
             return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    @MessageMapping("/game/{roomCode}/ready")
+    public void handleReady(
+            @DestinationVariable String roomCode,
+            SimpMessageHeaderAccessor headerAccessor) {
+        Long userId = extractUserId(headerAccessor);
+        registerSession(headerAccessor, roomCode, userId);
+        if (userId == null) {
+            log.warn("Unauthenticated ready for room {}", roomCode);
+            return;
+        }
+        try {
+            readyGameUseCase.readyGame(roomCode, userId);
+        } catch (Exception e) {
+            log.warn("WebSocket ready error for room {}: {}", roomCode, e.getMessage());
+        }
+    }
+
+    @MessageMapping("/game/{roomCode}/start")
+    public void handleStart(
+            @DestinationVariable String roomCode,
+            SimpMessageHeaderAccessor headerAccessor) {
+        Long userId = extractUserId(headerAccessor);
+        registerSession(headerAccessor, roomCode, userId);
+        if (userId == null) {
+            log.warn("Unauthenticated start for room {}", roomCode);
+            return;
+        }
+        try {
+            startGameUseCase.startGame(roomCode, userId);
+        } catch (Exception e) {
+            log.warn("WebSocket start error for room {}: {}", roomCode, e.getMessage());
+        }
+    }
+
+    @MessageMapping("/game/{roomCode}/chat")
+    @SendTo("/topic/room/{roomCode}/chat")
+    public ApiResponse<ChatMessageResponse> handleChat(
+            @DestinationVariable String roomCode,
+            @Payload ChatMessageRequest request,
+            SimpMessageHeaderAccessor headerAccessor) {
+        CustomUserDetails userDetails = extractUserDetails(headerAccessor);
+        if (userDetails == null) return ApiResponse.error("인증이 필요합니다.");
+        Long userId = userDetails.getId();
+        String nickname = userDetails.getUser().getNickname();
+        registerSession(headerAccessor, roomCode, userId);
+        StoneColor color = null;
+        boolean spectator = true;
+        try {
+            Room room = loadRoomPort.findByRoomCode(roomCode).orElse(null);
+            if (room != null) {
+                GamePlayer gp = loadGamePlayerPort.findByRoomIdAndUserId(room.getId(), userId).orElse(null);
+                if (gp != null && !gp.isSpectator()) {
+                    color = gp.getColor();
+                    spectator = false;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Chat player lookup error for room {}: {}", roomCode, e.getMessage());
+        }
+        return ApiResponse.success(new ChatMessageResponse(nickname, color, spectator, request.content(), LocalDateTime.now()));
+    }
+
+    // JwtChannelInterceptor가 CONNECT 시 accessor.setUser(auth)로 설정한 값을 읽음
+    // @AuthenticationPrincipal은 SecurityContextHolder(ThreadLocal)을 사용하므로
+    // WebSocket 메시지 처리 스레드에서는 동작하지 않음
+    private CustomUserDetails extractUserDetails(SimpMessageHeaderAccessor accessor) {
+        if (accessor.getUser() instanceof UsernamePasswordAuthenticationToken authToken
+                && authToken.getPrincipal() instanceof CustomUserDetails userDetails) {
+            return userDetails;
+        }
+        return null;
+    }
+
+    private Long extractUserId(SimpMessageHeaderAccessor accessor) {
+        CustomUserDetails userDetails = extractUserDetails(accessor);
+        return userDetails != null ? userDetails.getId() : null;
+    }
+
+    private void registerSession(SimpMessageHeaderAccessor accessor, String roomCode, Long userId) {
+        if (accessor.getSessionId() != null && userId != null) {
+            sessionRegistry.register(accessor.getSessionId(), roomCode, userId);
         }
     }
 }

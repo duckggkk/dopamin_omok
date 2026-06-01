@@ -3,7 +3,13 @@ import { ApiResponse, TokenResponse, User } from '@/types';
 
 export const authApi = {
   register: (data: { email: string; password: string; nickname: string }) =>
-    apiClient.post<ApiResponse<TokenResponse>>('/auth/register', data),
+    apiClient.post<ApiResponse<void>>('/auth/register', data),
+
+  verifyEmail: (email: string, code: string) =>
+    apiClient.post<ApiResponse<void>>('/auth/verify-email', { email, code }),
+
+  resendVerification: (email: string) =>
+    apiClient.post<ApiResponse<void>>('/auth/resend-verification', { email }),
 
   login: (data: { email: string; password: string }) =>
     apiClient.post<ApiResponse<TokenResponse>>('/auth/login', data),

@@ -37,7 +37,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(token) && jwtProvider.validateToken(token)) {
             try {
                 Long userId = jwtProvider.extractUserId(token);
+                Long tokenVersion = jwtProvider.extractTokenVersion(token);
                 UserDetails userDetails = userDetailsService.loadUserById(userId);
+
+                Long currentVersion = ((com.dopamin.omok.global.security.userdetails.CustomUserDetails) userDetails)
+                        .getUser().getTokenVersion();
+                if (!tokenVersion.equals(currentVersion)) {
+                    log.debug("Token version mismatch for userId={}: jwt={}, db={}", userId, tokenVersion, currentVersion);
+                    filterChain.doFilter(request, response);
+                    return;
+                }
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(

@@ -24,6 +24,116 @@
   font-size: 1.1rem;
 }
 
+/* 오버레이 (방장 퇴장 등) */
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.overlayContent {
+  text-align: center;
+}
+
+.overlaySubtext {
+  font-size: 0.9rem;
+  margin-top: 8px;
+  color: #aaa;
+}
+
+/* 게임 결과 오버레이 */
+.gameResultOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+.gameResultContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.65); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* WIN: SVG 이미지 */
+.gameResultWinImage {
+  width: 380px;
+  max-width: 88vw;
+  filter: drop-shadow(0 0 28px rgba(240, 200, 40, 0.7))
+          drop-shadow(0 6px 16px rgba(0, 0, 0, 0.6));
+  user-select: none;
+}
+
+/* LOSS: 배경 SVG + 텍스트 겹치기 */
+.gameResultLossBox {
+  position: relative;
+  width: 380px;
+  max-width: 88vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gameResultLossBg {
+  width: 100%;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 20px rgba(200, 30, 30, 0.5));
+  user-select: none;
+}
+
+.gameResultLossText {
+  position: absolute;
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  font-size: 5.2rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: #ff5555;
+  text-shadow:
+    0 0 30px rgba(255, 50, 50, 0.8),
+    0 0 60px rgba(200, 0, 0, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.8);
+}
+
+/* DRAW: 텍스트 */
+.gameResultDrawText {
+  font-size: 4.5rem;
+  font-weight: 900;
+  color: #aaa;
+  margin: 0;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.gameResultSubtext {
+  color: #777;
+  font-size: 0.95rem;
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+/* 플레이어 카드 */
 .playerCard {
   background: #1a1a2e;
   border-radius: 10px;
@@ -36,13 +146,17 @@
   border: 1px solid #2a2a3e;
 }
 
+.playerInfo {
+  flex: 1;
+}
+
 .stoneBlack {
   width: 28px;
   height: 28px;
   border-radius: 50%;
   background: #1a1a1a;
   border: 2px solid #555;
-  box-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
   flex-shrink: 0;
 }
 
@@ -52,7 +166,7 @@
   border-radius: 50%;
   background: #f0f0ea;
   border: 2px solid #ccc;
-  box-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+  box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.3);
   flex-shrink: 0;
 }
 
@@ -61,12 +175,59 @@
   font-weight: 600;
   font-size: 1rem;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .playerLabel {
   color: #888;
   font-size: 0.8rem;
   margin: 0;
+}
+
+/* 뱃지 */
+.badgeMe {
+  background: #2a5ead;
+  color: #c8d6f0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+}
+
+.badgeHost {
+  background: #7a4a00;
+  color: #e0c97f;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.5px;
+}
+
+/* 준비 상태 표시 */
+.readyOn {
+  background: rgba(80, 200, 120, 0.15);
+  color: #50c878;
+  border: 1px solid #50c878;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.readyOff {
+  background: rgba(150, 150, 150, 0.1);
+  color: #888;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  white-space: nowrap;
 }
 
 .turnIndicator {
@@ -77,8 +238,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .boardWrapper {
@@ -96,18 +262,30 @@
   min-height: 1.5rem;
 }
 
+.graceNotice {
+  color: #ff8c42;
+  font-size: 0.88rem;
+  text-align: center;
+  background: rgba(255, 140, 66, 0.1);
+  border: 1px solid rgba(255, 140, 66, 0.3);
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin-bottom: 8px;
+}
+
+/* 사이드바 */
 .sidebar {
-  width: 240px;
+  width: 280px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .roomInfo {
   background: #1a1a2e;
   border-radius: 10px;
-  padding: 16px;
+  padding: 14px 16px;
   border: 1px solid #2a2a3e;
 }
 
@@ -130,18 +308,22 @@
   margin: 0;
 }
 
-.waitingInfo {
+/* 대기 패널 (준비/시작 버튼) */
+.waitingPanel {
   background: #1a1a2e;
   border-radius: 10px;
   padding: 16px;
-  text-align: center;
   border: 1px solid #2a2a3e;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.waitingInfo p {
+.inviteText {
   color: #888;
   font-size: 0.85rem;
-  margin: 0 0 12px;
+  margin: 0;
+  text-align: center;
 }
 
 .copyBtn {
@@ -152,13 +334,75 @@
   padding: 8px 16px;
   cursor: pointer;
   width: 100%;
-  transition: all 0.2s;
+  transition: background 0.2s;
+  font-size: 0.9rem;
 }
 
 .copyBtn:hover {
   background: #3a4a6e;
 }
 
+/* 준비 버튼 */
+.readyBtnOff {
+  background: rgba(80, 200, 120, 0.1);
+  color: #50c878;
+  border: 1px solid #50c878;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  width: 100%;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.readyBtnOff:hover {
+  background: #50c878;
+  color: #1a1a2e;
+}
+
+.readyBtnOn {
+  background: #50c878;
+  color: #1a1a2e;
+  border: 1px solid #50c878;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  width: 100%;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.readyBtnOn:hover {
+  background: #3da860;
+}
+
+/* 시작 버튼 */
+.startBtn {
+  background: #e0c97f;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  width: 100%;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+
+.startBtn:hover:not(:disabled) {
+  background: #f0d98f;
+}
+
+.startBtn:disabled {
+  background: #3a3a4e;
+  color: #555;
+  cursor: not-allowed;
+}
+
+/* 기권/나가기/리매치 버튼 */
 .surrenderBtn {
   background: rgba(224, 80, 80, 0.1);
   color: #e05050;
@@ -192,10 +436,181 @@
   background: #f0d98f;
 }
 
+.leaveBtn {
+  background: transparent;
+  color: #888;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  width: 100%;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.leaveBtn:hover {
+  border-color: #888;
+  color: #aaa;
+}
+
+/* 관전자 패널 */
+.spectatorPanel {
+  background: #1a1a2e;
+  border-radius: 10px;
+  padding: 14px 16px;
+  border: 1px solid #2a2a3e;
+}
+
+.panelTitle {
+  color: #e0c97f;
+  font-size: 0.85rem;
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+.spectatorList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spectatorItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spectatorIcon {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.spectatorName {
+  color: #aaa;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 채팅 패널 */
+.chatPanel {
+  background: #1a1a2e;
+  border-radius: 10px;
+  padding: 14px 16px;
+  border: 1px solid #2a2a3e;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chatMessages {
+  height: 160px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 4px;
+}
+
+.chatMessages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.chatMessages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chatMessages::-webkit-scrollbar-thumb {
+  background: #2a2a3e;
+  border-radius: 2px;
+}
+
+.chatMessage {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chatMine .chatSender {
+  text-align: left;
+}
+
+.chatMine .chatContent {
+  align-self: flex-start;
+  background: #2a3a5e;
+}
+
+.chatOther .chatSender {
+  text-align: right;
+}
+
+.chatOther .chatContent {
+  align-self: flex-end;
+  background: #252535;
+}
+
+.chatSender {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.chatContent {
+  color: #d0d0d0;
+  font-size: 0.82rem;
+  padding: 5px 8px;
+  border-radius: 6px;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.chatInputRow {
+  display: flex;
+  gap: 6px;
+}
+
+.chatInput {
+  flex: 1;
+  background: #0f0f1a;
+  border: 1px solid #2a2a3e;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: #e0e0e0;
+  font-size: 0.82rem;
+  outline: none;
+  min-width: 0;
+}
+
+.chatInput:focus {
+  border-color: #3a4a6e;
+}
+
+.chatInput::placeholder {
+  color: #555;
+}
+
+.chatSendBtn {
+  background: #2a3a5e;
+  color: #c8d6f0;
+  border: 1px solid #3a4a6e;
+  border-radius: 6px;
+  padding: 7px 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.chatSendBtn:hover {
+  background: #3a4a6e;
+}
+
+/* 기보 */
 .moveHistory {
   background: #1a1a2e;
   border-radius: 10px;
-  padding: 16px;
+  padding: 14px 16px;
   border: 1px solid #2a2a3e;
   flex: 1;
 }
@@ -203,7 +618,7 @@
 .moveHistory h3 {
   color: #e0c97f;
   font-size: 0.9rem;
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-weight: 600;
 }
 
@@ -211,7 +626,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 400px;
+  max-height: 300px;
   overflow-y: auto;
 }
 

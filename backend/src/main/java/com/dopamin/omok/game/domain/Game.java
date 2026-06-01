@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "games", indexes = {
+        @Index(name = "idx_games_room_id", columnList = "room_id"),
         @Index(name = "idx_games_black_player", columnList = "black_player_id"),
         @Index(name = "idx_games_white_player", columnList = "white_player_id"),
         @Index(name = "idx_games_status", columnList = "status")
@@ -22,6 +23,13 @@ public class Game {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id", nullable = false)
+    private Room room;
+
+    @Column(nullable = false)
+    private Integer gameNumber;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "black_player_id")
@@ -43,12 +51,6 @@ public class Game {
     @JoinColumn(name = "winner_id")
     private User winner;
 
-    @Column(nullable = false, length = 10)
-    private String roomCode;
-
-    @Column(nullable = false)
-    private Integer boardSize = 15;
-
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -59,32 +61,43 @@ public class Game {
     @Column
     private LocalDateTime finishedAt;
 
+    @Column
+    private LocalDateTime lastMoveAt;
+
     @Builder
-    private Game(User blackPlayer, String roomCode, Integer boardSize) {
+    private Game(Room room, Integer gameNumber, User blackPlayer, User whitePlayer) {
+        this.room = room;
+        this.gameNumber = gameNumber;
         this.blackPlayer = blackPlayer;
-        this.roomCode = roomCode;
-        this.boardSize = boardSize != null ? boardSize : 15;
-        this.status = GameStatus.WAITING;
-    }
-
-    public static Game createRoom(User creator, String roomCode) {
-        return Game.builder()
-                .blackPlayer(creator)
-                .roomCode(roomCode)
-                .build();
-    }
-
-    public void joinAsWhitePlayer(User player) {
-        this.whitePlayer = player;
+        this.whitePlayer = whitePlayer;
         this.status = GameStatus.IN_PROGRESS;
         this.currentTurn = StoneColor.BLACK;
         this.startedAt = LocalDateTime.now();
+        this.lastMoveAt = LocalDateTime.now();
+    }
+
+    public static Game start(Room room, User blackPlayer, User whitePlayer) {
+        return Game.builder()
+                .room(room)
+                .gameNumber(room.getCurrentGameNumber())
+                .blackPlayer(blackPlayer)
+                .whitePlayer(whitePlayer)
+                .build();
+    }
+
+    public String getRoomCode() {
+        return room.getRoomCode();
     }
 
     public void switchTurn() {
         this.currentTurn = (this.currentTurn == StoneColor.BLACK)
                 ? StoneColor.WHITE
                 : StoneColor.BLACK;
+        this.lastMoveAt = LocalDateTime.now();
+    }
+
+    public void recordMove() {
+        this.lastMoveAt = LocalDateTime.now();
     }
 
     public void finish(User winner) {
@@ -112,13 +125,15 @@ public class Game {
         return this.status == GameStatus.IN_PROGRESS;
     }
 
-    public boolean isWaiting() {
-        return this.status == GameStatus.WAITING;
-    }
-
     public StoneColor getPlayerColor(Long userId) {
         if (blackPlayer != null && blackPlayer.getId().equals(userId)) return StoneColor.BLACK;
         if (whitePlayer != null && whitePlayer.getId().equals(userId)) return StoneColor.WHITE;
+        return null;
+    }
+
+    public User getOpponent(Long userId) {
+        if (blackPlayer != null && blackPlayer.getId().equals(userId)) return whitePlayer;
+        if (whitePlayer != null && whitePlayer.getId().equals(userId)) return blackPlayer;
         return null;
     }
 }

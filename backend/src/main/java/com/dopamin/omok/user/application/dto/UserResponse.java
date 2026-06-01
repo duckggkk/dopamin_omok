@@ -16,6 +16,7 @@ public record UserResponse(
         Integer losses,
         Integer draws,
         Integer totalGames,
+        Integer currency,
         LocalDateTime createdAt
 ) {
     public static UserResponse from(User user) {
@@ -29,6 +30,7 @@ public record UserResponse(
                 user.getLosses(),
                 user.getDraws(),
                 user.getTotalGames(),
+                user.getCurrency() != null ? user.getCurrency() : 0,
                 user.getCreatedAt()
         );
     }

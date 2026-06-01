@@ -27,3 +27,6 @@ mysql/data/
 
 # Claude Code
 .claude/
+
+# Internal docs (설계 문서, 외부 공개 불필요)
+docs/

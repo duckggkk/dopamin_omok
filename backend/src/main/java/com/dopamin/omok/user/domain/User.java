@@ -60,6 +60,15 @@ public class User {
     @Column(nullable = false)
     private Integer draws = 0;
 
+    @Column(nullable = false)
+    private Integer currency = 0;
+
+    @Column(nullable = false)
+    private boolean emailVerified = false;
+
+    @Column(nullable = false)
+    private Long tokenVersion = 0L;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -71,7 +80,7 @@ public class User {
     @Builder
     private User(String email, String password, String nickname,
                  UserRole role, AuthProvider provider, String providerId,
-                 String profileImageUrl) {
+                 String profileImageUrl, boolean emailVerified) {
         this.publicId = UUID.randomUUID();
         this.email = email;
         this.password = password;
@@ -80,9 +89,12 @@ public class User {
         this.provider = provider;
         this.providerId = providerId;
         this.profileImageUrl = profileImageUrl;
+        this.emailVerified = emailVerified;
         this.wins = 0;
         this.losses = 0;
         this.draws = 0;
+        this.currency = 0;
+        this.tokenVersion = 0L;
     }
 
     public static User createLocalUser(String email, String encodedPassword, String nickname) {
@@ -92,11 +104,12 @@ public class User {
                 .nickname(nickname)
                 .role(UserRole.USER)
                 .provider(AuthProvider.LOCAL)
+                .emailVerified(false)
                 .build();
     }
 
     public static User createSocialUser(String email, String nickname, AuthProvider provider,
-                                         String providerId, String profileImageUrl) {
+                                        String providerId, String profileImageUrl) {
         return User.builder()
                 .email(email)
                 .nickname(nickname)
@@ -104,7 +117,16 @@ public class User {
                 .provider(provider)
                 .providerId(providerId)
                 .profileImageUrl(profileImageUrl)
+                .emailVerified(true)
                 .build();
+    }
+
+    public void verifyEmail() {
+        this.emailVerified = true;
+    }
+
+    public void incrementTokenVersion() {
+        this.tokenVersion = (this.tokenVersion == null ? 0L : this.tokenVersion) + 1L;
     }
 
     public void updateNickname(String nickname) {
@@ -133,5 +155,15 @@ public class User {
 
     public int getTotalGames() {
         return wins + losses + draws;
+    }
+
+    public void chargeCurrency(int amount) {
+        this.currency = (this.currency == null ? 0 : this.currency) + amount;
+    }
+
+    public void spendCurrency(int amount) {
+        int current = this.currency == null ? 0 : this.currency;
+        if (current < amount) throw new IllegalStateException("잔액이 부족합니다.");
+        this.currency = current - amount;
     }
 }

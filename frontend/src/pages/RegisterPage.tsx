@@ -1,12 +1,10 @@
 import { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { authApi, userApi } from '@/api/auth';
-import { useAuthStore } from '@/store/authStore';
+import { authApi } from '@/api/auth';
 import styles from './AuthPage.module.css';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
   const [form, setForm] = useState({ email: '', password: '', nickname: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -17,14 +15,8 @@ const RegisterPage = () => {
     setIsLoading(true);
 
     try {
-      const tokenRes = await authApi.register(form);
-      const { accessToken, refreshToken } = tokenRes.data.data!;
-
-      const userRes = await userApi.getMe();
-      if (userRes.data.data) {
-        login(userRes.data.data, accessToken, refreshToken);
-        navigate('/lobby');
-      }
+      await authApi.register(form);
+      navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string; data?: Record<string, string> } } };
       const data = axiosErr.response?.data;

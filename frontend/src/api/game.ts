@@ -1,32 +1,56 @@
 import apiClient from './client';
-import { ApiResponse, GameRoom, GameMove, PageResponse } from '@/types';
+import { ApiResponse, Room, GameInfo, GameMove, PageResponse, ByoyomiOption, GameType, TimeLimit } from '@/types';
+
+export interface CreateRoomOptions {
+  gameType: GameType;
+  timeLimit: TimeLimit;
+  byoyomiOption: ByoyomiOption;
+}
+
+const DEFAULT_ROOM_OPTIONS: CreateRoomOptions = {
+  gameType: 'CLASSIC',
+  timeLimit: 'UNLIMITED',
+  byoyomiOption: 'NONE',
+};
 
 export const gameApi = {
-  createRoom: () =>
-    apiClient.post<ApiResponse<GameRoom>>('/games/rooms'),
+  createRoom: (options: CreateRoomOptions = DEFAULT_ROOM_OPTIONS) =>
+    apiClient.post<ApiResponse<Room>>('/rooms', options),
 
   joinRoom: (roomCode: string) =>
-    apiClient.post<ApiResponse<GameRoom>>(`/games/rooms/${roomCode}/join`),
+    apiClient.post<ApiResponse<Room>>(`/rooms/${roomCode}/join`),
+
+  spectateRoom: (roomCode: string) =>
+    apiClient.post<ApiResponse<Room>>(`/rooms/${roomCode}/spectate`),
+
+  leaveRoom: (roomCode: string) =>
+    apiClient.post<ApiResponse<void>>(`/rooms/${roomCode}/leave`),
+
+  requestRematch: (roomCode: string) =>
+    apiClient.post<ApiResponse<Room>>(`/rooms/${roomCode}/rematch`),
 
   getWaitingRooms: (page = 0, size = 10) =>
-    apiClient.get<ApiResponse<PageResponse<GameRoom>>>('/games/rooms', {
+    apiClient.get<ApiResponse<PageResponse<Room>>>('/rooms', {
       params: { page, size },
     }),
 
-  getGame: (gameId: number) =>
-    apiClient.get<ApiResponse<GameRoom>>(`/games/${gameId}`),
+  getRoom: (roomCode: string) =>
+    apiClient.get<ApiResponse<Room>>(`/rooms/${roomCode}`),
 
-  getGameMoves: (gameId: number) =>
-    apiClient.get<ApiResponse<GameMove[]>>(`/games/${gameId}/moves`),
+  getGame: (roomCode: string) =>
+    apiClient.get<ApiResponse<GameInfo>>(`/rooms/${roomCode}/game`),
 
-  placeStone: (gameId: number, row: number, col: number) =>
-    apiClient.post<ApiResponse<GameMove>>(`/games/${gameId}/moves`, { row, col }),
+  getGameMoves: (roomCode: string) =>
+    apiClient.get<ApiResponse<GameMove[]>>(`/rooms/${roomCode}/game/moves`),
 
-  surrender: (gameId: number) =>
-    apiClient.post<ApiResponse<GameRoom>>(`/games/${gameId}/surrender`),
+  placeStone: (roomCode: string, row: number, col: number) =>
+    apiClient.post<ApiResponse<GameMove>>(`/rooms/${roomCode}/game/moves`, { row, col }),
+
+  surrender: (roomCode: string) =>
+    apiClient.post<ApiResponse<GameInfo>>(`/rooms/${roomCode}/game/surrender`),
 
   getMyGames: (page = 0, size = 10) =>
-    apiClient.get<ApiResponse<PageResponse<GameRoom>>>('/games/my', {
+    apiClient.get<ApiResponse<PageResponse<GameInfo>>>('/games/my', {
       params: { page, size },
     }),
 };
