@@ -31,7 +31,10 @@ public class AssetService implements GetAssetUseCase {
     public AssetResult getAsset(Long userId, ItemType itemType, String assetKey) {
         Item item = findByAssetKey(itemType, assetKey);
 
-        if (!loadUserItemPort.existsByUserIdAndItemId(userId, item.getId())) {
+        // 착수음은 상대/관전자도 "둔 사람의 소리"를 들어야 하므로 소유권을 요구하지 않는다
+        // (인증은 여전히 필요). 그 외(바둑판 스킨 등)는 보유자만 접근 가능.
+        if (itemType != ItemType.STONE_SOUND
+                && !loadUserItemPort.existsByUserIdAndItemId(userId, item.getId())) {
             throw new OmokException(ErrorCode.ITEM_NOT_OWNED);
         }
 

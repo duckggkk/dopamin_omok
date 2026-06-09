@@ -1,7 +1,9 @@
 package com.dopamin.omok.user.adapter.in.web;
 
 import com.dopamin.omok.user.adapter.in.web.dto.UpdateProfileRequest;
+import com.dopamin.omok.user.application.dto.RankingResponse;
 import com.dopamin.omok.user.application.dto.UserResponse;
+import com.dopamin.omok.user.application.port.in.GetRankingUseCase;
 import com.dopamin.omok.user.application.port.in.GetUserUseCase;
 import com.dopamin.omok.user.application.port.in.UpdateProfileUseCase;
 import com.dopamin.omok.global.common.response.ApiResponse;
@@ -12,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -21,6 +24,7 @@ public class UserController {
 
     private final GetUserUseCase getUserUseCase;
     private final UpdateProfileUseCase updateProfileUseCase;
+    private final GetRankingUseCase getRankingUseCase;
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getMyProfile(
@@ -43,5 +47,12 @@ public class UserController {
         UserResponse response = updateProfileUseCase.updateProfile(
                 userDetails.getId(), request.nickname(), request.profileImageUrl());
         return ResponseEntity.ok(ApiResponse.success("프로필이 업데이트되었습니다.", response));
+    }
+
+    /** 랭킹: 상위 limit명(기본 20, 최대 100). */
+    @GetMapping("/ranking")
+    public ResponseEntity<ApiResponse<List<RankingResponse>>> getRanking(
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(ApiResponse.success(getRankingUseCase.getRanking(limit)));
     }
 }

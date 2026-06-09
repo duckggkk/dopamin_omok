@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '@/api/auth';
+import { getApiErrorMessage, getApiFieldErrors } from '@/utils/error';
 import styles from './AuthPage.module.css';
 
 const RegisterPage = () => {
@@ -18,12 +19,11 @@ const RegisterPage = () => {
       await authApi.register(form);
       navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string; data?: Record<string, string> } } };
-      const data = axiosErr.response?.data;
-      if (data?.data) {
-        setErrors(data.data);
+      const fieldErrors = getApiFieldErrors(err);
+      if (fieldErrors) {
+        setErrors(fieldErrors);
       } else {
-        setErrors({ general: data?.message ?? '회원가입에 실패했습니다.' });
+        setErrors({ general: getApiErrorMessage(err, '회원가입에 실패했습니다.') });
       }
     } finally {
       setIsLoading(false);

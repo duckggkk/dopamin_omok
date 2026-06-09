@@ -2,8 +2,12 @@ package com.dopamin.omok.shop.adapter.in.web;
 
 import com.dopamin.omok.global.common.response.ApiResponse;
 import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.shop.adapter.in.web.dto.ChargeCurrencyRequest;
+import com.dopamin.omok.shop.adapter.in.web.dto.EquipItemRequest;
+import com.dopamin.omok.shop.adapter.in.web.dto.OpenGachaRequest;
 import com.dopamin.omok.shop.application.dto.*;
 import com.dopamin.omok.shop.application.port.in.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,18 +34,18 @@ public class ShopController {
     @PostMapping("/currency/charge")
     public ResponseEntity<ApiResponse<Map<String, Integer>>> chargeCurrency(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody Map<String, String> body) {
+            @Valid @RequestBody ChargeCurrencyRequest request) {
         int newBalance = chargeCurrencyUseCase.chargeCurrency(
-                userDetails.getId(), body.get("packageId"));
+                userDetails.getId(), request.packageId());
         return ResponseEntity.ok(ApiResponse.success(Map.of("currency", newBalance)));
     }
 
     @PostMapping("/gacha/open")
     public ResponseEntity<ApiResponse<GachaResultResponse>> openBox(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody Map<String, String> body) {
+            @Valid @RequestBody OpenGachaRequest request) {
         GachaResultResponse result = openGachaUseCase.openBox(
-                userDetails.getId(), body.get("boxType"));
+                userDetails.getId(), request.boxType());
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -55,8 +59,8 @@ public class ShopController {
     @PostMapping("/equip")
     public ResponseEntity<ApiResponse<Void>> equipItem(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody Map<String, Long> body) {
-        equipItemUseCase.equipItem(userDetails.getId(), body.get("itemId"));
+            @Valid @RequestBody EquipItemRequest request) {
+        equipItemUseCase.equipItem(userDetails.getId(), request.itemId());
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

@@ -58,6 +58,13 @@ public class ShopService implements ChargeCurrencyUseCase, OpenGachaUseCase,
     @Override
     @Transactional
     public int chargeCurrency(Long userId, String packageId) {
+        // TODO(결제): 현재는 결제 검증 없이 재화를 지급하는 스텁이다.
+        //  실서비스 전환 시 PG(아임포트/토스페이먼츠 등) 결제 영수증 검증을 선행해야 한다.
+        //  그때까지는 직접 충전을 설정 플래그로 게이트하여 운영(prod)에서는 비활성화한다.
+        if (!shopProperties.directChargeEnabled()) {
+            throw new OmokException(ErrorCode.DIRECT_CHARGE_DISABLED);
+        }
+
         ShopProperties.CurrencyPackage pack = shopProperties.findPackage(packageId)
                 .orElseThrow(() -> new OmokException(ErrorCode.INVALID_REQUEST));
 

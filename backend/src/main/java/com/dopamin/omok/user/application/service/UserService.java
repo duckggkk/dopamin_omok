@@ -1,6 +1,8 @@
 package com.dopamin.omok.user.application.service;
 
+import com.dopamin.omok.user.application.dto.RankingResponse;
 import com.dopamin.omok.user.application.dto.UserResponse;
+import com.dopamin.omok.user.application.port.in.GetRankingUseCase;
 import com.dopamin.omok.user.application.port.in.GetUserUseCase;
 import com.dopamin.omok.user.application.port.in.UpdateProfileUseCase;
 import com.dopamin.omok.user.application.port.out.CheckUserExistsPort;
@@ -13,12 +15,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserService implements GetUserUseCase, UpdateProfileUseCase {
+public class UserService implements GetUserUseCase, UpdateProfileUseCase, GetRankingUseCase {
 
     private final LoadUserPort loadUserPort;
     private final CheckUserExistsPort checkUserExistsPort;
@@ -55,5 +58,16 @@ public class UserService implements GetUserUseCase, UpdateProfileUseCase {
         }
 
         return UserResponse.from(user);
+    }
+
+    @Override
+    public List<RankingResponse> getRanking(int limit) {
+        int capped = Math.min(Math.max(limit, 1), 100);
+        List<User> users = loadUserPort.findTopRanked(capped);
+        List<RankingResponse> ranking = new java.util.ArrayList<>(users.size());
+        for (int i = 0; i < users.size(); i++) {
+            ranking.add(RankingResponse.of(i + 1, users.get(i)));
+        }
+        return ranking;
     }
 }

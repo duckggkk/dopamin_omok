@@ -14,7 +14,10 @@ import java.util.Optional;
 @ConfigurationProperties(prefix = "app.shop")
 public record ShopProperties(
         List<CurrencyPackage> packages,
-        List<GachaBox> gacha
+        List<GachaBox> gacha,
+        // 결제 게이트웨이 미연동 상태의 "직접 충전" 허용 여부.
+        // 운영(prod)에서는 false 로 두어 무한 충전 악용을 막고, 로컬/데모에서만 true.
+        boolean directChargeEnabled
 ) {
     public record CurrencyPackage(String id, int currency, int priceKrw) {}
 

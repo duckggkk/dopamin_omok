@@ -34,6 +34,11 @@ export const gameApi = {
       params: { page, size },
     }),
 
+  getLiveRooms: (page = 0, size = 10) =>
+    apiClient.get<ApiResponse<PageResponse<Room>>>('/rooms/live', {
+      params: { page, size },
+    }),
+
   getRoom: (roomCode: string) =>
     apiClient.get<ApiResponse<Room>>(`/rooms/${roomCode}`),
 

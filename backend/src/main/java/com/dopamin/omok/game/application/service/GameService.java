@@ -34,6 +34,7 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
     private final LoadGamePlayerPort loadGamePlayerPort;
     private final SaveGamePlayerPort saveGamePlayerPort;
     private final LoadUserPort loadUserPort;
+    private final LoadStoneSoundPort loadStoneSoundPort;
     private final OmokGameEngine gameEngine;
 
     @Override
@@ -85,7 +86,9 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
             });
         }
 
-        return GameMoveResponse.from(move);
+        // 둔 사람의 장착 착수음을 응답에 실어 브로드캐스트 → 상대/관전자도 같은 소리를 듣는다.
+        String soundAssetKey = loadStoneSoundPort.findEquippedStoneSoundKey(userId).orElse(null);
+        return GameMoveResponse.from(move, soundAssetKey);
     }
 
     @Override

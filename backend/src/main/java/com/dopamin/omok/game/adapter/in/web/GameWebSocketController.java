@@ -22,9 +22,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException;
+import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -125,7 +128,7 @@ public class GameWebSocketController {
     @SendTo("/topic/room/{roomCode}/chat")
     public ApiResponse<ChatMessageResponse> handleChat(
             @DestinationVariable String roomCode,
-            @Payload ChatMessageRequest request,
+            @Valid @Payload ChatMessageRequest request,
             SimpMessageHeaderAccessor headerAccessor) {
         CustomUserDetails userDetails = extractUserDetails(headerAccessor);
         if (userDetails == null) return ApiResponse.error("인증이 필요합니다.");
@@ -147,6 +150,15 @@ public class GameWebSocketController {
             log.warn("Chat player lookup error for room {}: {}", roomCode, e.getMessage());
         }
         return ApiResponse.success(new ChatMessageResponse(nickname, color, spectator, request.content(), LocalDateTime.now()));
+    }
+
+    // @Valid 페이로드 검증 실패(예: 200자 초과/빈 채팅)를 STOMP 에러 프레임 대신
+    // 호출자에게 전달되는 에러 응답으로 변환한다.
+    @MessageExceptionHandler(MethodArgumentNotValidException.class)
+    @SendToUser("/queue/errors")
+    public ApiResponse<Void> handleValidation(MethodArgumentNotValidException e) {
+        log.debug("WebSocket payload validation failed: {}", e.getMessage());
+        return ApiResponse.error("입력값 검증에 실패했습니다.");
     }
 
     // JwtChannelInterceptor가 CONNECT 시 accessor.setUser(auth)로 설정한 값을 읽음

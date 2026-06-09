@@ -1,0 +1,44 @@
+# ─── 테스트 전용 설정 (H2 인메모리, 자기완결) ──────────────────────────────
+# 테스트 클래스패스에서 main 의 application.yml 을 가리고 이 파일이 로드된다.
+# local 프로파일(MySQL)을 활성화하지 않아 로컬에서 MySQL 없이 테스트가 돈다.
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL;NON_KEYWORDS=USER
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop      # 테스트 스키마는 엔티티로 생성 (Flyway는 MySQL 전용이라 비활성)
+    database-platform: org.hibernate.dialect.H2Dialect
+    open-in-view: false
+    show-sql: false
+  flyway:
+    enabled: false
+  jackson:
+    default-property-inclusion: non_null
+    time-zone: Asia/Seoul
+  mail:
+    host: localhost              # JavaMailSender 빈 자동구성용 더미 (실제 발송 안 함)
+    port: 25
+
+app:
+  assets:
+    storage: classpath
+  jwt:
+    secret: test-secret-key-for-jwt-testing-must-be-at-least-32-bytes-long
+    access-token-expiration: 3600000
+    refresh-token-expiration: 604800000
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+  mail:
+    from: test@dopaminomok.local
+  frontend:
+    url: http://localhost:5173
+  shop:
+    direct-charge-enabled: true
+    packages:
+      - { id: SMALL, currency: 50, priceKrw: 5000 }
+    gacha:
+      - { type: DEFEAT_MESSAGE, name: "테스트 상자", price: 30 }

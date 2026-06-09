@@ -1,0 +1,279 @@
+import { useState, useEffect, FormEvent } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { gameApi } from '@/api/game';
+import { userApi } from '@/api/auth';
+import { useAuthStore } from '@/store/authStore';
+import { useToast } from '@/contexts/ToastContext';
+import { getApiErrorMessage } from '@/utils/error';
+import { GameInfo, RankingEntry } from '@/types';
+import styles from './HomePage.module.css';
+
+/** 히어로 장식용 정적 오목판 (대각 5목 완성 직전 형세) */
+const DecoBoard = () => {
+  const N = 7, CELL = 27, PAD = 18;
+  const px = PAD * 2 + CELL * (N - 1);
+  const black = [[1, 1], [2, 2], [3, 3], [4, 4], [5, 5]];
+  const white = [[1, 4], [4, 2], [2, 5], [5, 3]];
+  const winStone = '5,5';
+  return (
+    <svg className={styles.decoBoard} width={px} height={px} viewBox={`0 0 ${px} ${px}`} aria-hidden="true">
+      <rect x="0" y="0" width={px} height={px} rx="10" fill="#e3bd72" />
+      {Array.from({ length: N }, (_, i) => (
+        <g key={i} stroke="#9c7322" strokeWidth="1">
+          <line x1={PAD + i * CELL} y1={PAD} x2={PAD + i * CELL} y2={PAD + (N - 1) * CELL} />
+          <line x1={PAD} y1={PAD + i * CELL} x2={PAD + (N - 1) * CELL} y2={PAD + i * CELL} />
+        </g>
+      ))}
+      {white.map(([r, c]) => (
+        <circle key={`w${r}-${c}`} cx={PAD + c * CELL} cy={PAD + r * CELL} r={CELL / 2 - 3}
+          fill="url(#dw)" stroke="#cdc6b6" strokeWidth="0.5" />
+      ))}
+      {black.map(([r, c]) => (
+        <circle key={`b${r}-${c}`} cx={PAD + c * CELL} cy={PAD + r * CELL} r={CELL / 2 - 3}
+          fill="url(#db)"
+          style={`${r},${c}` === winStone ? { filter: 'drop-shadow(0 0 7px rgba(224,168,63,0.95))' } : undefined} />
+      ))}
+      <defs>
+        <radialGradient id="db" cx="35%" cy="30%" r="65%">
+          <stop offset="0%" stopColor="#55504a" /><stop offset="100%" stopColor="#16140f" />
+        </radialGradient>
+        <radialGradient id="dw" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#ffffff" /><stop offset="100%" stopColor="#d6cfbe" />
+        </radialGradient>
+      </defs>
+    </svg>
+  );
+};
+
+const fmtDate = (iso?: string | null) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const HomePage = () => {
+  const navigate = useNavigate();
+  const showToast = useToast();
+  const { user } = useAuthStore();
+  const [joinCode, setJoinCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [recent, setRecent] = useState<GameInfo[] | null>(null);
+  const [topRanking, setTopRanking] = useState<RankingEntry[] | null>(null);
+
+  useEffect(() => {
+    gameApi.getMyGames(0, 5).then((res) => setRecent(res.data.data?.content ?? [])).catch(() => setRecent([]));
+    userApi.getRanking(3).then((res) => setTopRanking(res.data.data ?? [])).catch(() => setTopRanking([]));
+  }, []);
+
+  if (!user) return null;
+
+  const winRate = user.totalGames > 0 ? Math.round((user.wins / user.totalGames) * 100) : 0;
+
+  const quickPlay = async () => {
+    setBusy(true);
+    try {
+      const res = await gameApi.createRoom();
+      if (res.data.data) navigate(`/game/${res.data.data.roomCode}`);
+    } catch {
+      showToast('대국 생성에 실패했습니다.', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const physicalPlay = async () => {
+    setBusy(true);
+    try {
+      const res = await gameApi.createRoom({ gameType: 'PHYSICAL', timeLimit: 'UNLIMITED', byoyomiOption: 'NONE' });
+      if (res.data.data) navigate(`/game/${res.data.data.roomCode}`);
+    } catch {
+      showToast('대국 생성에 실패했습니다.', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const joinByCode = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!joinCode) return;
+    try {
+      const res = await gameApi.joinRoom(joinCode);
+      if (res.data.data) navigate(`/game/${res.data.data.roomCode}`);
+    } catch (err) {
+      showToast(getApiErrorMessage(err, '방 참가에 실패했습니다. 코드를 확인하세요.'), 'error');
+    }
+  };
+
+  const resultOf = (g: GameInfo): { label: string; cls: string } => {
+    if (g.status === 'IN_PROGRESS') return { label: '진행 중', cls: styles.rOngoing };
+    if (g.status === 'DRAW') return { label: '무', cls: styles.rDraw };
+    if (g.winner?.id === user.id) return { label: '승', cls: styles.rWin };
+    return { label: '패', cls: styles.rLoss };
+  };
+  const opponentOf = (g: GameInfo) =>
+    (g.blackPlayer?.id === user.id ? g.whitePlayer : g.blackPlayer)?.nickname ?? '상대';
+
+  return (
+    <div className={styles.page}>
+      {/* ---- 히어로 ---- */}
+      <section className={styles.hero}>
+        <div className={styles.heroText}>
+          <span className={styles.badge}>실시간 · 오목 대국</span>
+          <h1 className={styles.heroTitle}>
+            도파민 <span className={styles.accent}>오목</span>
+          </h1>
+          <p className={styles.heroSub}>
+            {user.nickname}님, 한 수의 쾌감을 다시. 가로·세로·대각 5목을 먼저 완성하세요.
+          </p>
+          <div className={styles.heroActions}>
+            <button className={styles.ctaPrimary} onClick={quickPlay} disabled={busy}>
+              ⚡ {busy ? '대국 생성 중...' : '빠른 대국'}
+            </button>
+            <button className={styles.ctaGhost} onClick={physicalPlay} disabled={busy}>
+              ⚔️ 피지컬 오목
+            </button>
+            <button className={styles.ctaGhost} onClick={() => navigate('/lobby')}>
+              대국 로비
+            </button>
+          </div>
+          <form className={styles.joinRow} onSubmit={joinByCode}>
+            <input
+              className={styles.joinInput}
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              placeholder="방 코드로 바로 참가"
+              maxLength={8}
+            />
+            <button type="submit" className={styles.joinBtn} disabled={!joinCode}>
+              참가
+            </button>
+          </form>
+        </div>
+        <div className={styles.heroArt}>
+          <DecoBoard />
+        </div>
+      </section>
+
+      {/* ---- 내 현황 ---- */}
+      <section className={styles.statRow}>
+        <div className={styles.statCard}>
+          <span className={styles.statIcon}>🪙</span>
+          <span className={styles.statValue}>{user.currency.toLocaleString()}</span>
+          <span className={styles.statLabel}>보유 재화</span>
+        </div>
+        <div className={styles.statCard}>
+          <span className={styles.statIcon}>⚔️</span>
+          <span className={styles.statValue}>{user.totalGames}</span>
+          <span className={styles.statLabel}>총 대국</span>
+        </div>
+        <div className={styles.statCard}>
+          <span className={styles.statIcon}>🏆</span>
+          <span className={`${styles.statValue} ${styles.gold}`}>{winRate}%</span>
+          <span className={styles.statLabel}>승률 ({user.wins}승 {user.losses}패)</span>
+        </div>
+        <Link to="/profile" className={`${styles.statCard} ${styles.statLink}`}>
+          <span className={styles.statIcon}>👤</span>
+          <span className={styles.statValue}>프로필</span>
+          <span className={styles.statLabel}>전적·계정 관리 →</span>
+        </Link>
+      </section>
+
+      {/* ---- 메뉴 타일 + 최근 전적 ---- */}
+      <div className={styles.grid}>
+        <section className={styles.menuCol}>
+          <h2 className={styles.colTitle}>바로가기</h2>
+          <button className={styles.tile} onClick={() => navigate('/lobby')}>
+            <span className={styles.tileIcon}>🎯</span>
+            <span className={styles.tileBody}>
+              <span className={styles.tileName}>대국 로비</span>
+              <span className={styles.tileDesc}>대기 중인 방에 참가하거나 새 방을 만드세요</span>
+            </span>
+            <span className={styles.tileArrow}>→</span>
+          </button>
+          <button className={styles.tile} onClick={() => navigate('/shop')}>
+            <span className={styles.tileIcon}>🛍️</span>
+            <span className={styles.tileBody}>
+              <span className={styles.tileName}>상점</span>
+              <span className={styles.tileDesc}>바둑알 스킨·착수 효과·착수음을 뽑아보세요</span>
+            </span>
+            <span className={styles.tileArrow}>→</span>
+          </button>
+          <button className={styles.tile} onClick={() => navigate('/profile')}>
+            <span className={styles.tileIcon}>📊</span>
+            <span className={styles.tileBody}>
+              <span className={styles.tileName}>내 전적</span>
+              <span className={styles.tileDesc}>승률과 통계, 닉네임을 관리하세요</span>
+            </span>
+            <span className={styles.tileArrow}>→</span>
+          </button>
+        </section>
+
+        <section className={styles.recentCol}>
+          <h2 className={styles.colTitle}>최근 전적</h2>
+          <div className={styles.recentList}>
+            {recent === null ? (
+              <p className={styles.recentEmpty}>불러오는 중...</p>
+            ) : recent.length === 0 ? (
+              <p className={styles.recentEmpty}>아직 대국 기록이 없어요. 첫 대국을 시작해보세요!</p>
+            ) : (
+              recent.map((g) => {
+                const r = resultOf(g);
+                return (
+                  <div key={g.id} className={styles.recentItem}>
+                    <span className={`${styles.resultChip} ${r.cls}`}>{r.label}</span>
+                    <span className={styles.recentOpp}>vs {opponentOf(g)}</span>
+                    <span className={styles.recentDate}>{fmtDate(g.finishedAt ?? g.startedAt)}</span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+      </div>
+
+      {/* ---- 랭킹 TOP 3 ---- */}
+      <section className={styles.rankPreview}>
+        <div className={styles.rankHead}>
+          <h2 className={styles.colTitle}>랭킹 TOP 3</h2>
+          <button className={styles.rankMore} onClick={() => navigate('/ranking')}>전체 보기 →</button>
+        </div>
+        {topRanking && topRanking.length > 0 ? (
+          <div className={styles.podium}>
+            {topRanking.map((r) => (
+              <div key={r.userId} className={styles.podiumItem}>
+                <span className={`${styles.podiumRank} ${r.rank === 1 ? styles.g : r.rank === 2 ? styles.s : styles.b}`}>
+                  {r.rank}
+                </span>
+                <span className={styles.podiumName}>{r.nickname}</span>
+                <span className={styles.podiumStat}>{r.wins}승 · 승률 {r.winRate}%</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.recentEmpty}>아직 랭킹이 없어요. 첫 승리에 도전하세요!</p>
+        )}
+      </section>
+
+      {/* ---- 게임 방법 ---- */}
+      <section className={styles.howto}>
+        <h2 className={styles.colTitle}>게임 방법</h2>
+        <div className={styles.steps}>
+          <div className={styles.step}>
+            <span className={styles.stepNo}>1</span>
+            <p className={styles.stepText}><b>방 입장</b><br />빠른 대국 또는 로비에서 방에 참가합니다.</p>
+          </div>
+          <div className={styles.step}>
+            <span className={styles.stepNo}>2</span>
+            <p className={styles.stepText}><b>번갈아 착수</b><br />흑(선)부터 한 수씩 교대로 돌을 놓습니다.</p>
+          </div>
+          <div className={styles.step}>
+            <span className={styles.stepNo}>3</span>
+            <p className={styles.stepText}><b>5목 완성</b><br />가로·세로·대각 어느 방향이든 5개를 먼저 잇습니다.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default HomePage;

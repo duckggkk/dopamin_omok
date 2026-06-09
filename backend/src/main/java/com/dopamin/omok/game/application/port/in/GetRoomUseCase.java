@@ -7,4 +7,6 @@ import org.springframework.data.domain.Pageable;
 public interface GetRoomUseCase {
     RoomResponse getRoom(String roomCode);
     Page<RoomResponse> getWaitingRooms(Pageable pageable);
+    /** 진행 중(IN_PROGRESS)인 방 목록 — 관전용. */
+    Page<RoomResponse> getInProgressRooms(Pageable pageable);
 }

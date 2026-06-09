@@ -5,8 +5,10 @@ import com.dopamin.omok.user.application.port.out.LoadUserPort;
 import com.dopamin.omok.user.application.port.out.SaveUserPort;
 import com.dopamin.omok.user.domain.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,6 +31,11 @@ public class UserPersistenceAdapter implements LoadUserPort, SaveUserPort, Check
     @Override
     public Optional<User> findByPublicId(UUID publicId) {
         return userJpaRepository.findByPublicId(publicId);
+    }
+
+    @Override
+    public List<User> findTopRanked(int limit) {
+        return userJpaRepository.findRanked(PageRequest.of(0, limit));
     }
 
     @Override

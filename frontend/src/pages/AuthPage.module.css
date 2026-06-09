@@ -1,122 +1,139 @@
 .container {
-  min-height: calc(100vh - 60px);
+  min-height: calc(100vh - 62px);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0f0f1e;
-  padding: 24px;
+  padding: 32px 24px;
 }
 
 .card {
-  background: #1a1a2e;
-  border-radius: 12px;
-  padding: 40px;
+  position: relative;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 44px 40px;
   width: 100%;
-  max-width: 420px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  max-width: 430px;
+  box-shadow: var(--shadow-raised), var(--ring-top);
+  overflow: hidden;
+}
+/* 상단 골드 라인 악센트 */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--gold-grad);
+  opacity: 0.9;
 }
 
 .title {
-  color: #e0c97f;
-  font-size: 1.8rem;
-  font-weight: 700;
+  color: var(--text);
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   margin-bottom: 8px;
   text-align: center;
 }
 
 .subtitle {
-  color: #888;
+  color: var(--text-muted);
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 30px;
   font-size: 0.95rem;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 
 .field label {
-  color: #c8d6f0;
-  font-size: 0.9rem;
-  font-weight: 500;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .input {
-  background: #0f0f1e;
-  border: 1px solid #333;
-  border-radius: 8px;
-  color: #e0e0e0;
-  font-size: 0.95rem;
-  padding: 12px 14px;
+  background: var(--inset);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 0.96rem;
+  padding: 13px 14px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
 }
-
+.input::placeholder { color: var(--text-faint); }
 .input:focus {
-  border-color: #e0c97f;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-soft);
 }
 
-.inputError {
-  border-color: #e05050 !important;
-}
-
-.fieldError {
-  color: #e05050;
-  font-size: 0.8rem;
-}
+.inputError { border-color: var(--danger) !important; }
+.fieldError { color: var(--danger); font-size: 0.8rem; }
 
 .error {
-  color: #e05050;
+  color: var(--danger);
   text-align: center;
   font-size: 0.9rem;
-  background: rgba(224, 80, 80, 0.1);
-  padding: 10px;
-  border-radius: 6px;
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-border);
+  padding: 11px;
+  border-radius: var(--r-sm);
+}
+
+/* 상단 알림(인증완료/세션만료 등) */
+.notice {
+  text-align: center;
+  font-size: 0.9rem;
+  border-radius: var(--r-sm);
+  padding: 11px;
+  margin-bottom: 10px;
+  background: var(--success-soft);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+}
+.noticeWarn {
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+  color: var(--danger);
 }
 
 .submitBtn {
-  background: #e0c97f;
-  color: #1a1a2e;
+  background: var(--gold-grad);
+  color: var(--text-on-gold);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 14px;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
-  transition: background 0.2s, opacity 0.2s;
-  margin-top: 4px;
+  box-shadow: var(--shadow-sm), var(--ring-top);
+  transition: filter var(--t-fast) var(--ease), transform var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease);
+  margin-top: 6px;
 }
-
-.submitBtn:hover:not(:disabled) {
-  background: #f0d98f;
-}
-
-.submitBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.submitBtn:hover:not(:disabled) { filter: brightness(1.07); transform: translateY(-1px); }
+.submitBtn:active:not(:disabled) { transform: translateY(0); }
+.submitBtn:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .footer {
   text-align: center;
-  color: #888;
+  color: var(--text-muted);
   font-size: 0.9rem;
-  margin-top: 24px;
+  margin-top: 26px;
 }
-
 .footer a {
-  color: #e0c97f;
+  color: var(--gold);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
 }
-
-.footer a:hover {
-  text-decoration: underline;
-}
+.footer a:hover { text-decoration: underline; }

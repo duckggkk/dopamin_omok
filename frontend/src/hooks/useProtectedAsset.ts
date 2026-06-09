@@ -17,7 +17,7 @@ const cacheKey = (itemType: ItemType, assetKey: string) => `${itemType}/${assetK
  *
  * assetKey가 없으면(필터 스킨, 기본 스킨, 미장착 등) 요청하지 않고 null 반환.
  */
-async function resolveAssetUrl(itemType: ItemType, assetKey: string): Promise<string> {
+export async function resolveAssetUrl(itemType: ItemType, assetKey: string): Promise<string> {
   const key = cacheKey(itemType, assetKey);
   if (urlCache.has(key)) return urlCache.get(key)!;
   if (inFlight.has(key)) return inFlight.get(key)!;

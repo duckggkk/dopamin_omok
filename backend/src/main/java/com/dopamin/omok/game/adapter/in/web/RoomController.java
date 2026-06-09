@@ -77,6 +77,13 @@ public class RoomController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/live")
+    public ResponseEntity<ApiResponse<Page<RoomResponse>>> getInProgressRooms(
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<RoomResponse> response = getRoomUseCase.getInProgressRooms(pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/{roomCode}")
     public ResponseEntity<ApiResponse<RoomResponse>> getRoom(@PathVariable String roomCode) {
         RoomResponse response = getRoomUseCase.getRoom(roomCode);

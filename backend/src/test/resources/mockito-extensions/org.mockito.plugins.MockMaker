@@ -1,0 +1,3 @@
+# Java 21+ 에서 inline mock-maker 의 java agent 자기-attach 가 막혀 초기화에 실패하므로,
+# 서브클래스 기반 mock-maker 를 사용한다. (모킹 대상이 인터페이스/비-final 클래스뿐이라 충분)
+mock-maker-subclass

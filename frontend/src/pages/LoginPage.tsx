@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi, userApi } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
 import { tokenStorage } from '@/utils/token';
+import { getApiErrorMessage, getApiErrorStatus } from '@/utils/error';
 import styles from './AuthPage.module.css';
 import pageStyles from './LoginPage.module.css';
 
@@ -32,17 +33,13 @@ const LoginPage = () => {
       const userRes = await userApi.getMe();
       if (userRes.data.data) {
         login(userRes.data.data, accessToken, refreshToken);
-        navigate('/lobby');
+        navigate('/');
       }
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { status?: number; data?: { message?: string } } };
-      const status = axiosErr.response?.status;
-      const message = axiosErr.response?.data?.message ?? '로그인에 실패했습니다.';
-
-      if (status === 403) {
+      if (getApiErrorStatus(err) === 403) {
         setIsEmailNotVerified(true);
       }
-      setError(message);
+      setError(getApiErrorMessage(err, '로그인에 실패했습니다.'));
     } finally {
       setIsLoading(false);
     }
@@ -54,12 +51,10 @@ const LoginPage = () => {
         <h1 className={styles.title}>로그인</h1>
         <p className={styles.subtitle}>도파민 오목에 오신 것을 환영합니다</p>
         {isJustVerified && (
-          <p style={{ color: '#4caf90', background: 'rgba(76,175,144,0.1)', borderRadius: '6px', padding: '10px', textAlign: 'center', fontSize: '0.9rem', marginBottom: '8px' }}>
-            이메일 인증이 완료되었습니다! 로그인해주세요.
-          </p>
+          <p className={styles.notice}>이메일 인증이 완료되었습니다! 로그인해주세요.</p>
         )}
         {isSessionExpired && (
-          <p style={{ color: '#e57373', background: 'rgba(229,115,115,0.1)', borderRadius: '6px', padding: '10px', textAlign: 'center', fontSize: '0.9rem', marginBottom: '8px' }}>
+          <p className={`${styles.notice} ${styles.noticeWarn}`}>
             다른 기기에서 로그인되어 자동 로그아웃되었습니다.
           </p>
         )}

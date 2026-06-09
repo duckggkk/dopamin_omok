@@ -1,15 +1,29 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { Client, IMessage } from '@stomp/stompjs';
 import { tokenStorage } from '@/utils/token';
+import {
+  ApiResponse,
+  ChatMessage,
+  Direction,
+  GameMove,
+  NoticePayload,
+  PhysicalInputType,
+  PhysicalSnapshot,
+  Room,
+} from '@/types';
 
 interface UseWebSocketOptions {
   roomCode: string;
-  onMove: (data: unknown) => void;
-  onRoomStatus: (data: unknown) => void;
-  onRoomClosed?: (data: unknown) => void;
-  onChat?: (data: unknown) => void;
-  onNotice?: (data: unknown) => void;
+  onMove: (msg: ApiResponse<GameMove>) => void;
+  onRoomStatus: (msg: ApiResponse<Room>) => void;
+  onRoomClosed?: (msg: NoticePayload) => void;
+  onChat?: (msg: ApiResponse<ChatMessage>) => void;
+  onNotice?: (msg: NoticePayload) => void;
+  // 피지컬 오목: 서버 스냅샷(raw, ApiResponse 래핑 없음). 클래식에서는 미사용.
+  onPhysicalSnapshot?: (snapshot: PhysicalSnapshot) => void;
 }
+
+const parse = <T>(message: IMessage): T => JSON.parse(message.body) as T;
 
 export const useWebSocket = ({
   roomCode,
@@ -18,41 +32,50 @@ export const useWebSocket = ({
   onRoomClosed,
   onChat,
   onNotice,
+  onPhysicalSnapshot,
 }: UseWebSocketOptions) => {
   const clientRef = useRef<Client | null>(null);
   const isConnectedRef = useRef(false);
 
   const connect = useCallback(() => {
-    const token = tokenStorage.getAccessToken();
-
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
 
     const client = new Client({
       brokerURL: wsUrl,
-      connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 3000,
+      // 매 (재)연결 직전마다 localStorage의 최신 토큰을 헤더에 주입.
+      // axios 인터셉터가 토큰을 갱신해 두므로, 재연결 시 만료된 토큰 사용을 방지한다.
+      beforeConnect: () => {
+        client.connectHeaders = {
+          Authorization: `Bearer ${tokenStorage.getAccessToken() ?? ''}`,
+        };
+      },
       onConnect: () => {
         isConnectedRef.current = true;
 
         client.subscribe(`/topic/room/${roomCode}`, (message: IMessage) => {
-          onMove(JSON.parse(message.body));
+          onMove(parse<ApiResponse<GameMove>>(message));
         });
 
         client.subscribe(`/topic/room/${roomCode}/status`, (message: IMessage) => {
-          onRoomStatus(JSON.parse(message.body));
+          onRoomStatus(parse<ApiResponse<Room>>(message));
         });
 
         client.subscribe(`/topic/room/${roomCode}/closed`, (message: IMessage) => {
-          onRoomClosed?.(JSON.parse(message.body));
+          onRoomClosed?.(parse<NoticePayload>(message));
         });
 
         client.subscribe(`/topic/room/${roomCode}/chat`, (message: IMessage) => {
-          onChat?.(JSON.parse(message.body));
+          onChat?.(parse<ApiResponse<ChatMessage>>(message));
         });
 
         client.subscribe(`/topic/room/${roomCode}/notice`, (message: IMessage) => {
-          onNotice?.(JSON.parse(message.body));
+          onNotice?.(parse<NoticePayload>(message));
+        });
+
+        client.subscribe(`/topic/room/${roomCode}/physical`, (message: IMessage) => {
+          onPhysicalSnapshot?.(parse<PhysicalSnapshot>(message));
         });
       },
       onDisconnect: () => {
@@ -65,7 +88,7 @@ export const useWebSocket = ({
 
     client.activate();
     clientRef.current = client;
-  }, [roomCode, onMove, onRoomStatus, onRoomClosed, onChat, onNotice]);
+  }, [roomCode, onMove, onRoomStatus, onRoomClosed, onChat, onNotice, onPhysicalSnapshot]);
 
   const disconnect = useCallback(() => {
     clientRef.current?.deactivate();
@@ -118,10 +141,39 @@ export const useWebSocket = ({
     [roomCode],
   );
 
+  // 피지컬 오목: 단일 입력 엔드포인트로 전송(direction 은 MOVE_START 일 때만 의미)
+  const sendPhysicalInput = useCallback(
+    (type: PhysicalInputType, direction?: Direction) => {
+      if (!clientRef.current?.connected) return;
+      clientRef.current.publish({
+        destination: `/app/physical/${roomCode}/input`,
+        body: JSON.stringify({ type, direction: direction ?? null }),
+      });
+    },
+    [roomCode],
+  );
+
+  const sendPhysicalSurrender = useCallback(() => {
+    if (!clientRef.current?.connected) return;
+    clientRef.current.publish({
+      destination: `/app/physical/${roomCode}/surrender`,
+      body: '{}',
+    });
+  }, [roomCode]);
+
   useEffect(() => {
     connect();
     return () => disconnect();
   }, [connect, disconnect]);
 
-  return { sendMove, sendSurrender, sendReady, sendStart, sendChat, isConnected: isConnectedRef };
+  return {
+    sendMove,
+    sendSurrender,
+    sendReady,
+    sendStart,
+    sendChat,
+    sendPhysicalInput,
+    sendPhysicalSurrender,
+    isConnected: isConnectedRef,
+  };
 };

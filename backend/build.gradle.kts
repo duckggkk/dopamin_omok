@@ -47,6 +47,9 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:$jjwtVersion")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:$jjwtVersion")
 
+    // OpenAPI / Swagger UI (Flutter 등 클라이언트 코드 생성 기반)
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
+
     // Lombok
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

@@ -24,6 +24,9 @@ app:
     # s3: S3SkinAssetAdapter 활성화 — S3 서명 URL 방식으로 전환
     storage: classpath
   shop:
+    # 결제(PG) 미연동 상태의 직접 충전 허용 여부 — 기본 true(로컬/데모).
+    # 운영(prod)에서는 application-prod.yml 에서 false 로 덮어 무한 충전 악용을 막는다.
+    direct-charge-enabled: true
     # 충전 패키지 (가격/구성 변경 시 코드 수정 없이 여기만 변경)
     packages:
       - { id: SMALL,   currency: 50,   priceKrw: 5000 }
@@ -36,6 +39,26 @@ app:
       - { type: DEFEAT_MESSAGE, name: "문구 랜덤 뽑기 상자",      price: 30 }
       - { type: BOARD_SKIN,     name: "바둑판 스킨 랜덤 뽑기 상자", price: 50 }
       - { type: STONE_SOUND,    name: "착수음 랜덤 뽑기 상자",      price: 40 }
+      - { type: STONE_SKIN,     name: "바둑알 스킨 랜덤 뽑기 상자", price: 60 }
+      - { type: STONE_EFFECT,   name: "착수 효과 랜덤 뽑기 상자",   price: 50 }
+      - { type: CHARACTER_SKIN, name: "피지컬 캐릭터 랜덤 뽑기 상자", price: 70 }
+  # 피지컬 오목(실시간 액션 모드) 런타임/밸런스. 코드 수정 없이 여기서 조절(보드 크기/쿨다운/아이템).
+  physical-omok:
+    board-size: 14            # 보드 N×N (변경 가능)
+    win-count: 5              # 5목 완성 시 승리
+    move-cooldown-ms: 140     # 한 칸 이동 간 최소 간격(살짝 신중한 템포)
+    place-cooldown-ms: 150    # 착수 간 최소 간격(중복 착수만 방지 — 러시는 win-settle-ms가 막음)
+    destroy-cooldown-ms: 2000 # Shift 파괴 쿨다운(규칙: 2초)
+    win-settle-ms: 2000       # 5목이 2초 유지돼야 승리 확정 — 그 사이 끊으면 무효(러시 방지 + 역전 여지)
+    tick-interval-ms: 60      # 서버 틱(이동/스폰/스냅샷) 주기 ≈ 16Hz
+    item-spawn-interval-ms: 7000
+    max-items-on-field: 3
+    speed-boost-duration-ms: 5000
+    speed-boost-move-cooldown-ms: 70  # 부스트 중 이동 간격(기본의 절반)
+    item-weights:             # 출현 가중치(흔할수록 큼) — 약한 부스트 흔하게, 역전 폭탄 드물게
+      SPEED_BOOST: 50
+      CRATER: 30
+      BOMB: 20
 
 logging:
   charset:
@@ -43,5 +66,8 @@ logging:
     file: UTF-8
   level:
     com.dopamin.omok: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: DEBUG
+    # 주의: Hibernate SQL/바인드 파라미터 DEBUG 로그는 민감정보(이메일/비밀번호 등)를
+    # 노출할 수 있어 베이스에서 활성화하지 않는다. 로컬에서만 application-local.yml 에
+    # 아래를 추가해 사용하세요:
+    #   org.hibernate.SQL: DEBUG
+    #   org.hibernate.orm.jdbc.bind: TRACE

@@ -1,0 +1,40 @@
+import { useCallback, useRef } from 'react';
+import { resolveAssetUrl } from './useProtectedAsset';
+
+/**
+ * assetKey 별로 착수음을 재생하는 함수를 반환한다.
+ * 착수 메시지에 실려온 "둔 사람의 착수음 assetKey"를 그대로 재생하므로,
+ * 내 수든 상대 수든 그 수를 둔 사람의 소리가 양쪽 클라이언트에서 동일하게 들린다.
+ * assetKey 가 없으면(미장착) 무음.
+ */
+export function useStoneSoundPlayer(): (assetKey: string | null | undefined) => void {
+  const audioCache = useRef<Map<string, HTMLAudioElement>>(new Map());
+
+  const playCached = (audio: HTMLAudioElement) => {
+    audio.currentTime = 0;
+    // 자동재생 정책 등으로 실패 시 조용히 무시
+    audio.play().catch(() => {});
+  };
+
+  return useCallback((assetKey: string | null | undefined) => {
+    if (!assetKey) return;
+
+    const cached = audioCache.current.get(assetKey);
+    if (cached) {
+      playCached(cached);
+      return;
+    }
+
+    resolveAssetUrl('STONE_SOUND', assetKey)
+      .then((url) => {
+        let audio = audioCache.current.get(assetKey);
+        if (!audio) {
+          audio = new Audio(url);
+          audio.preload = 'auto';
+          audioCache.current.set(assetKey, audio);
+        }
+        playCached(audio);
+      })
+      .catch(() => {});
+  }, []);
+}

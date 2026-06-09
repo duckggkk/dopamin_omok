@@ -1,3 +1,9 @@
+/* =========================================================================
+   도파민 오목 — 디자인 시스템 (다크 우드 라운지)
+   따뜻한 원목 톤 + 앰버/골드 악센트 + 파치먼트 텍스트 + 깊이감.
+   모든 페이지 CSS 모듈은 여기 정의된 토큰(var)을 사용한다.
+   ========================================================================= */
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -5,14 +11,87 @@
 }
 
 :root {
-  --color-bg: #0f0f1e;
-  --color-surface: #1a1a2e;
-  --color-border: #2a2a3e;
-  --color-primary: #e0c97f;
-  --color-text: #e0e0e0;
-  --color-text-muted: #888;
-  --color-success: #50c878;
-  --color-error: #e05050;
+  /* ---- 배경 / 표면 (딥 월넛 → 에스프레소) ---- */
+  --bg-deep: #140d07;          /* 앱 최하단 */
+  --bg: #19110a;               /* 본문 베이스 */
+  --surface: #241a10;          /* 카드 */
+  --surface-2: #2c2014;        /* 카드 그라디언트 상단 / 살짝 올라온 표면 */
+  --surface-3: #34271a;        /* 호버 / 강조 표면 */
+  --inset: #140d06;            /* 입력창·우물(well) */
+  --board-frame: #3a2817;      /* 바둑판 원목 프레임 */
+
+  /* ---- 보더 ---- */
+  --border: #3a2c1b;
+  --border-strong: #4d3a24;
+  --border-faint: #2a2014;
+
+  /* ---- 악센트 (앰버/골드) ---- */
+  --gold: #e0a83f;
+  --gold-bright: #f4c869;
+  --gold-deep: #c8861f;
+  --gold-grad: linear-gradient(135deg, #f4c869 0%, #d99a32 55%, #c8861f 100%);
+  --gold-soft: rgba(224, 168, 63, 0.12);
+  --gold-soft-border: rgba(224, 168, 63, 0.32);
+
+  /* ---- 텍스트 (파치먼트) ---- */
+  --text: #f1e7d4;
+  --text-muted: #b6a486;
+  --text-faint: #8a7a60;
+  --text-on-gold: #1c130a;
+
+  /* ---- 시맨틱 ---- */
+  --success: #6fc27e;
+  --success-soft: rgba(111, 194, 126, 0.13);
+  --success-border: rgba(111, 194, 126, 0.4);
+  --danger: #df5b54;
+  --danger-soft: rgba(223, 91, 84, 0.12);
+  --danger-border: rgba(223, 91, 84, 0.4);
+  --warn: #f0964a;
+  --warn-soft: rgba(240, 150, 74, 0.12);
+  --info: #6db3b0;             /* 차분한 청자색 (나/관전 등) */
+  --info-soft: rgba(109, 179, 176, 0.14);
+  --info-border: rgba(109, 179, 176, 0.4);
+
+  /* ---- 돌 색 ---- */
+  --stone-black: #1c1b18;
+  --stone-black-edge: #5a5048;
+  --stone-white: #f3efe6;
+  --stone-white-edge: #cdc6b6;
+
+  /* ---- 라운드 ---- */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* ---- 그림자 (따뜻한 톤) ---- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px -8px rgba(0, 0, 0, 0.55);
+  --shadow-raised: 0 8px 30px -6px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 20px 60px -12px rgba(0, 0, 0, 0.7);
+  --ring-top: inset 0 1px 0 rgba(255, 240, 214, 0.05);
+  --glow-gold: 0 0 0 1px var(--gold-soft-border), 0 8px 24px -6px rgba(224, 168, 63, 0.35);
+
+  /* ---- 모션 ---- */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --t-fast: 0.15s;
+  --t: 0.22s;
+
+  /* ---- 폰트 ---- */
+  --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', 'Consolas', 'D2Coding', monospace;
+
+  /* ---- 레거시 변수 별칭(기존 참조 호환) ---- */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-primary: var(--gold);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-success: var(--success);
+  --color-error: var(--danger);
 }
 
 html, body {
@@ -20,42 +99,62 @@ html, body {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
-  background-color: var(--color-bg);
-  color: var(--color-text);
+  font-family: var(--font-sans);
+  color: var(--text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+
+  /* 원목 결 + 비네팅 배경 (고정) */
+  background-color: var(--bg-deep);
+  background-image:
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(86, 58, 30, 0.55), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 50% 110%, rgba(14, 9, 5, 0.7), transparent 65%),
+    repeating-linear-gradient(
+      94deg,
+      rgba(255, 240, 214, 0.014) 0px,
+      rgba(255, 240, 214, 0.014) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.05) 0px,
+      rgba(0, 0, 0, 0.05) 2px,
+      transparent 2px,
+      transparent 9px
+    ),
+    linear-gradient(180deg, #1d140c 0%, #150e07 55%, #110b06 100%);
+  background-attachment: fixed;
 }
 
 #root {
   min-height: 100vh;
 }
 
-button {
+button, input, select, textarea {
   font-family: inherit;
 }
 
-input, select, textarea {
-  font-family: inherit;
+a { color: inherit; }
+
+::selection {
+  background: rgba(224, 168, 63, 0.3);
+  color: #fff;
 }
 
-a {
-  color: inherit;
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--color-bg);
-}
-
+/* 스크롤바 */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 3px;
+  background: #3a2c1b;
+  border-radius: var(--r-pill);
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
+::-webkit-scrollbar-thumb:hover { background: #553f26; background-clip: padding-box; }

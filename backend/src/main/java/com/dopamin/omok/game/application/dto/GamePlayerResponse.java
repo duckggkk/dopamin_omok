@@ -14,9 +14,16 @@ public record GamePlayerResponse(
         StoneColor color,
         Integer remainingSeconds,
         boolean inByoyomi,
-        boolean ready
+        boolean ready,
+        StoneSkinResponse stoneSkin,
+        String stoneEffect
 ) {
     public static GamePlayerResponse from(GamePlayer gp) {
+        return from(gp, PlayerCosmetics.EMPTY);
+    }
+
+    public static GamePlayerResponse from(GamePlayer gp, PlayerCosmetics cosmetics) {
+        PlayerCosmetics c = cosmetics != null ? cosmetics : PlayerCosmetics.EMPTY;
         return new GamePlayerResponse(
                 gp.getUser().getPublicId(),
                 gp.getUser().getNickname(),
@@ -25,7 +32,9 @@ public record GamePlayerResponse(
                 gp.getColor(),
                 gp.getRemainingSeconds(),
                 gp.isInByoyomi(),
-                gp.isReady()
+                gp.isReady(),
+                c.stoneSkin(),
+                c.stoneEffect()
         );
     }
 }

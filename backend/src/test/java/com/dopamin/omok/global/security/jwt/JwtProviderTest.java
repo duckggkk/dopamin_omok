@@ -1,0 +1,52 @@
+package com.dopamin.omok.global.security.jwt;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class JwtProviderTest {
+
+    private JwtProvider jwtProvider;
+
+    @BeforeEach
+    void setUp() {
+        JwtProperties properties = new JwtProperties();
+        properties.setSecret("test-secret-key-for-jwt-testing-must-be-at-least-32-bytes-long");
+        properties.setAccessTokenExpiration(3_600_000L);
+        properties.setRefreshTokenExpiration(604_800_000L);
+        jwtProvider = new JwtProvider(properties);
+    }
+
+    @Test
+    @DisplayName("액세스 토큰 생성 후 클레임을 다시 추출")
+    void generateAndParseAccessToken() {
+        String token = jwtProvider.generateAccessToken(42L, "user@x.com", "USER", 3L);
+
+        assertThat(jwtProvider.validateToken(token)).isTrue();
+        assertThat(jwtProvider.extractUserId(token)).isEqualTo(42L);
+        assertThat(jwtProvider.extractTokenVersion(token)).isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("리프레시 토큰의 subject 는 userId")
+    void refreshTokenSubject() {
+        String token = jwtProvider.generateRefreshToken(7L);
+        assertThat(jwtProvider.validateToken(token)).isTrue();
+        assertThat(jwtProvider.extractUserId(token)).isEqualTo(7L);
+    }
+
+    @Test
+    @DisplayName("형식이 잘못된 토큰은 검증 실패")
+    void invalidTokenFailsValidation() {
+        assertThat(jwtProvider.validateToken("not-a-jwt")).isFalse();
+    }
+
+    @Test
+    @DisplayName("변조된 토큰은 서명 검증 실패")
+    void tamperedTokenFailsValidation() {
+        String token = jwtProvider.generateAccessToken(1L, "user@x.com", "USER", 0L);
+        assertThat(jwtProvider.validateToken(token + "tampered")).isFalse();
+    }
+}

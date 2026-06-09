@@ -51,6 +51,7 @@ public enum ErrorCode {
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "아이템을 찾을 수 없습니다."),
     ITEM_NOT_OWNED(HttpStatus.FORBIDDEN, "보유하지 않은 아이템입니다."),
     INSUFFICIENT_CURRENCY(HttpStatus.BAD_REQUEST, "돌이 부족합니다."),
+    DIRECT_CHARGE_DISABLED(HttpStatus.FORBIDDEN, "현재 충전 기능을 사용할 수 없습니다."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
 
     // Common

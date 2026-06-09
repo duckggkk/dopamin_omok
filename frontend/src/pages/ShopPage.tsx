@@ -9,6 +9,9 @@ const ITEM_TYPE_META: Record<ItemType, { icon: string; label: string }> = {
   DEFEAT_MESSAGE: { icon: '💬', label: '패배 문구' },
   BOARD_SKIN: { icon: '🎨', label: '바둑판 스킨' },
   STONE_SOUND: { icon: '🔊', label: '착수음' },
+  STONE_SKIN: { icon: '⚫', label: '바둑알 스킨' },
+  STONE_EFFECT: { icon: '✨', label: '착수 효과' },
+  CHARACTER_SKIN: { icon: '🧙', label: '피지컬 캐릭터' },
 };
 const INVENTORY_TYPES = Object.keys(ITEM_TYPE_META) as ItemType[];
 

@@ -1,28 +1,38 @@
 package com.dopamin.omok.game.application.service;
 
+import com.dopamin.omok.game.application.dto.PlayerCosmetics;
 import com.dopamin.omok.game.application.dto.RoomResponse;
+import com.dopamin.omok.game.application.dto.StoneSkinResponse;
 import com.dopamin.omok.global.common.response.ApiResponse;
 import com.dopamin.omok.game.application.port.in.*;
 import com.dopamin.omok.game.application.port.in.ReadyGameUseCase;
 import com.dopamin.omok.game.application.port.in.StartGameUseCase;
 import com.dopamin.omok.game.application.port.out.*;
 import com.dopamin.omok.game.domain.*;
+import com.dopamin.omok.game.physical.application.PhysicalGameEndedEvent;
+import com.dopamin.omok.game.physical.application.PhysicalGameLifecycle;
 import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.common.exception.OmokException;
 import com.dopamin.omok.shop.application.port.out.LoadUserActiveItemPort;
+import com.dopamin.omok.shop.domain.Item;
+import com.dopamin.omok.shop.domain.ItemConfig;
 import com.dopamin.omok.shop.domain.ItemType;
+import com.dopamin.omok.shop.domain.UserActiveItem;
 import com.dopamin.omok.user.application.port.out.LoadUserPort;
 import com.dopamin.omok.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,6 +55,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     private final LoadUserPort loadUserPort;
     private final LoadUserActiveItemPort loadUserActiveItemPort;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PhysicalGameLifecycle physicalGameLifecycle;
 
     // 리매치 요청 추적 (roomCode → 요청한 userId 집합)
     private final Map<String, Set<Long>> rematchRequests = new ConcurrentHashMap<>();
@@ -216,10 +227,44 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         Game game = Game.start(room, host.getUser(), player.getUser());
         saveGamePort.save(game);
 
+        // 피지컬 모드: 메모리 실시간 세션을 기동(클래식 Game 행은 결과 기록용으로 공유).
+        if (room.getGameType() == GameType.PHYSICAL) {
+            physicalGameLifecycle.start(room, game, List.of(host, player));
+        }
+
         RoomResponse response = buildRoomResponse(room, game);
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/status",
                 ApiResponse.success(response));
         return response;
+    }
+
+    /**
+     * 피지컬 오목이 '승자 확정'으로 종료(5목/기권)됐을 때 세션 매니저가 발행하는 이벤트를 수신해
+     * 결과를 영속화한다. 연결 끊김/방장 퇴장은 아래 메서드들이 이미 직접 처리하므로 이 경로로 오지 않는다.
+     */
+    @EventListener
+    @Transactional
+    public void onPhysicalGameEnded(PhysicalGameEndedEvent event) {
+        Game game = loadGamePort.findActiveGameByRoomCode(event.roomCode()).orElse(null);
+        if (game == null || !game.isInProgress()) return;
+
+        Long winnerId = event.winnerUserId();
+        User winner = game.getBlackPlayer().getId().equals(winnerId)
+                ? game.getBlackPlayer() : game.getWhitePlayer();
+        User loser = game.getOpponent(winnerId);
+
+        game.finish(winner);
+        winner.recordWin();
+        if (loser != null) loser.recordLoss();
+        saveGamePort.save(game);
+
+        loadRoomPort.findByRoomCode(event.roomCode()).ifPresent(room -> {
+            room.waitForNextGame();
+            saveRoomPort.save(room);
+            RoomResponse response = buildRoomResponse(room, game);
+            messagingTemplate.convertAndSend("/topic/room/" + event.roomCode() + "/status",
+                    ApiResponse.success(response));
+        });
     }
 
     @Override
@@ -234,6 +279,15 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     public Page<RoomResponse> getWaitingRooms(Pageable pageable) {
         return loadRoomPort.findByStatus(RoomStatus.WAITING, pageable)
                 .map(room -> buildRoomResponse(room));
+    }
+
+    @Override
+    public Page<RoomResponse> getInProgressRooms(Pageable pageable) {
+        return loadRoomPort.findByStatus(RoomStatus.IN_PROGRESS, pageable)
+                .map(room -> {
+                    Game game = loadGamePort.findActiveGameByRoomCode(room.getRoomCode()).orElse(null);
+                    return buildRoomResponse(room, game);
+                });
     }
 
     @Transactional
@@ -321,6 +375,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
 
         deleteGamePlayerPort.deleteByRoomId(room.getId());
         rematchRequests.remove(roomCode);
+        physicalGameLifecycle.stopSession(roomCode); // 피지컬 메모리 세션 정리(클래식이면 no-op)
 
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/closed",
                 Map.of("message", "방장이 방을 나갔습니다."));
@@ -348,6 +403,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/status",
                     ApiResponse.success(response));
         });
+        physicalGameLifecycle.stopSession(roomCode); // 피지컬 메모리 세션 정리(클래식이면 no-op)
     }
 
     private RoomResponse buildRoomResponse(Room room) {
@@ -363,7 +419,47 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
                     .findActiveItemNameByUserIdAndType(game.getWinner().getId(), ItemType.DEFEAT_MESSAGE)
                     .orElse(null);
         }
-        return RoomResponse.of(room, players, game, defeatMessage);
+        return RoomResponse.of(room, players, game, defeatMessage, buildCosmetics(players));
+    }
+
+    /**
+     * 참가자(색이 배정된 흑/백)별 코스메틱(바둑알 스킨 색 + 착수 효과)을 서버 권위로 해석해
+     * 내부 userId(Long)로 매핑한다. 전적으로 user_active_items 에서 읽으므로 미보유자가 쓸 수 없다(유료재화 보호).
+     * 착수 효과 우선순위: 장착한 STONE_EFFECT > 고급 STONE_SKIN이 번들한 effect.
+     * 관전자(color == null)는 제외하며, 스킨/효과가 필요한 in-game 경로((room, game))에서만 호출한다.
+     */
+    private Map<Long, PlayerCosmetics> buildCosmetics(List<GamePlayer> players) {
+        Map<Long, PlayerCosmetics> cosmetics = new HashMap<>();
+        for (GamePlayer gp : players) {
+            if (gp.getColor() == null) continue;        // 참가자(흑/백)만
+            Long userId = gp.getUser().getId();
+            if (cosmetics.containsKey(userId)) continue;
+
+            Optional<ItemConfig> skinConfig = loadUserActiveItemPort
+                    .findByUserIdAndItemType(userId, ItemType.STONE_SKIN)
+                    .map(UserActiveItem::getItem)
+                    .map(Item::getItemConfig);
+
+            StoneSkinResponse skin = skinConfig
+                    .map(ItemConfig::stone)
+                    .map(StoneSkinResponse::from)
+                    .orElse(null);
+
+            // 장착한 착수 효과가 있으면 우선, 없으면 고급 스킨이 번들한 effect 사용
+            String effect = loadUserActiveItemPort
+                    .findByUserIdAndItemType(userId, ItemType.STONE_EFFECT)
+                    .map(UserActiveItem::getItem)
+                    .map(Item::getItemConfig)
+                    .map(ItemConfig::effect)
+                    .or(() -> skinConfig.map(ItemConfig::effect))
+                    .filter(e -> e != null && !e.isBlank())
+                    .orElse(null);
+
+            if (skin != null || effect != null) {
+                cosmetics.put(userId, new PlayerCosmetics(skin, effect));
+            }
+        }
+        return cosmetics;
     }
 
     private Room findRoom(String roomCode) {

@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
-import { Board, ItemConfig, SkinColors, SkinFilter, StoneColor } from '@/types';
+import { Board, ItemConfig, SkinColors, SkinFilter, StoneColor, StoneStyle } from '@/types';
 import { useProtectedAsset } from '@/hooks/useProtectedAsset';
+import { BOARD_SIZE, CELL_SIZE, PADDING, BOARD_PX, STAR_POINTS } from '@/constants/board';
 
 interface OmokBoardProps {
   board: Board;
@@ -10,18 +11,23 @@ interface OmokBoardProps {
   lastMove: { row: number; col: number } | null;
   disabled?: boolean;
   skinConfig?: ItemConfig | null;
+  // 흑/백 플레이어의 장착 바둑알 스킨 (서버가 user_active_items 에서 읽어 내려준 값, 미장착 null)
+  blackStoneSkin?: StoneStyle | null;
+  whiteStoneSkin?: StoneStyle | null;
+  // 흑/백 플레이어의 착수 효과 키 (서버 권위 값, 예: 'bounce'). 없으면 기본 — 효과 없이 그냥 착수
+  blackStoneEffect?: string | null;
+  whiteStoneEffect?: string | null;
 }
-
-const BOARD_SIZE = 15;
-const CELL_SIZE = 40;
-const PADDING = 24;
-const BOARD_PX = PADDING * 2 + CELL_SIZE * (BOARD_SIZE - 1);
 
 // 기본 스킨 색상/필터 — DB 미보유/미장착 시 폴백 (유일하게 허용된 프론트 하드코딩)
 const CLASSIC_COLORS: SkinColors = { bg: '#dcb95b', lines: '#8b6914', dots: '#8b6914' };
 const CLASSIC_FILTER: SkinFilter = {
   type: 'fractalNoise', freqX: 0.65, freqY: 0.06, octaves: 4, seed: 3, blend: 'overlay',
 };
+
+// 기본 바둑알 스타일 — 스킨 미장착 시 폴백 (기존 #1a1a1a / #f5f5f0 광택 유지)
+const DEFAULT_BLACK_STONE: StoneStyle = { fill: '#1a1a1a', stroke: '#000000', shine: '#666666' };
+const DEFAULT_WHITE_STONE: StoneStyle = { fill: '#f5f5f0', stroke: '#bbbbbb', shine: '#ffffff' };
 
 const OmokBoard: React.FC<OmokBoardProps> = ({
   board,
@@ -31,6 +37,10 @@ const OmokBoard: React.FC<OmokBoardProps> = ({
   lastMove,
   disabled = false,
   skinConfig,
+  blackStoneSkin,
+  whiteStoneSkin,
+  blackStoneEffect,
+  whiteStoneEffect,
 }) => {
   // 장착 스킨이 colors/filter를 안 주면(예: 이미지 스킨) 기본값으로 보완
   const colors = skinConfig?.colors ?? CLASSIC_COLORS;
@@ -42,6 +52,15 @@ const OmokBoard: React.FC<OmokBoardProps> = ({
   // assetKey가 있는 스킨만 백엔드 보호 이미지를 fetch (없으면 null)
   const skinBlobUrl = useProtectedAsset('BOARD_SKIN', assetKey);
 
+  // 흑/백 바둑알 스타일 — 장착 스킨 우선, 미장착 시 기본값. (스킨은 서버 권위 값이라 신뢰 가능)
+  const blackStyle = blackStoneSkin ?? DEFAULT_BLACK_STONE;
+  const whiteStyle = whiteStoneSkin ?? DEFAULT_WHITE_STONE;
+  const styleOf = (color: StoneColor) => (color === 'BLACK' ? blackStyle : whiteStyle);
+
+  // 착수 효과 — 기본은 효과 없음. 'bounce'(유료) 보유자만 마지막 돌이 "뽀잉".
+  const effectOf = (color: StoneColor) =>
+    color === 'BLACK' ? blackStoneEffect : whiteStoneEffect;
+
   const handleClick = useCallback(
     (row: number, col: number) => {
       if (!canPlace || board[row][col] !== null) return;
@@ -50,16 +69,24 @@ const OmokBoard: React.FC<OmokBoardProps> = ({
     [canPlace, board, onPlaceStone],
   );
 
-  const getStoneColor = (color: StoneColor) =>
-    color === 'BLACK' ? '#1a1a1a' : '#f5f5f0';
-
   return (
-    <div style={{ overflowX: 'auto', padding: '8px' }}>
-      <svg
-        width={BOARD_PX}
-        height={BOARD_PX}
-        style={{ display: 'block', cursor: canPlace ? 'crosshair' : 'default' }}
+    <div style={{ overflowX: 'auto', padding: '8px', maxWidth: '100%' }}>
+      {/* 실제 바둑판 같은 원목 프레임 (베벨 + 그림자) */}
+      <div
+        style={{
+          padding: 16,
+          borderRadius: 16,
+          background: 'linear-gradient(135deg, #6b4d2c 0%, #3f2c19 55%, #543b23 100%)',
+          border: '1px solid #2a1d11',
+          boxShadow:
+            'inset 0 2px 4px rgba(255,222,176,0.18), inset 0 -3px 9px rgba(0,0,0,0.5), 0 22px 48px -14px rgba(0,0,0,0.75)',
+        }}
       >
+        <svg
+          width={BOARD_PX}
+          height={BOARD_PX}
+          style={{ display: 'block', cursor: canPlace ? 'crosshair' : 'default', borderRadius: 6 }}
+        >
         <defs>
           {/* 스킨 설정 기반 동적 텍스처 필터 */}
           {filter && (
@@ -77,15 +104,30 @@ const OmokBoard: React.FC<OmokBoardProps> = ({
             </filter>
           )}
 
-          {/* 돌 광택 그라디언트 */}
+          {/* 돌 광택 그라디언트 — 스킨 shine 색을 중심부 하이라이트로 사용 (없으면 기본색) */}
           <radialGradient id="stone-black-shine" cx="35%" cy="30%" r="55%">
-            <stop offset="0%" stopColor="#666" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#000" stopOpacity="0" />
+            <stop offset="0%" stopColor={blackStyle.shine} stopOpacity="0.6" />
+            <stop offset="100%" stopColor={blackStyle.shine} stopOpacity="0" />
           </radialGradient>
           <radialGradient id="stone-white-shine" cx="35%" cy="30%" r="55%">
-            <stop offset="0%" stopColor="#fff" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="#ccc" stopOpacity="0" />
+            <stop offset="0%" stopColor={whiteStyle.shine} stopOpacity="0.75" />
+            <stop offset="100%" stopColor={whiteStyle.shine} stopOpacity="0" />
           </radialGradient>
+
+          {/* 마지막 착수 돌 "뽀잉" 등장 애니메이션 (고퀄 스킨 확장 시 Lottie 등으로 대체 가능) */}
+          <style>{`
+            @keyframes stone-pop {
+              0%   { transform: scale(0.2); }
+              55%  { transform: scale(1.18); }
+              75%  { transform: scale(0.94); }
+              100% { transform: scale(1); }
+            }
+            .stone-pop {
+              animation: stone-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+              transform-origin: center;
+              transform-box: fill-box;
+            }
+          `}</style>
         </defs>
 
         {/* 바둑판 배경
@@ -126,8 +168,8 @@ const OmokBoard: React.FC<OmokBoardProps> = ({
         ))}
 
         {/* 화점 */}
-        {[3, 7, 11].flatMap((r) =>
-          [3, 7, 11].map((c) => (
+        {STAR_POINTS.flatMap((r) =>
+          STAR_POINTS.map((c) => (
             <circle key={`dot-${r}-${c}`}
               cx={PADDING + c * CELL_SIZE} cy={PADDING + r * CELL_SIZE}
               r={3} fill={colors.dots}
@@ -148,19 +190,22 @@ const OmokBoard: React.FC<OmokBoardProps> = ({
           )),
         )}
 
-        {/* 돌 — 광택 그라디언트 적용 */}
+        {/* 돌 — 색별 스킨(fill/stroke/shine) 적용. 마지막 착수 돌은 "뽀잉" 등장 */}
         {board.flatMap((rowArr, row) =>
           rowArr.map((color, col) => {
             if (!color) return null;
             const isLast = lastMove?.row === row && lastMove?.col === col;
+            const s = styleOf(color);
+            // 기본 돌은 그냥 착수. 마지막 착수 돌이면서 그 색 플레이어가 'bounce' 효과 보유 시에만 "뽀잉".
+            const shouldPop = isLast && effectOf(color) === 'bounce';
             const cx = PADDING + col * CELL_SIZE;
             const cy = PADDING + row * CELL_SIZE;
             const r = CELL_SIZE / 2 - 2;
             return (
-              <g key={`stone-${row}-${col}`}>
+              <g key={`stone-${row}-${col}`} className={shouldPop ? 'stone-pop' : undefined}>
                 <circle cx={cx} cy={cy} r={r}
-                  fill={getStoneColor(color)}
-                  stroke={color === 'BLACK' ? '#000' : '#bbb'}
+                  fill={s.fill}
+                  stroke={s.stroke}
                   strokeWidth={1}
                   style={{
                     filter: color === 'BLACK'
@@ -182,7 +227,8 @@ const OmokBoard: React.FC<OmokBoardProps> = ({
             );
           }),
         )}
-      </svg>
+        </svg>
+      </div>
     </div>
   );
 };
