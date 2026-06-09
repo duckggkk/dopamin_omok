@@ -1,0 +1,122 @@
+name: dopamin-omok-prod
+
+# 운영 배포용 compose.
+#   - 이미지는 로컬 빌드가 아니라 GHCR(레지스트리)에서 pull → 서버는 빌드 부담 없음.
+#   - 백엔드는 prod 프로파일(Flyway + ddl-auto:validate).
+#   - 외부 노출은 Caddy(80/443)만. 나머지는 내부망(omok_net)에서만 통신.
+# 실행:  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"     # 디스크가 로그로 가득 차 서버가 죽는 사고 방지
+    max-file: "3"
+
+services:
+  # ── Database ─────────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: omok_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+      MYSQL_DATABASE: dopamin_omok
+      # 앱 전용 계정을 MySQL 이미지가 직접 생성(별도 init 스크립트의 하드코딩 계정 미사용)
+      MYSQL_USER: ${DB_USERNAME:?DB_USERNAME is required}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    # DB 포트는 호스트/외부에 노출하지 않음 (내부망만 접근)
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - omok_net
+    logging: *default-logging
+
+  # ── Backend ──────────────────────────────────────────────────────────────
+  backend:
+    image: ${IMAGE_BACKEND:?IMAGE_BACKEND is required}   # 예) ghcr.io/owner/repo/backend:latest
+    container_name: omok_backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      # 소셜 로그인 (선택)
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      # 이메일 인증 발송(SMTP)
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:?MAIL_USERNAME is required}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:?MAIL_PASSWORD is required}
+      MAIL_FROM: ${MAIL_FROM:?MAIL_FROM is required}
+      # 소형 VM 메모리 보호 (1GB VM이면 -Xmx256m 권장)
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--Xmx512m}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - omok_net
+    logging: *default-logging
+
+  # ── Frontend (SPA + /api·/ws 프록시, 내부 전용) ───────────────────────────
+  frontend:
+    image: ${IMAGE_FRONTEND:?IMAGE_FRONTEND is required}  # 예) ghcr.io/owner/repo/frontend:latest
+    container_name: omok_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - omok_net
+    logging: *default-logging
+
+  # ── Caddy (외부 진입점: 자동 HTTPS + 점검 모드) ────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: omok_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN is required}        # 예) omok.example.com
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/maintenance:/maintenance:ro       # maintenance.html + (토글 시) maintenance.on
+      - caddy_data:/data                           # 발급받은 TLS 인증서 보관(재시작해도 유지)
+      - caddy_config:/config
+    depends_on:
+      - frontend
+    networks:
+      - omok_net
+    logging: *default-logging
+
+volumes:
+  mysql_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  omok_net:
+    driver: bridge

@@ -34,6 +34,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("org.springframework.boot:spring-boot-starter-mail")
+    // Actuator — /actuator/health 헬스체크(무중단 판단·배포 검증·컨테이너 healthcheck)
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
 
     // MySQL
     runtimeOnly("com.mysql:mysql-connector-j")

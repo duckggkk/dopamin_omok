@@ -1,0 +1,35 @@
+# Caddy 운영 설정 — 자동 HTTPS(Let's Encrypt) + 점검 모드 + 리버스 프록시
+#
+# 점검 모드:  deploy/maintenance/maintenance.on 파일이 존재하면 모든 요청에
+#            503 + 점검 안내 페이지를 반환한다. 파일을 지우면 즉시 정상 서비스로 복귀.
+#            (deploy.sh 가 배포 전후로 이 파일을 touch / rm 한다)
+
+{
+	email {$ACME_EMAIL}
+	# 디버그가 필요하면 아래 주석 해제
+	# debug
+}
+
+{$DOMAIN} {
+	encode gzip zstd
+
+	# ── 점검 모드 ─────────────────────────────────────────────────────────
+	@maintenance file {
+		root /maintenance
+		try_files maintenance.on
+	}
+	handle @maintenance {
+		root * /maintenance
+		rewrite * /maintenance.html
+		header Retry-After 600
+		header Cache-Control "no-store"
+		file_server {
+			status 503
+		}
+	}
+
+	# ── 평상시: 프론트(nginx)로 프록시 (SPA + /api + /ws WebSocket 자동 처리) ──
+	handle {
+		reverse_proxy frontend:80
+	}
+}

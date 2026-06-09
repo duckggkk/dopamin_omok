@@ -13,10 +13,32 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: validate      # 스키마는 Flyway가 관리. Hibernate는 검증만 수행(자동 변경 금지).
     show-sql: false
 
+  flyway:
+    enabled: true
+    baseline-on-migrate: true   # 기존 데이터를 이관한 DB라도 안전하게 베이스라인 후 마이그레이션
+    baseline-version: 1
+
+  # 회원가입 이메일 인증 발송(SMTP). 값은 환경변수로 주입.
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 app:
+  shop:
+    # 운영에서는 PG 결제 검증 전까지 직접 충전을 비활성화(무한 충전 악용 차단)
+    direct-charge-enabled: false
+
   jwt:
     secret: ${JWT_SECRET}
     access-token-expiration: 1800000
@@ -26,16 +48,39 @@ app:
     allowed-origins:
       - ${FRONTEND_URL}
 
+  # 인증 메일 발신자 주소
+  mail:
+    from: ${MAIL_FROM}
+
+  # 인증 메일 안의 링크가 가리킬 운영 프론트 주소
+  frontend:
+    url: ${FRONTEND_URL}
+
   oauth2:
     kakao:
-      client-id: ${KAKAO_CLIENT_ID}
-      client-secret: ${KAKAO_CLIENT_SECRET}
+      client-id: ${KAKAO_CLIENT_ID:}
+      client-secret: ${KAKAO_CLIENT_SECRET:}
     google:
-      client-id: ${GOOGLE_CLIENT_ID}
-      client-secret: ${GOOGLE_CLIENT_SECRET}
+      client-id: ${GOOGLE_CLIENT_ID:}
+      client-secret: ${GOOGLE_CLIENT_SECRET:}
 
 server:
   port: ${PORT:8080}
+  # Caddy/Nginx(리버스 프록시) 뒤에서 X-Forwarded-* 를 신뢰해 https/원본 IP 를 올바르게 인식
+  # (OAuth 리다이렉트 URL·보안 쿠키·로깅 정확도에 필요)
+  forward-headers-strategy: framework
+
+# Actuator: 헬스 체크만 노출(나머지 엔드포인트는 닫음). 외부 노출 URL은 /api/actuator/health
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
 
 logging:
   level:

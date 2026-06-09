@@ -1,0 +1,89 @@
+name: Deploy (prod)
+
+# 흐름:  main 푸시 → CI(테스트) 성공 → 이 워크플로가 자동 실행
+#   1) 백엔드/프론트 이미지를 빌드해 GHCR 에 push
+#   2) 서버에 SSH 접속해 점검 모드 배포(deploy.sh) 실행
+# CI 가 실패하면 배포는 트리거되지 않는다(= 테스트 통과해야만 배포).
+
+on:
+  workflow_run:
+    workflows: ["CI"]          # ci.yml 의 name 과 일치해야 함
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:            # 필요 시 수동 배포
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false     # 배포는 중간에 끊지 않음
+
+jobs:
+  build-and-push:
+    name: Build & Push images (GHCR)
+    # 수동 실행이거나, CI 가 성공한 경우에만 진행
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      OWNER_REPO: ${{ github.repository }}   # GHCR 경로는 소문자여야 함(저장소명이 소문자라 가정)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER_REPO }}/backend:latest
+            ghcr.io/${{ env.OWNER_REPO }}/backend:${{ env.SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER_REPO }}/frontend:latest
+            ghcr.io/${{ env.OWNER_REPO }}/frontend:${{ env.SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to server (maintenance window)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    # GitHub > Settings > Environments > production 에 "Required reviewers" 를 걸면
+    # 자동배포 대신 수동 승인 게이트로 바꿀 수 있음(선택).
+    environment: production
+    steps:
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT }}   # 비워두면 22
+          script: |
+            set -e
+            cd /opt/dopamin-omok
+            git fetch --all --prune
+            git reset --hard origin/main        # 서버는 인프라 파일(compose/Caddyfile/스크립트)만 최신화
+            bash deploy/scripts/deploy.sh
