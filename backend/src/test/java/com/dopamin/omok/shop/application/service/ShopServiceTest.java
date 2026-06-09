@@ -8,6 +8,8 @@ import com.dopamin.omok.shop.application.port.out.LoadUserItemPort;
 import com.dopamin.omok.shop.application.port.out.SaveUserActiveItemPort;
 import com.dopamin.omok.shop.application.port.out.SaveUserItemPort;
 import com.dopamin.omok.shop.config.ShopProperties;
+import com.dopamin.omok.shop.domain.Item;
+import com.dopamin.omok.shop.domain.ItemType;
 import com.dopamin.omok.user.application.port.out.LoadUserPort;
 import com.dopamin.omok.user.application.port.out.SaveUserPort;
 import com.dopamin.omok.user.domain.User;
@@ -23,6 +25,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -76,5 +79,28 @@ class ShopServiceTest {
         assertThatThrownBy(() -> shopService(true).chargeCurrency(1L, "NOPE"))
                 .isInstanceOfSatisfying(OmokException.class,
                         ex -> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_REQUEST));
+    }
+
+    @Test
+    @DisplayName("가챠: 원자적 차감이 실패(잔액 부족)하면 아이템을 지급하지 않는다")
+    void openBoxRejectsWhenAtomicDeductFails() {
+        ShopProperties properties = new ShopProperties(
+                List.of(),
+                List.of(new ShopProperties.GachaBox(ItemType.BOARD_SKIN, "바둑판 뽑기 상자", 50)),
+                false);
+        ShopService shopService = new ShopService(properties, loadUserPort, saveUserPort, loadItemPort,
+                loadUserItemPort, saveUserItemPort, loadUserActiveItemPort, saveUserActiveItemPort);
+
+        when(loadItemPort.findGachaPoolByType(ItemType.BOARD_SKIN))
+                .thenReturn(List.of(mock(Item.class)));
+        // 원자적 조건부 차감(UPDATE ... WHERE currency >= price)이 0행 = 잔액 부족
+        when(saveUserPort.deductCurrency(1L, 50)).thenReturn(0);
+
+        assertThatThrownBy(() -> shopService.openBox(1L, "BOARD_SKIN"))
+                .isInstanceOfSatisfying(OmokException.class,
+                        ex -> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INSUFFICIENT_CURRENCY));
+
+        // 차감에 실패하면 아이템은 절대 지급되지 않아야 한다(동시성 악용으로 무료 획득 방지)
+        verify(saveUserItemPort, never()).save(any());
     }
 }

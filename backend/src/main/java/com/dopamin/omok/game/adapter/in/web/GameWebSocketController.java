@@ -15,6 +15,7 @@ import com.dopamin.omok.game.application.port.out.LoadRoomPort;
 import com.dopamin.omok.game.domain.GamePlayer;
 import com.dopamin.omok.game.domain.Room;
 import com.dopamin.omok.game.domain.StoneColor;
+import com.dopamin.omok.global.common.exception.OmokException;
 import com.dopamin.omok.global.common.response.ApiResponse;
 import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
 import com.dopamin.omok.global.websocket.WebSocketSessionRegistry;
@@ -68,7 +69,7 @@ public class GameWebSocketController {
             return ApiResponse.success(response);
         } catch (Exception e) {
             log.warn("WebSocket move error for room {}: {}", roomCode, e.getMessage());
-            return ApiResponse.error(e.getMessage());
+            return ApiResponse.error(clientMessage(e));
         }
     }
 
@@ -86,7 +87,7 @@ public class GameWebSocketController {
             return ApiResponse.success(response);
         } catch (Exception e) {
             log.warn("WebSocket surrender error for room {}: {}", roomCode, e.getMessage());
-            return ApiResponse.error(e.getMessage());
+            return ApiResponse.error(clientMessage(e));
         }
     }
 
@@ -170,6 +171,12 @@ public class GameWebSocketController {
             return userDetails;
         }
         return null;
+    }
+
+    // 도메인 예외(OmokException) 메시지는 사용자용으로 안전하므로 그대로 노출하고,
+    // 그 외 일반 예외는 내부 구현 정보가 새지 않도록 일반화된 메시지로 대체한다.
+    private String clientMessage(Exception e) {
+        return (e instanceof OmokException) ? e.getMessage() : "요청을 처리하지 못했습니다.";
     }
 
     private Long extractUserId(SimpMessageHeaderAccessor accessor) {

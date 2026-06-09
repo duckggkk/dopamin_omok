@@ -70,6 +70,13 @@ server:
   # (OAuth 리다이렉트 URL·보안 쿠키·로깅 정확도에 필요)
   forward-headers-strategy: framework
 
+# 운영에서는 API 문서를 노출하지 않는다(엔드포인트/스키마 정보 노출 차단).
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 # Actuator: 헬스 체크만 노출(나머지 엔드포인트는 닫음). 외부 노출 URL은 /api/actuator/health
 management:
   endpoints:

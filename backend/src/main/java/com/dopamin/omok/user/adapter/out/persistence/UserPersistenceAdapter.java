@@ -44,6 +44,11 @@ public class UserPersistenceAdapter implements LoadUserPort, SaveUserPort, Check
     }
 
     @Override
+    public int deductCurrency(Long userId, int amount) {
+        return userJpaRepository.deductCurrency(userId, amount);
+    }
+
+    @Override
     public boolean existsByEmail(String email) {
         return userJpaRepository.existsByEmail(email);
     }

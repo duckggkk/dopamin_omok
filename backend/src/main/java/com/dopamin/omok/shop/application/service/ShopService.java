@@ -85,15 +85,18 @@ public class ShopService implements ChargeCurrencyUseCase, OpenGachaUseCase,
         List<Item> pool = loadItemPort.findGachaPoolByType(type);
         if (pool.isEmpty()) throw new OmokException(ErrorCode.ITEM_NOT_FOUND);
 
-        User user = findUser(userId);
-        if (user.getCurrency() < box.price()) throw new OmokException(ErrorCode.INSUFFICIENT_CURRENCY);
+        // 재화 차감을 원자적 조건부 UPDATE로 먼저 수행한다.
+        // 동시 요청에도 잔액 이상/중복 차감이 불가능하며(영향 행 0 = 잔액 부족),
+        // 같은 트랜잭션이라 이후 단계에서 예외가 나면 차감도 함께 롤백된다.
+        if (saveUserPort.deductCurrency(userId, box.price()) == 0) {
+            throw new OmokException(ErrorCode.INSUFFICIENT_CURRENCY);
+        }
 
         Item picked = pool.get(random.nextInt(pool.size()));
         boolean isDuplicate = loadUserItemPort.existsByUserIdAndItemId(userId, picked.getId());
 
-        user.spendCurrency(box.price());
-        saveUserPort.save(user);
-
+        // 차감이 반영된 최신 잔액을 읽는다(deductCurrency가 영속성 컨텍스트를 flush/clear 함).
+        User user = findUser(userId);
         if (!isDuplicate) {
             saveUserItemPort.save(UserItem.of(user, picked));
         }
