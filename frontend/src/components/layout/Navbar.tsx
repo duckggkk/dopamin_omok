@@ -20,6 +20,10 @@ const IconShop = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"
     strokeLinecap="round" strokeLinejoin="round"><path d="M5 8h14l-1 12H6L5 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg>
 );
+const IconPlaza = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.2" /><path d="M3.2 19c0-3.1 2.6-5.2 5.8-5.2s5.8 2.1 5.8 5.2" /><path d="M15.5 19c0-2.3 1.3-3.9 3.1-3.9" /></svg>
+);
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -59,6 +63,7 @@ const Navbar = () => {
           <div className={styles.nav}>
             <NavLink to="/" end className={navClass}><IconHome /><span>홈</span></NavLink>
             <NavLink to="/lobby" className={navClass}><IconPlay /><span>대국</span></NavLink>
+            <NavLink to="/plaza" className={navClass}><IconPlaza /><span>광장</span></NavLink>
             <NavLink to="/ranking" className={navClass}><IconRank /><span>랭킹</span></NavLink>
             <NavLink to="/shop" className={navClass}><IconShop /><span>상점</span></NavLink>
           </div>

@@ -1,6 +1,7 @@
 package com.dopamin.omok.game.physical.application;
 
 import com.dopamin.omok.game.domain.StoneColor;
+import com.dopamin.omok.game.physical.application.dto.PhysicalReplayData;
 import com.dopamin.omok.game.physical.application.dto.PhysicalSnapshot;
 import com.dopamin.omok.game.physical.application.dto.PhysicalSnapshot.ItemDropView;
 import com.dopamin.omok.game.physical.application.dto.PhysicalSnapshot.PhysicalPlayerView;
@@ -49,8 +50,43 @@ public class PhysicalGameSessionManager {
     private static final class Session {
         final PhysicalGame game;
         final ReentrantLock lock = new ReentrantLock();
+        final Recorder recorder;
         Session(PhysicalGame game) {
             this.game = game;
+            this.recorder = new Recorder(game.board().size(), System.currentTimeMillis());
+        }
+    }
+
+    /**
+     * 리플레이 기록기 — 보드 칸 변화만 시간순으로 모은다(스냅샷 아님, 이벤트만).
+     * 입력 직후 직전 보드와 diff 해 바뀐 칸만 append → 양이 행동/쿨다운에 묶여 작다.
+     * 어뷰징 대비 상한(MAX_EVENTS)을 둔다. 세션 락 하에서만 호출되어 스레드 안전.
+     */
+    private static final class Recorder {
+        private static final int MAX_EVENTS = 4000;
+        final long startMs;
+        final int size;
+        final int[][] prev;
+        final List<PhysicalReplayData.CellChange> events = new ArrayList<>();
+
+        Recorder(int size, long startMs) {
+            this.size = size;
+            this.startMs = startMs;
+            this.prev = new int[size][size];
+        }
+
+        void capture(int[][] cells, long nowMs) {
+            if (events.size() >= MAX_EVENTS) return;
+            long t = nowMs - startMs;
+            for (int y = 0; y < size; y++) {
+                for (int x = 0; x < size; x++) {
+                    if (cells[y][x] != prev[y][x]) {
+                        events.add(new PhysicalReplayData.CellChange(t, x, y, cells[y][x]));
+                        prev[y][x] = cells[y][x];
+                        if (events.size() >= MAX_EVENTS) return;
+                    }
+                }
+            }
         }
     }
 
@@ -79,18 +115,21 @@ public class PhysicalGameSessionManager {
         log.debug("피지컬 세션 등록: room={}", game.roomCode());
     }
 
-    /** 강제 정리(연결 끊김/방장 퇴장). 승자 없이 종료 표시 후 최종 스냅샷만 보낸다(이벤트 미발행). */
-    public void stopSession(String roomCode) {
+    /**
+     * 강제 정리(연결 끊김/방장 퇴장). 승자 없이 종료 표시 후 최종 스냅샷만 보낸다(이벤트 미발행).
+     * @return 그때까지 기록된 리플레이(피지컬 세션이 있었을 때만, 없으면 null). 저장은 호출 측(RoomService)이 한다.
+     */
+    public PhysicalReplayData stopSession(String roomCode) {
         Session s = sessions.remove(roomCode);
-        if (s == null) return;
+        if (s == null) return null;
         s.lock.lock();
         try {
             if (s.game.isInProgress()) s.game.finish(null);
             broadcast(s.game);
+            return buildReplay(s);
         } finally {
             s.lock.unlock();
         }
-        log.debug("피지컬 세션 정리: room={}", roomCode);
     }
 
     // ===================== 입력 =====================
@@ -114,6 +153,8 @@ public class PhysicalGameSessionManager {
                 case DESTROY -> engine.destroy(game, player, now);
                 case USE_ITEM -> engine.useItem(game, player, now);
             }
+            // 보드 칸은 입력에서만 바뀐다(틱은 이동/스폰만) → 입력 직후에만 diff 기록하면 충분.
+            s.recorder.capture(game.board().encode(), now);
             broadcast(game); // 입력 직후 즉시 동기화(반응성)
         } finally {
             s.lock.unlock();
@@ -142,11 +183,26 @@ public class PhysicalGameSessionManager {
         if (winnerUserId != null) concludeWin(roomCode, winnerUserId);
     }
 
-    /** 세션 제거 + 승자 확정 이벤트 발행(락 밖에서 — DB I/O가 세션 락을 잡지 않게 함). */
+    /** 세션 제거 + 승자 확정 이벤트 발행(락 밖에서 — DB I/O가 세션 락을 잡지 않게 함). 리플레이를 함께 실어 보낸다. */
     private void concludeWin(String roomCode, Long winnerUserId) {
-        sessions.remove(roomCode);
-        eventPublisher.publishEvent(new PhysicalGameEndedEvent(roomCode, winnerUserId));
+        Session s = sessions.remove(roomCode);
+        PhysicalReplayData replay = (s != null) ? buildReplay(s) : null;
+        eventPublisher.publishEvent(new PhysicalGameEndedEvent(roomCode, winnerUserId, replay));
         log.debug("피지컬 세션 종료(승자 확정): room={} winnerUserId={}", roomCode, winnerUserId);
+    }
+
+    /** 종료 시점의 세션 상태 + 기록된 칸 변화로 리플레이 데이터를 만든다. */
+    private PhysicalReplayData buildReplay(Session s) {
+        PhysicalGame g = s.game;
+        List<PhysicalReplayData.PlayerInfo> players = new ArrayList<>();
+        for (PhysicalPlayer p : g.players()) {
+            players.add(new PhysicalReplayData.PlayerInfo(p.getColor().name(), p.getNickname()));
+        }
+        String winner = g.winnerColor() != null ? g.winnerColor().name() : null;
+        long durationMs = System.currentTimeMillis() - s.recorder.startMs;
+        return new PhysicalReplayData(
+                g.gameId(), g.board().size(), g.winCount(), durationMs, winner,
+                players, List.copyOf(s.recorder.events));
     }
 
     // ===================== 틱 루프 =====================

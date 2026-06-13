@@ -38,6 +38,11 @@ public class Room {
     @Column(nullable = false, length = 20)
     private GameType gameType;
 
+    /** 오목 규칙 변형(자유룰/렌주룰). 피지컬 오목에서는 의미 없으며 항상 FREESTYLE 로 저장한다. */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private OmokRule omokRule;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TimeLimit timeLimit;
@@ -57,11 +62,13 @@ public class Room {
     private LocalDateTime createdAt;
 
     @Builder
-    private Room(User host, String roomCode, GameType gameType,
+    private Room(User host, String roomCode, GameType gameType, OmokRule omokRule,
                  TimeLimit timeLimit, ByoyomiOption byoyomiOption) {
         this.host = host;
         this.roomCode = roomCode;
         this.gameType = gameType;
+        // 피지컬 오목은 렌주룰 개념이 없으므로 항상 FREESTYLE. 그 외엔 지정값(null이면 FREESTYLE).
+        this.omokRule = (gameType == GameType.PHYSICAL || omokRule == null) ? OmokRule.FREESTYLE : omokRule;
         this.timeLimit = timeLimit;
         this.byoyomiOption = byoyomiOption;
         this.status = RoomStatus.WAITING;
@@ -69,15 +76,21 @@ public class Room {
         this.currentGameNumber = 0;
     }
 
-    public static Room create(User host, String roomCode, GameType gameType,
+    public static Room create(User host, String roomCode, GameType gameType, OmokRule omokRule,
                               TimeLimit timeLimit, ByoyomiOption byoyomiOption) {
         return Room.builder()
                 .host(host)
                 .roomCode(roomCode)
                 .gameType(gameType)
+                .omokRule(omokRule)
                 .timeLimit(timeLimit)
                 .byoyomiOption(byoyomiOption)
                 .build();
+    }
+
+    /** 렌주룰(흑 금수 적용) 방인지. 피지컬은 항상 false. */
+    public boolean isRenju() {
+        return gameType == GameType.CLASSIC && omokRule == OmokRule.RENJU;
     }
 
     public void startGame() {

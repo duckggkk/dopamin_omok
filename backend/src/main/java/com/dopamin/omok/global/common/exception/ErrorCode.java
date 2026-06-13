@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
     // Auth
-    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 틀렸습니다."),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "만료된 토큰입니다."),
     REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "리프레시 토큰을 찾을 수 없습니다."),
@@ -44,6 +44,7 @@ public enum ErrorCode {
     GAME_NOT_YOUR_TURN(HttpStatus.BAD_REQUEST, "당신의 차례가 아닙니다."),
     INVALID_MOVE(HttpStatus.BAD_REQUEST, "유효하지 않은 수입니다."),
     POSITION_ALREADY_OCCUPIED(HttpStatus.BAD_REQUEST, "이미 돌이 놓인 위치입니다."),
+    RENJU_FORBIDDEN_MOVE(HttpStatus.BAD_REQUEST, "렌주룰: 금수(3-3·4-4·장목) 자리입니다. 다른 곳에 두세요."),
     NOT_GAME_PARTICIPANT(HttpStatus.FORBIDDEN, "게임 참가자가 아닙니다."),
     PLAYER_TIMEOUT(HttpStatus.BAD_REQUEST, "시간 초과로 패배 처리되었습니다."),
 

@@ -1,0 +1,80 @@
+.boardSvg {
+  display: block;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 2px rgba(255, 222, 176, 0.15), 0 6px 14px -6px rgba(0, 0, 0, 0.6);
+}
+
+/* 착수 효과 미리보기 — 돌이 반복해서 "뽀잉" 등장 */
+.popStone {
+  animation: previewPop 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+@keyframes previewPop {
+  0%   { transform: scale(0.2); }
+  30%  { transform: scale(1.16); }
+  42%  { transform: scale(0.95); }
+  55%, 100% { transform: scale(1); }
+}
+
+/* 착수음 미리보기 — 정적 표시(재생은 미리보기 바둑판에서) */
+.soundWrap { position: relative; display: inline-flex; border-radius: 8px; }
+.soundIcon {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  font-size: 0.9rem;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 패배 문구 미리보기 */
+.defeatPreview {
+  width: 84px;
+  height: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #3a1d1d, #2a1414);
+  border: 1px solid #5a2b2b;
+  padding: 6px;
+  text-align: center;
+}
+.defeatText { font-size: 1.05rem; font-weight: 800; color: #ff9b9b; line-height: 1.15; word-break: break-word; }
+
+/* 패배 이펙트 미리보기 — 작은 타일에 연출 분위기를 입힌다 */
+.defeatEffectPreview {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #20232e, #14161e);
+  border: 1px solid #39414f;
+  text-align: center;
+}
+.defeatEffectIcon { font-size: 1.6rem; z-index: 1; }
+.defeatEffectName { font-size: 0.72rem; font-weight: 700; color: #cfd6e4; z-index: 1; line-height: 1.1; word-break: keep-all; padding: 0 4px; }
+
+.fxFlame { background: radial-gradient(ellipse at bottom, rgba(255, 90, 0, 0.55), #1a0d06 70%); animation: tileFlame 0.5s ease-in-out infinite alternate; }
+@keyframes tileFlame { from { box-shadow: inset 0 -16px 18px -8px rgba(255, 90, 0, 0.5); } to { box-shadow: inset 0 -22px 22px -8px rgba(255, 140, 0, 0.85); } }
+.fxShatter { background: repeating-linear-gradient(40deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 16px), #14161e; animation: tileShake 0.2s steps(2) infinite; }
+@keyframes tileShake { 0% { transform: translate(0, 0); } 50% { transform: translate(-1.5px, 1px); } 100% { transform: translate(1.5px, -1px); } }
+.fxStorm { background: radial-gradient(ellipse at center, #2a3350, #0a0c18); animation: tileStorm 2.4s ease-in-out infinite; }
+@keyframes tileStorm { 0%, 100% { filter: brightness(1); } 10% { filter: brightness(2.2); } 12% { filter: brightness(1); } }
+.fxTears { background: linear-gradient(180deg, rgba(40, 90, 200, 0.4), #0c1430); }
+.fxTears::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(96deg, transparent 0 10px, rgba(120, 180, 255, 0.4) 10px 11px); animation: tileTears 0.8s linear infinite; }
+@keyframes tileTears { from { background-position: 0 -100%; } to { background-position: 0 100%; } }

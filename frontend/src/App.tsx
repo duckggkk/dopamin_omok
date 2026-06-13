@@ -13,6 +13,7 @@ import ProfilePage from '@/pages/ProfilePage';
 import EmailSentPage from '@/pages/EmailSentPage';
 import ShopPage from '@/pages/ShopPage';
 import RankingPage from '@/pages/RankingPage';
+import PlazaPage from '@/pages/PlazaPage';
 
 const Layout = () => {
   useAuth();
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
         children: [
           { path: '/', element: <HomePage /> },
           { path: '/lobby', element: <LobbyPage /> },
+          { path: '/plaza', element: <PlazaPage /> },
           { path: '/ranking', element: <RankingPage /> },
           { path: '/game/:gameId', element: <GamePage /> },
           { path: '/profile', element: <ProfilePage /> },

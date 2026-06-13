@@ -36,10 +36,16 @@ const LoginPage = () => {
         navigate('/');
       }
     } catch (err: unknown) {
-      if (getApiErrorStatus(err) === 403) {
+      const status = getApiErrorStatus(err);
+      if (status === 403) {
         setIsEmailNotVerified(true);
+        setError(getApiErrorMessage(err, '로그인에 실패했습니다.'));
+      } else if (status === 401) {
+        // 아이디/비밀번호 불일치는 항상 동일한 문구로 안내 (보안상 어느 쪽이 틀렸는지 노출하지 않음)
+        setError('아이디 또는 비밀번호가 틀렸습니다.');
+      } else {
+        setError(getApiErrorMessage(err, '로그인에 실패했습니다.'));
       }
-      setError(getApiErrorMessage(err, '로그인에 실패했습니다.'));
     } finally {
       setIsLoading(false);
     }

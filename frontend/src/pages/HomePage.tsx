@@ -1,14 +1,15 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { gameApi } from '@/api/game';
+import { gameApi, CreateRoomOptions } from '@/api/game';
 import { userApi } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/contexts/ToastContext';
 import { getApiErrorMessage } from '@/utils/error';
 import { GameInfo, RankingEntry } from '@/types';
+import CreateRoomModal from '@/components/game/CreateRoomModal';
 import styles from './HomePage.module.css';
 
-/** 히어로 장식용 정적 오목판 (대각 5목 완성 직전 형세) */
+/** 히어로 장식용 정적 오목판 (대각 오목 완성 직전 형세) */
 const DecoBoard = () => {
   const N = 7, CELL = 27, PAD = 18;
   const px = PAD * 2 + CELL * (N - 1);
@@ -57,6 +58,7 @@ const HomePage = () => {
   const { user } = useAuthStore();
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [recent, setRecent] = useState<GameInfo[] | null>(null);
   const [topRanking, setTopRanking] = useState<RankingEntry[] | null>(null);
 
@@ -69,25 +71,13 @@ const HomePage = () => {
 
   const winRate = user.totalGames > 0 ? Math.round((user.wins / user.totalGames) * 100) : 0;
 
-  const quickPlay = async () => {
+  const createRoom = async (options: CreateRoomOptions) => {
     setBusy(true);
     try {
-      const res = await gameApi.createRoom();
+      const res = await gameApi.createRoom(options);
       if (res.data.data) navigate(`/game/${res.data.data.roomCode}`);
     } catch {
-      showToast('대국 생성에 실패했습니다.', 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const physicalPlay = async () => {
-    setBusy(true);
-    try {
-      const res = await gameApi.createRoom({ gameType: 'PHYSICAL', timeLimit: 'UNLIMITED', byoyomiOption: 'NONE' });
-      if (res.data.data) navigate(`/game/${res.data.data.roomCode}`);
-    } catch {
-      showToast('대국 생성에 실패했습니다.', 'error');
+      showToast('방 생성에 실패했습니다.', 'error');
     } finally {
       setBusy(false);
     }
@@ -123,17 +113,17 @@ const HomePage = () => {
             도파민 <span className={styles.accent}>오목</span>
           </h1>
           <p className={styles.heroSub}>
-            {user.nickname}님, 한 수의 쾌감을 다시. 가로·세로·대각 5목을 먼저 완성하세요.
+            {user.nickname}님, 한 수의 쾌감을 다시. 가로·세로·대각 오목을 먼저 완성하세요.
           </p>
           <div className={styles.heroActions}>
-            <button className={styles.ctaPrimary} onClick={quickPlay} disabled={busy}>
-              ⚡ {busy ? '대국 생성 중...' : '빠른 대국'}
-            </button>
-            <button className={styles.ctaGhost} onClick={physicalPlay} disabled={busy}>
-              ⚔️ 피지컬 오목
+            <button className={styles.ctaPrimary} onClick={() => setShowCreateModal(true)} disabled={busy}>
+              ✚ 방 만들기
             </button>
             <button className={styles.ctaGhost} onClick={() => navigate('/lobby')}>
-              대국 로비
+              🎯 대국 로비
+            </button>
+            <button className={styles.ctaGhost} onClick={() => navigate('/plaza')}>
+              🏛️ 광장
             </button>
           </div>
           <form className={styles.joinRow} onSubmit={joinByCode}>
@@ -162,9 +152,14 @@ const HomePage = () => {
           <span className={styles.statLabel}>보유 재화</span>
         </div>
         <div className={styles.statCard}>
+          <span className={styles.statIcon}>📈</span>
+          <span className={`${styles.statValue} ${styles.gold}`}>{user.classicRating}</span>
+          <span className={styles.statLabel}>일반 레이팅</span>
+        </div>
+        <div className={styles.statCard}>
           <span className={styles.statIcon}>⚔️</span>
-          <span className={styles.statValue}>{user.totalGames}</span>
-          <span className={styles.statLabel}>총 대국</span>
+          <span className={`${styles.statValue} ${styles.gold}`}>{user.physicalRating}</span>
+          <span className={styles.statLabel}>피지컬 레이팅</span>
         </div>
         <div className={styles.statCard}>
           <span className={styles.statIcon}>🏆</span>
@@ -260,7 +255,7 @@ const HomePage = () => {
         <div className={styles.steps}>
           <div className={styles.step}>
             <span className={styles.stepNo}>1</span>
-            <p className={styles.stepText}><b>방 입장</b><br />빠른 대국 또는 로비에서 방에 참가합니다.</p>
+            <p className={styles.stepText}><b>방 입장</b><br />방 만들기 또는 로비에서 방에 참가합니다.</p>
           </div>
           <div className={styles.step}>
             <span className={styles.stepNo}>2</span>
@@ -268,10 +263,18 @@ const HomePage = () => {
           </div>
           <div className={styles.step}>
             <span className={styles.stepNo}>3</span>
-            <p className={styles.stepText}><b>5목 완성</b><br />가로·세로·대각 어느 방향이든 5개를 먼저 잇습니다.</p>
+            <p className={styles.stepText}><b>오목 완성</b><br />가로·세로·대각 어느 방향이든 돌 5개를 먼저 잇습니다.</p>
           </div>
         </div>
       </section>
+
+      {showCreateModal && (
+        <CreateRoomModal
+          busy={busy}
+          onConfirm={createRoom}
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
     </div>
   );
 };

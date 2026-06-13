@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { gameApi, CreateRoomOptions } from '@/api/game';
+import { gameApi, CreateRoomOptions, WaitingRoomFilter } from '@/api/game';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/contexts/ToastContext';
 import { getApiErrorMessage } from '@/utils/error';
 import { Room, PageResponse, GameType, TimeLimit, ByoyomiOption } from '@/types';
+import CreateRoomModal from '@/components/game/CreateRoomModal';
 import styles from './LobbyPage.module.css';
 
 const GAME_TYPE_LABELS: Record<GameType, string> = {
-  CLASSIC: '클래식 (표준 오목)',
-  CARD: '카드 오목',
-  PHYSICAL: '피지컬 오목 (실시간 액션)',
+  CLASSIC: '일반 오목',
+  PHYSICAL: '피지컬 오목',
 };
 
 const TIME_LIMIT_LABELS: Record<TimeLimit, string> = {
@@ -28,13 +28,23 @@ const BYOYOMI_LABELS: Record<ByoyomiOption, string> = {
   THIRTY_SEC: '30초',
 };
 
-const DEFAULT_OPTIONS: CreateRoomOptions = {
-  gameType: 'CLASSIC',
-  timeLimit: 'UNLIMITED',
-  byoyomiOption: 'NONE',
-};
-
 type LobbyTab = 'waiting' | 'live';
+
+/** 대기 탭의 방 필터. RECOMMENDED는 내 레이팅대(±밴드) 방장 방만 서버가 골라준다. */
+type RoomFilter = 'ALL' | 'CLASSIC' | 'PHYSICAL' | 'RECOMMENDED';
+
+const ROOM_FILTERS: { key: RoomFilter; label: string }[] = [
+  { key: 'ALL', label: '전체' },
+  { key: 'CLASSIC', label: '일반' },
+  { key: 'PHYSICAL', label: '피지컬' },
+  { key: 'RECOMMENDED', label: '내 레이팅대 추천' },
+];
+
+const toFilterParams = (filter: RoomFilter): WaitingRoomFilter => {
+  if (filter === 'RECOMMENDED') return { recommended: true };
+  if (filter === 'CLASSIC' || filter === 'PHYSICAL') return { gameType: filter };
+  return {};
+};
 
 const findColor = (room: Room, color: 'BLACK' | 'WHITE') =>
   room.players.find((p) => p.color === color && p.role !== 'SPECTATOR')?.nickname ?? '대기';
@@ -44,33 +54,51 @@ const LobbyPage = () => {
   const showToast = useToast();
   const { user } = useAuthStore();
   const [tab, setTab] = useState<LobbyTab>('waiting');
+  const [filter, setFilter] = useState<RoomFilter>('ALL');
   const [rooms, setRooms] = useState<PageResponse<Room> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [page, setPage] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createOptions, setCreateOptions] = useState<CreateRoomOptions>(DEFAULT_OPTIONS);
+  // 사이드바 방 현황 — 필터/탭과 무관한 전체 집계(대기 중 / 진행 중)
+  const [counts, setCounts] = useState<{ waiting: number; live: number } | null>(null);
 
   const loadRooms = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = tab === 'live'
         ? await gameApi.getLiveRooms(page)
-        : await gameApi.getWaitingRooms(page);
+        : await gameApi.getWaitingRooms(page, 10, toFilterParams(filter));
       setRooms(res.data.data);
     } catch {
       /* ignore */
     } finally {
       setIsLoading(false);
     }
-  }, [page, tab]);
+  }, [page, tab, filter]);
+
+  const loadCounts = useCallback(async () => {
+    try {
+      const [waitingRes, liveRes] = await Promise.all([
+        gameApi.getWaitingRooms(0, 1),
+        gameApi.getLiveRooms(0, 1),
+      ]);
+      setCounts({
+        waiting: waitingRes.data.data?.totalElements ?? 0,
+        live: liveRes.data.data?.totalElements ?? 0,
+      });
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     loadRooms();
-    const interval = setInterval(loadRooms, 5000);
+    loadCounts();
+    const interval = setInterval(() => { loadRooms(); loadCounts(); }, 5000);
     return () => clearInterval(interval);
-  }, [loadRooms]);
+  }, [loadRooms, loadCounts]);
 
   const switchTab = (next: LobbyTab) => {
     if (next === tab) return;
@@ -79,40 +107,23 @@ const LobbyPage = () => {
     setRooms(null);
   };
 
-  const handleQuickPlay = async () => {
-    setIsCreating(true);
-    try {
-      const res = await gameApi.createRoom();
-      if (res.data.data) navigate(`/game/${res.data.data.roomCode}`);
-    } catch {
-      showToast('대국 생성에 실패했습니다.', 'error');
-    } finally {
-      setIsCreating(false);
-    }
+  const switchFilter = (next: RoomFilter) => {
+    if (next === filter) return;
+    setFilter(next);
+    setPage(0);
+    setRooms(null);
   };
 
-  const handleCreateRoom = async () => {
+  const handleCreateRoom = async (options: CreateRoomOptions) => {
     setIsCreating(true);
     try {
-      const res = await gameApi.createRoom(createOptions);
+      const res = await gameApi.createRoom(options);
       if (res.data.data) {
         setShowCreateModal(false);
         navigate(`/game/${res.data.data.roomCode}`);
       }
     } catch {
       showToast('방 생성에 실패했습니다.', 'error');
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  const handlePhysicalQuick = async () => {
-    setIsCreating(true);
-    try {
-      const res = await gameApi.createRoom({ gameType: 'PHYSICAL', timeLimit: 'UNLIMITED', byoyomiOption: 'NONE' });
-      if (res.data.data) navigate(`/game/${res.data.data.roomCode}`);
-    } catch {
-      showToast('대국 생성에 실패했습니다.', 'error');
     } finally {
       setIsCreating(false);
     }
@@ -158,6 +169,20 @@ const LobbyPage = () => {
             </button>
           </div>
 
+          {tab === 'waiting' && (
+            <div className={styles.filterBar}>
+              {ROOM_FILTERS.map((f) => (
+                <button
+                  key={f.key}
+                  className={filter === f.key ? styles.filterChipActive : styles.filterChip}
+                  onClick={() => switchFilter(f.key)}
+                >
+                  {f.key === 'RECOMMENDED' && '📈 '}{f.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className={styles.roomList}>
             {isLoading && rooms === null ? (
               <div className={styles.loading}>로딩 중...</div>
@@ -166,6 +191,11 @@ const LobbyPage = () => {
                 <div className={styles.emptyIcon}>{tab === 'live' ? '👀' : '🪟'}</div>
                 {tab === 'live' ? (
                   <p>진행 중인 대국이 없습니다.</p>
+                ) : filter === 'RECOMMENDED' ? (
+                  <>
+                    <p>내 레이팅대의 대기 중인 방이 없습니다.</p>
+                    <p><b>전체</b>를 보거나 직접 <b>방 만들기</b>로 시작하세요!</p>
+                  </>
                 ) : (
                   <>
                     <p>대기 중인 방이 없습니다.</p>
@@ -184,7 +214,7 @@ const LobbyPage = () => {
                       <span className={styles.stoneDotW} />{findColor(room, 'WHITE')}
                     </span>
                     <span className={styles.roomMeta}>
-                      {GAME_TYPE_LABELS[room.gameType]} · {TIME_LIMIT_LABELS[room.timeLimit]}
+                      {GAME_TYPE_LABELS[room.gameType]}{room.omokRule === 'RENJU' && ' · 렌주룰'} · {TIME_LIMIT_LABELS[room.timeLimit]}
                       {room.currentGame && ` · ${room.currentGame.gameNumber}번째 판`}
                     </span>
                   </div>
@@ -201,9 +231,14 @@ const LobbyPage = () => {
                 <div key={room.id} className={styles.roomCard}>
                   <div className={styles.roomInfo}>
                     <span className={styles.roomCode}>{room.roomCode}</span>
-                    <span className={styles.roomHost}>{room.host.nickname} 의 방</span>
+                    <span className={styles.roomHost}>
+                      {room.host.nickname} 의 방
+                      <span className={styles.ratingTag}>
+                        📈 {room.gameType === 'PHYSICAL' ? room.host.physicalRating : room.host.classicRating}
+                      </span>
+                    </span>
                     <span className={styles.roomMeta}>
-                      {GAME_TYPE_LABELS[room.gameType]} · {TIME_LIMIT_LABELS[room.timeLimit]}
+                      {GAME_TYPE_LABELS[room.gameType]}{room.omokRule === 'RENJU' && ' · 렌주룰'} · {TIME_LIMIT_LABELS[room.timeLimit]}
                       {room.byoyomiOption !== 'NONE' && ` · 초읽기 ${BYOYOMI_LABELS[room.byoyomiOption]}`}
                     </span>
                   </div>
@@ -234,18 +269,9 @@ const LobbyPage = () => {
         {/* ===== 사이드바 ===== */}
         <aside className={styles.sidebar}>
           <div className={styles.sideCard}>
-            <h3 className={styles.sideTitle}>빠른 시작</h3>
-            <button onClick={handleQuickPlay} disabled={isCreating} className={styles.quickBtn}>
-              ⚡ {isCreating ? '대국 생성 중...' : '빠른 대국'}
-            </button>
-            <button onClick={handlePhysicalQuick} disabled={isCreating} className={styles.createBtn}>
-              ⚔️ 피지컬 오목 (실시간)
-            </button>
-            <button
-              onClick={() => { setCreateOptions(DEFAULT_OPTIONS); setShowCreateModal(true); }}
-              className={styles.createBtn}
-            >
-              + 방 만들기
+            <h3 className={styles.sideTitle}>방 만들기</h3>
+            <button onClick={() => setShowCreateModal(true)} disabled={isCreating} className={styles.quickBtn}>
+              ＋ {isCreating ? '생성 중...' : '새 방 만들기'}
             </button>
             <div className={styles.divider}><span>또는 코드로 참가</span></div>
             <div className={styles.joinByCode}>
@@ -264,6 +290,21 @@ const LobbyPage = () => {
           </div>
 
           <div className={styles.sideCard}>
+            <h3 className={styles.sideTitle}>방 현황</h3>
+            <div className={styles.roomStatGrid}>
+              <div className={styles.roomStatItem}>
+                <b>{counts ? counts.waiting + counts.live : '–'}</b><span>전체 방</span>
+              </div>
+              <div className={styles.roomStatItem}>
+                <b className={styles.statWaiting}>{counts?.waiting ?? '–'}</b><span>대기 중</span>
+              </div>
+              <div className={styles.roomStatItem}>
+                <b className={styles.statLive}>{counts?.live ?? '–'}</b><span>진행 중</span>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.sideCard}>
             <h3 className={styles.sideTitle}>내 전적</h3>
             <div className={styles.statGrid}>
               <div className={styles.statItem}><b className={styles.win}>{user?.wins ?? 0}</b><span>승</span></div>
@@ -273,65 +314,15 @@ const LobbyPage = () => {
             </div>
           </div>
 
-          <div className={styles.tipCard}>
-            💡 <b>흑(선)</b>이 먼저 둡니다. 가로·세로·대각 어느 방향이든 <b>5목</b>을 먼저 완성하면 승리!
-          </div>
         </aside>
       </div>
 
-      {/* 방 생성 모달 */}
       {showCreateModal && (
-        <div className={styles.modalBackdrop} onClick={() => setShowCreateModal(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h2 className={styles.modalTitle}>방 설정</h2>
-
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>게임 타입</label>
-              <div className={styles.radioGroup}>
-                {(Object.keys(GAME_TYPE_LABELS) as GameType[]).map((key) => (
-                  <label key={key} className={`${styles.radioOption} ${createOptions.gameType === key ? styles.radioSelected : ''}`}>
-                    <input type="radio" name="gameType" value={key} checked={createOptions.gameType === key}
-                      onChange={() => setCreateOptions((o) => ({ ...o, gameType: key }))} />
-                    {GAME_TYPE_LABELS[key]}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>제한 시간 (1수당)</label>
-              <div className={styles.radioGroup}>
-                {(Object.keys(TIME_LIMIT_LABELS) as TimeLimit[]).map((key) => (
-                  <label key={key} className={`${styles.radioOption} ${createOptions.timeLimit === key ? styles.radioSelected : ''}`}>
-                    <input type="radio" name="timeLimit" value={key} checked={createOptions.timeLimit === key}
-                      onChange={() => setCreateOptions((o) => ({ ...o, timeLimit: key }))} />
-                    {TIME_LIMIT_LABELS[key]}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>초읽기</label>
-              <div className={styles.radioGroup}>
-                {(Object.keys(BYOYOMI_LABELS) as ByoyomiOption[]).map((key) => (
-                  <label key={key} className={`${styles.radioOption} ${createOptions.byoyomiOption === key ? styles.radioSelected : ''}`}>
-                    <input type="radio" name="byoyomiOption" value={key} checked={createOptions.byoyomiOption === key}
-                      onChange={() => setCreateOptions((o) => ({ ...o, byoyomiOption: key }))} />
-                    {BYOYOMI_LABELS[key]}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.modalActions}>
-              <button onClick={() => setShowCreateModal(false)} className={styles.cancelBtn}>취소</button>
-              <button onClick={handleCreateRoom} disabled={isCreating} className={styles.confirmBtn}>
-                {isCreating ? '생성 중...' : '방 만들기'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <CreateRoomModal
+          busy={isCreating}
+          onConfirm={handleCreateRoom}
+          onClose={() => setShowCreateModal(false)}
+        />
       )}
     </div>
   );

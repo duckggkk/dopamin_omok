@@ -29,13 +29,16 @@ const ClassicGamePage = () => {
   const [statusMessage, setStatusMessage] = useState('');
   const [closedMessage, setClosedMessage] = useState('');
   const [graceNotice, setGraceNotice] = useState<string | null>(null);
+  const [moveNotice, setMoveNotice] = useState<string | null>(null);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [gameResultDisplayText, setGameResultDisplayText] = useState<string>('');
+  const [gameResultEffect, setGameResultEffect] = useState<string | null>(null);
 
   const prevGameIdRef = useRef<number | undefined>(undefined);
   const prevRoomStatusRef = useRef<string | undefined>(undefined);
   const gameResultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const moveNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 코스메틱(스킨)과 채팅은 자기완결적 훅으로 분리.
   // 착수음은 "둔 사람의 소리"를 착수 메시지(soundAssetKey)로 받아 재생한다.
@@ -76,6 +79,13 @@ const ClassicGamePage = () => {
       setMoves((prev) => [...prev, move]);
       setLastMove({ row: move.row, col: move.col });
       playStoneSound(move.soundAssetKey); // 둔 사람의 착수음 (없으면 무음)
+      return;
+    }
+    // 렌주룰 금수 등 착수가 거부된 경우 사유를 잠깐 안내(2.5초 후 사라짐).
+    if (res.message && res.message.includes('금수')) {
+      setMoveNotice(res.message);
+      if (moveNoticeTimerRef.current) clearTimeout(moveNoticeTimerRef.current);
+      moveNoticeTimerRef.current = setTimeout(() => setMoveNotice(null), 2500);
     }
   }, [playStoneSound]);
 
@@ -140,6 +150,8 @@ const ClassicGamePage = () => {
         const isWin = game.winner?.id === user?.id;
         setGameResult(isWin ? 'WIN' : 'LOSS');
         setGameResultDisplayText(isWin ? '승리!' : (game.winnerDefeatMessage ?? '패배'));
+        // 승자가 장착한 이펙트(승/패 공용) — 승자는 승리 연출, 패자는 패배 연출. 미장착이면 문구만.
+        setGameResultEffect(game.winnerDefeatEffect ?? null);
       } else if (game.status === 'DRAW') {
         setGameResult('DRAW');
         setGameResultDisplayText('무승부');
@@ -162,6 +174,7 @@ const ClassicGamePage = () => {
     return () => {
       if (gameResultTimerRef.current) clearTimeout(gameResultTimerRef.current);
       if (closedTimerRef.current) clearTimeout(closedTimerRef.current);
+      if (moveNoticeTimerRef.current) clearTimeout(moveNoticeTimerRef.current);
     };
   }, []);
 
@@ -276,7 +289,7 @@ const ClassicGamePage = () => {
         </div>
       )}
 
-      <GameResultOverlay result={gameResult} displayText={gameResultDisplayText} />
+      <GameResultOverlay result={gameResult} displayText={gameResultDisplayText} effect={gameResultEffect} />
 
       <div className={styles.gameArea}>
         <PlayerCard
@@ -290,6 +303,7 @@ const ClassicGamePage = () => {
         <div className={styles.boardWrapper}>
           <p className={styles.status}>{statusMessage}</p>
           {graceNotice && <p className={styles.graceNotice}>{graceNotice}</p>}
+          {moveNotice && <p className={styles.graceNotice}>⚠️ {moveNotice}</p>}
           <OmokBoard
             board={board}
             currentTurn={currentGame?.currentTurn ?? null}

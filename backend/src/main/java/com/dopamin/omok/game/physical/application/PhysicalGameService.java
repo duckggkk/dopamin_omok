@@ -9,7 +9,6 @@ import com.dopamin.omok.game.domain.Room;
 import com.dopamin.omok.game.domain.StoneColor;
 import com.dopamin.omok.game.physical.config.PhysicalOmokProperties;
 import com.dopamin.omok.game.physical.domain.PhysicalGame;
-import com.dopamin.omok.game.physical.domain.PhysicalItemType;
 import com.dopamin.omok.game.physical.domain.PhysicalPlayer;
 import com.dopamin.omok.shop.application.port.out.LoadUserActiveItemPort;
 import com.dopamin.omok.shop.domain.Item;
@@ -52,27 +51,27 @@ public class PhysicalGameService implements PhysicalGameLifecycle {
                     resolveSkin(userId), resolveCharacter(userId),
                     loadStoneSoundPort.findEquippedStoneSoundKey(userId).orElse(null),
                     pos[0], pos[1]);
-            player.hold(PhysicalItemType.REMOVE_STONE); // 시작 시 상대 돌 1개 제거 아이템 보유
+            // 파괴는 Ctrl 기본키 동작이므로 시작 아이템(상대 돌 제거)을 더 이상 지급하지 않는다.
             pg.addPlayer(player);
         }
         manager.register(pg);
     }
 
     @Override
-    public void stopSession(String roomCode) {
-        manager.stopSession(roomCode);
+    public com.dopamin.omok.game.physical.application.dto.PhysicalReplayData stopSession(String roomCode) {
+        return manager.stopSession(roomCode);
     }
 
     /**
-     * 중앙 근처에서 서로 가깝게 시작(대각 모서리 아님) — 줄을 까는 곳이 항상 상대 코앞이라
-     * 오프닝 직선 러시를 즉시 견제할 수 있다. 같은 중앙 행에서 약 5칸 떨어뜨려 대칭 배치.
+     * 중앙에서 두 플레이어가 '바로 옆에'(한 칸 차이) 붙어서 시작 — 같은 중앙 행에 인접 배치.
+     * 시작부터 서로 코앞이라 오프닝 직선 러시를 즉시 견제할 수 있다.
      */
     private int[] startPosition(StoneColor color, int size) {
         int mid = size / 2;
         int row = clampCell(mid, size);
         return color == StoneColor.BLACK
-                ? new int[]{clampCell(mid - 3, size), row}
-                : new int[]{clampCell(mid + 2, size), row};
+                ? new int[]{clampCell(mid - 1, size), row}
+                : new int[]{clampCell(mid, size), row};
     }
 
     private int clampCell(int v, int size) {

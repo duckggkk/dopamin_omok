@@ -3,6 +3,7 @@ import { useAuthStore } from '@/store/authStore';
 import { userApi } from '@/api/auth';
 import { gameApi } from '@/api/game';
 import { GameInfo } from '@/types';
+import GameRecordViewer from '@/components/game/GameRecordViewer';
 import styles from './ProfilePage.module.css';
 
 const fmtDate = (iso?: string | null) => {
@@ -26,10 +27,11 @@ const ProfilePage = () => {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [recent, setRecent] = useState<GameInfo[] | null>(null);
+  const [kifuGame, setKifuGame] = useState<GameInfo | null>(null);
 
   useEffect(() => {
     gameApi
-      .getMyGames(0, 8)
+      .getMyGames(0, 10)
       .then((res) => setRecent(res.data.data?.content ?? []))
       .catch(() => setRecent([]));
   }, []);
@@ -106,6 +108,23 @@ const ProfilePage = () => {
           </div>
         </div>
 
+        <div className={styles.ratingRow}>
+          <div className={styles.ratingCard}>
+            <span className={styles.ratingIcon}>📈</span>
+            <span className={styles.ratingBody}>
+              <span className={styles.ratingValue}>{user.classicRating}</span>
+              <span className={styles.ratingLabel}>일반 오목 레이팅</span>
+            </span>
+          </div>
+          <div className={styles.ratingCard}>
+            <span className={styles.ratingIcon}>⚔️</span>
+            <span className={styles.ratingBody}>
+              <span className={styles.ratingValue}>{user.physicalRating}</span>
+              <span className={styles.ratingLabel}>피지컬 오목 레이팅</span>
+            </span>
+          </div>
+        </div>
+
         <div className={styles.stats}>
           <div className={styles.statItem}><span className={styles.statValue}>{user.totalGames}</span><span className={styles.statLabel}>총 대국</span></div>
           <div className={styles.statItem}><span className={`${styles.statValue} ${styles.win}`}>{user.wins}</span><span className={styles.statLabel}>승</span></div>
@@ -124,9 +143,10 @@ const ProfilePage = () => {
         )}
       </div>
 
-      {/* ---- 최근 전적 ---- */}
+      {/* ---- 최근 전적 (클릭 시 기보 보기) ---- */}
       <div className={styles.card}>
-        <h2 className={styles.sectionTitle}>최근 전적</h2>
+        <h2 className={styles.sectionTitle}>최근 10경기 다시보기</h2>
+        <p className={styles.sectionHint}>대국을 클릭하면 기보(일반)·리플레이(피지컬)를 한 수씩 다시 볼 수 있어요.</p>
         <div className={styles.recentList}>
           {recent === null ? (
             <p className={styles.recentEmpty}>불러오는 중...</p>
@@ -136,16 +156,19 @@ const ProfilePage = () => {
             recent.map((g) => {
               const r = resultOf(g);
               return (
-                <div key={g.id} className={styles.recentItem}>
+                <button key={g.id} className={styles.recentItem} onClick={() => setKifuGame(g)}>
                   <span className={`${styles.resultChip} ${r.cls}`}>{r.label}</span>
                   <span className={styles.recentOpp}>vs {opponentOf(g)}</span>
                   <span className={styles.recentDate}>{fmtDate(g.finishedAt ?? g.startedAt)}</span>
-                </div>
+                  <span className={styles.recentKifu}>다시보기 ▶</span>
+                </button>
               );
             })
           )}
         </div>
       </div>
+
+      {kifuGame && <GameRecordViewer game={kifuGame} onClose={() => setKifuGame(null)} />}
     </div>
   );
 };

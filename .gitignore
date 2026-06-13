@@ -35,3 +35,6 @@ mysql/data/
 
 # Internal docs (설계 문서, 외부 공개 불필요)
 docs/
+
+# 개인 공부 노트 (학습용 — 저장소에 올리지 않음)
+study/

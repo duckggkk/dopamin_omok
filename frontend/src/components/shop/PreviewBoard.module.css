@@ -1,0 +1,107 @@
+.wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+.boardHolder { position: relative; line-height: 0; }
+/* 피지컬 미리보기: 키보드 포커스가 가능하도록(방향키/스페이스 조작) */
+.boardFocusable { outline: none; border-radius: 10px; cursor: pointer; }
+.boardFocusable:focus { outline: 2px solid #ffd86b; outline-offset: 2px; }
+
+.boardSvg {
+  display: block;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 3px rgba(255, 222, 176, 0.18), 0 10px 22px -10px rgba(0, 0, 0, 0.65);
+}
+
+/* 착수 효과 보유 시 — 놓은 돌이 "뽀잉" 등장 (1회) */
+.popStone {
+  animation: pbPop 0.36s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+@keyframes pbPop {
+  0%   { transform: scale(0.2); }
+  55%  { transform: scale(1.18); }
+  75%  { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+/* 효과 없을 때 — 부드럽게 등장 */
+.appear {
+  animation: pbAppear 0.18s ease both;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+@keyframes pbAppear {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* 패배 문구 오버레이 */
+.defeatOverlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(20, 6, 6, 0.55);
+  pointer-events: none;
+}
+.defeatBanner {
+  position: relative;
+  z-index: 1;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #ff8d8d;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+  padding: 6px 18px;
+  border: 2px solid rgba(255, 120, 120, 0.5);
+  border-radius: var(--r-sm);
+  background: rgba(40, 12, 12, 0.6);
+  word-break: break-word;
+  text-align: center;
+}
+.defeatSub { font-size: 0.72rem; color: rgba(255, 200, 200, 0.85); }
+
+/* 패배 이펙트 레이어 — 바둑판 영역에 맞춰 깔리는 연출(게임 패배 화면 4종과 동일 콘셉트) */
+.defeatFx { position: absolute; inset: 0; border-radius: 10px; overflow: hidden; z-index: 0; }
+.fxFlame { background: radial-gradient(ellipse at bottom, rgba(255, 90, 0, 0.5), transparent 65%); animation: pbFlame 0.5s ease-in-out infinite alternate; }
+@keyframes pbFlame { from { opacity: 0.7; } to { opacity: 1; } }
+.fxShatter {
+  background:
+    repeating-linear-gradient(38deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(-50deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 30px);
+  animation: pbShake 0.18s steps(2) infinite;
+}
+@keyframes pbShake { 0% { transform: translate(0, 0); } 50% { transform: translate(-2px, 1.5px); } 100% { transform: translate(2px, -1.5px); } }
+.fxStorm { background: radial-gradient(ellipse at center, transparent 25%, rgba(8, 10, 28, 0.8)); animation: pbStorm 2.4s ease-in-out infinite; }
+@keyframes pbStorm { 0%, 100% { filter: brightness(1); } 10% { filter: brightness(2.2); } 12% { filter: brightness(1); } }
+.fxTears { background: linear-gradient(180deg, rgba(40, 90, 200, 0.25), rgba(20, 40, 120, 0.45)); }
+.fxTears::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(96deg, transparent 0 14px, rgba(120, 180, 255, 0.45) 14px 16px); animation: pbTears 0.8s linear infinite; opacity: 0.5; }
+@keyframes pbTears { from { background-position: 0 -100%; } to { background-position: 0 100%; } }
+
+.toolRow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.hint { font-size: 0.76rem; color: var(--text-faint); }
+.clearBtn {
+  background: var(--inset);
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  border-radius: var(--r-pill);
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+.clearBtn:hover:not(:disabled) { border-color: var(--gold-soft-border); color: var(--gold-bright); }
+.clearBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.extras { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.extraItem { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.charAvatar {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  border: 2px solid #2c3e50;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+.extraLabel { font-size: 0.7rem; color: var(--text-faint); }

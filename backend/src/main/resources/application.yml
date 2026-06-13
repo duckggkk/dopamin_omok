@@ -37,6 +37,7 @@ app:
     # 뽑기 상자 (상자에서 나오는 아이템 풀은 DB items 테이블에서 자동 조회)
     gacha:
       - { type: DEFEAT_MESSAGE, name: "문구 랜덤 뽑기 상자",      price: 30 }
+      - { type: DEFEAT_EFFECT,  name: "승패 이펙트 랜덤 뽑기 상자", price: 60 }
       - { type: BOARD_SKIN,     name: "바둑판 스킨 랜덤 뽑기 상자", price: 50 }
       - { type: STONE_SOUND,    name: "착수음 랜덤 뽑기 상자",      price: 40 }
       - { type: STONE_SKIN,     name: "바둑알 스킨 랜덤 뽑기 상자", price: 60 }
@@ -59,6 +60,14 @@ app:
       SPEED_BOOST: 50
       CRATER: 30
       BOMB: 20
+  # 만남의 광장(실시간 아바타 커뮤니티 공간) 런타임. 코드 수정 없이 여기서 조절.
+  plaza:
+    world-width: 1600         # 월드 가로(px) — 화면보다 큼(카메라가 따라감)
+    world-height: 1200        # 월드 세로(px)
+    channel-capacity: 30      # 채널당 정원(채우기 우선, 초과 시 새 채널)
+    tick-interval-ms: 100     # 서버 틱(이동/스냅샷) — 걷기엔 충분(클라가 보간) ≈ 10Hz
+    move-step: 12             # 틱당 이동 픽셀
+    spawn-margin: 120         # 스폰 시 월드 경계 여백
 
 logging:
   charset:

@@ -1,5 +1,5 @@
 package com.dopamin.omok.game.domain;
 
 public enum GameType {
-    CLASSIC, CARD, PHYSICAL
+    CLASSIC, PHYSICAL
 }

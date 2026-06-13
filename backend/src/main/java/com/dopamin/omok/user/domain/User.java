@@ -63,6 +63,14 @@ public class User {
     @Column(nullable = false)
     private Integer currency = 0;
 
+    /** 일반 오목 ELO 레이팅. 신규 유저는 1000점에서 시작하며, 일반 대국 승/패/무로 가감된다. */
+    @Column(nullable = false)
+    private Integer classicRating = 1000;
+
+    /** 피지컬 오목 ELO 레이팅. 일반과 별개로 1000점에서 시작해 피지컬 대국 결과로만 가감된다. */
+    @Column(nullable = false)
+    private Integer physicalRating = 1000;
+
     @Column(nullable = false)
     private boolean emailVerified = false;
 
@@ -94,6 +102,8 @@ public class User {
         this.losses = 0;
         this.draws = 0;
         this.currency = 0;
+        this.classicRating = 1000;
+        this.physicalRating = 1000;
         this.tokenVersion = 0L;
     }
 
@@ -155,6 +165,33 @@ public class User {
 
     public int getTotalGames() {
         return wins + losses + draws;
+    }
+
+    /** null-safe 일반 레이팅 조회 — 과거 데이터/직렬화 경로에서도 항상 유효한 점수를 보장한다. */
+    public int getClassicRating() {
+        return this.classicRating == null ? EloRating.DEFAULT_RATING : this.classicRating;
+    }
+
+    /** null-safe 피지컬 레이팅 조회. */
+    public int getPhysicalRating() {
+        return this.physicalRating == null ? EloRating.DEFAULT_RATING : this.physicalRating;
+    }
+
+    /** 모드(physical 여부)에 해당하는 레이팅을 반환한다. */
+    public int getRating(boolean physical) {
+        return physical ? getPhysicalRating() : getClassicRating();
+    }
+
+    /**
+     * ELO 계산 결과(delta)를 해당 모드 레이팅에 더한다.
+     * 하한(EloRating.MIN_RATING) 미만으로는 내려가지 않는다.
+     */
+    public void adjustRating(boolean physical, int delta) {
+        if (physical) {
+            this.physicalRating = Math.max(EloRating.MIN_RATING, getPhysicalRating() + delta);
+        } else {
+            this.classicRating = Math.max(EloRating.MIN_RATING, getClassicRating() + delta);
+        }
     }
 
     public void chargeCurrency(int amount) {

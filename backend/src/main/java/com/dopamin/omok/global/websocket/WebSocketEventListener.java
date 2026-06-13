@@ -2,6 +2,7 @@ package com.dopamin.omok.global.websocket;
 
 import com.dopamin.omok.game.application.service.RoomService;
 import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.plaza.application.PlazaSessionManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -19,6 +20,7 @@ public class WebSocketEventListener {
     private final WebSocketSessionRegistry sessionRegistry;
     private final RoomService roomService;
     private final DisconnectGraceManager disconnectGraceManager;
+    private final PlazaSessionManager plazaSessionManager;
 
     @EventListener
     public void handleSubscribe(SessionSubscribeEvent event) {
@@ -45,6 +47,8 @@ public class WebSocketEventListener {
     @EventListener
     public void handleDisconnect(SessionDisconnectEvent event) {
         String sessionId = event.getSessionId();
+        // 광장 세션이면 퇴장 처리(게임 방 세션이면 no-op — 광장은 별도 인덱스 사용).
+        plazaSessionManager.handleDisconnect(sessionId);
         sessionRegistry.getSession(sessionId).ifPresent(info -> {
             log.debug("WebSocket disconnected: session={} room={} user={}", sessionId, info.roomCode(), info.userId());
             sessionRegistry.remove(sessionId);

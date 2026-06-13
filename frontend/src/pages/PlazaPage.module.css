@@ -1,0 +1,348 @@
+.container {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  max-width: 1320px;
+  margin: 0 auto;
+  align-items: flex-start;
+}
+
+.arena {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modeBadge {
+  font-weight: 800;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 6px 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.channelBadge,
+.onlineBadge {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--inset);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 5px 12px;
+}
+
+.onlineBadge {
+  margin-left: auto;
+  color: var(--gold-bright);
+}
+
+.canvasWrap {
+  position: relative;
+  width: 100%;
+  /* 광장이 가용 공간을 가득 채우도록(사이드바 자리까지). 캔버스 해상도는 JS가 이 크기에 맞춘다. */
+  height: clamp(440px, calc(100vh - 210px), 840px);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  background: #5f7d52;
+  line-height: 0;
+}
+
+/* 인터페이스 내장 채팅 오버레이 (캔버스 좌하단) */
+.chatOverlay {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  width: min(380px, 60%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  line-height: normal;
+  pointer-events: none;
+}
+.chatLog {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  /* 최근 3줄만 노출 + 위쪽(오래된 줄)은 그라데이션으로 사라지는 느낌 */
+  max-height: 124px;
+  overflow: hidden;
+  padding-top: 8px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 32px);
+          mask-image: linear-gradient(to bottom, transparent 0, #000 32px);
+}
+.chatLine {
+  align-self: flex-start;
+  max-width: 100%;
+  font-size: 0.95rem;
+  color: #fff;
+  background: rgba(8, 10, 14, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 5px 11px;
+  border-radius: 13px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+  word-break: break-word;
+  box-shadow: 0 2px 8px -3px rgba(0, 0, 0, 0.6);
+}
+.chatName { font-weight: 800; margin-right: 6px; }
+.chatText { color: #fff; font-weight: 600; }
+.chatInput {
+  pointer-events: auto;
+  width: 100%;
+  background: rgba(12, 10, 6, 0.82);
+  border: 1px solid var(--gold-soft-border, rgba(224, 168, 63, 0.5));
+  border-radius: var(--r-sm);
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 0.88rem;
+  outline: none;
+}
+.chatInput:focus { border-color: var(--gold-bright); box-shadow: 0 0 0 2px rgba(224, 168, 63, 0.25); }
+.chatPrompt {
+  pointer-events: auto;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(12, 10, 6, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--r-pill);
+  padding: 6px 13px;
+  color: #f1f1f1;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease);
+}
+.chatPrompt:hover { background: rgba(12, 10, 6, 0.85); }
+.chatPrompt kbd {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 5px;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 아바타 꾸미기 — 광장 우상단 불투명 버튼 */
+.dressBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--gold-soft-border, rgba(224, 168, 63, 0.55));
+  color: var(--text);
+  font-weight: 800;
+  font-size: 0.85rem;
+  border-radius: var(--r-pill);
+  padding: 8px 16px;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.dressBtn:hover { background: var(--surface-3); transform: translateY(-1px); }
+
+/* 꾸미기 팝업 (광장 화면 내부 오버레이) */
+.dressBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(2px);
+          backdrop-filter: blur(2px);
+  line-height: normal;
+  animation: dressFade 0.18s var(--ease);
+}
+@keyframes dressFade { from { opacity: 0; } to { opacity: 1; } }
+.dressModal {
+  width: min(380px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+  animation: dressPop 0.2s var(--ease-pop, var(--ease));
+}
+@keyframes dressPop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.dressModalHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.dressClose {
+  background: var(--inset);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.dressClose:hover { color: var(--text); }
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.controls kbd {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: var(--r-sm);
+  padding: 1px 7px;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.muted {
+  color: var(--text-faint);
+}
+
+.sidebar {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dressRoom {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.dressGroup {
+  margin-bottom: 12px;
+}
+
+.dressLabel {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.swatchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: transform var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.swatch:hover {
+  transform: scale(1.1);
+}
+
+.swatchOn {
+  border-color: var(--gold-bright);
+  box-shadow: var(--glow-gold);
+}
+
+.accBtn {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--inset);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+
+.accBtn:hover {
+  color: var(--text);
+}
+
+.accOn {
+  color: var(--bg);
+  background: var(--gold-grad);
+  border-color: var(--gold-deep);
+}
+
+.dressHint {
+  margin: 6px 0 0;
+  font-size: 0.74rem;
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+
+.errorWrap {
+  max-width: 420px;
+  margin: 80px auto;
+  text-align: center;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.backBtn {
+  padding: 9px 20px;
+  font-weight: 700;
+  color: var(--bg);
+  background: var(--gold-grad);
+  border: none;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+
+@media (max-width: 980px) {
+  .container {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+  }
+}

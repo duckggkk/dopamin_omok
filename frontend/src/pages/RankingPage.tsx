@@ -39,6 +39,8 @@ const RankingPage = () => {
             <span className={styles.cRank}>순위</span>
             <span className={styles.cPlayer}>플레이어</span>
             <span className={styles.cRecord}>전적</span>
+            <span className={styles.cRating}>일반</span>
+            <span className={styles.cRatingP}>피지컬</span>
             <span className={styles.cRate}>승률</span>
           </div>
           {ranking.map((r) => {
@@ -58,6 +60,8 @@ const RankingPage = () => {
                 <span className={styles.cRecord}>
                   <b className={styles.w}>{r.wins}</b>승 <b className={styles.l}>{r.losses}</b>패 {r.draws}무
                 </span>
+                <span className={styles.cRating}>{r.classicRating}</span>
+                <span className={styles.cRatingP}>{r.physicalRating}</span>
                 <span className={styles.cRate}>{r.winRate}%</span>
               </div>
             );

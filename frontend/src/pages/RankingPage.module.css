@@ -31,9 +31,9 @@
 
 .headRow, .row {
   display: grid;
-  grid-template-columns: 64px 1fr 150px 64px;
+  grid-template-columns: 56px 1fr 132px 60px 60px 60px;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 12px 20px;
 }
 .headRow {
@@ -99,9 +99,11 @@
 .w { color: var(--success); }
 .l { color: var(--danger); }
 
-.cRate { color: var(--gold-bright); font-weight: 800; font-size: 1rem; text-align: right; font-variant-numeric: tabular-nums; }
+.cRating { color: var(--gold-bright); font-weight: 800; font-size: 0.95rem; text-align: right; font-variant-numeric: tabular-nums; }
+.cRatingP { color: var(--text); font-weight: 800; font-size: 0.95rem; text-align: right; font-variant-numeric: tabular-nums; }
+.cRate { color: var(--text-muted); font-weight: 700; font-size: 0.92rem; text-align: right; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 560px) {
-  .headRow, .row { grid-template-columns: 48px 1fr 56px; }
-  .cRecord { display: none; }
+  .headRow, .row { grid-template-columns: 40px 1fr 56px 56px; }
+  .cRecord, .cRate { display: none; }
 }

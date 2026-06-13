@@ -2,6 +2,7 @@ package com.dopamin.omok.game.adapter.out.persistence;
 
 import com.dopamin.omok.game.application.port.out.LoadRoomPort;
 import com.dopamin.omok.game.application.port.out.SaveRoomPort;
+import com.dopamin.omok.game.domain.GameType;
 import com.dopamin.omok.game.domain.Room;
 import com.dopamin.omok.game.domain.RoomStatus;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,16 @@ public class RoomPersistenceAdapter implements LoadRoomPort, SaveRoomPort {
     @Override
     public Page<Room> findByStatus(RoomStatus status, Pageable pageable) {
         return roomJpaRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+    }
+
+    @Override
+    public Page<Room> findByStatusAndGameType(RoomStatus status, GameType gameType, Pageable pageable) {
+        return roomJpaRepository.findByStatusAndGameTypeOrderByCreatedAtDesc(status, gameType, pageable);
+    }
+
+    @Override
+    public Page<Room> findRecommendedRooms(RoomStatus status, int cmin, int cmax, int pmin, int pmax, Pageable pageable) {
+        return roomJpaRepository.findRecommendedRooms(status, cmin, cmax, pmin, pmax, pageable);
     }
 
     @Override

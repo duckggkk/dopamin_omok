@@ -122,13 +122,35 @@
 .success { color: var(--success); font-size: 0.85rem; margin: 10px 0 0; }
 
 /* ---- 스탯 ---- */
+/* 레이팅 강조 행 (일반 / 피지컬) */
+.ratingRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.ratingCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--inset);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 18px;
+}
+.ratingIcon { font-size: 1.6rem; }
+.ratingBody { display: flex; flex-direction: column; }
+.ratingValue { font-size: 1.6rem; font-weight: 800; color: var(--gold-bright); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ratingLabel { font-size: 0.8rem; color: var(--text-faint); }
+
 .stats {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 10px;
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid var(--border);
+  margin-top: 14px;
+  padding-top: 0;
 }
 .statItem {
   display: flex;
@@ -171,9 +193,12 @@
 }
 .sectionTitle::before { content: ''; width: 5px; height: 18px; border-radius: 3px; background: var(--gold-grad); }
 
+.sectionHint { margin: -10px 0 14px; font-size: 0.82rem; color: var(--text-faint); }
 .recentList { display: flex; flex-direction: column; gap: 8px; }
 .recentEmpty { color: var(--text-faint); font-size: 0.9rem; padding: 20px 4px; text-align: center; }
 .recentItem {
+  width: 100%;
+  text-align: left;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -181,7 +206,11 @@
   border: 1px solid var(--border-faint);
   border-radius: var(--r-sm);
   padding: 10px 14px;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
+.recentItem:hover { border-color: var(--gold-soft-border); transform: translateX(2px); }
+.recentKifu { flex-shrink: 0; color: var(--gold-bright); font-size: 0.78rem; font-weight: 700; }
 .resultChip {
   width: 28px; height: 28px;
   flex-shrink: 0;

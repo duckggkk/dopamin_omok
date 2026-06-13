@@ -90,8 +90,16 @@
   filter: drop-shadow(0 0 20px rgba(200, 30, 30, 0.5));
   user-select: none;
 }
+.gameResultWinText {
+  font-family: var(--font-sans);
+  font-size: 5.2rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: #ffd86b;
+  text-shadow: 0 0 30px rgba(255, 216, 107, 0.85), 0 0 60px rgba(220, 160, 30, 0.45), 0 4px 12px rgba(0, 0, 0, 0.8);
+}
 .gameResultLossText {
-  position: absolute;
   font-family: var(--font-sans);
   font-size: 5.2rem;
   font-weight: 900;
@@ -108,6 +116,58 @@
   text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
 }
 .gameResultSubtext { color: var(--text-faint); font-size: 0.95rem; margin: 0; letter-spacing: 0.02em; }
+
+/* ---- 결과 이펙트 (승자가 이펙트를 장착했을 때만 승/패 화면 전체에 깔리는 연출) ---- */
+.resultEffect {
+  position: fixed;
+  inset: 0;
+  z-index: 9998; /* 결과 오버레이(9999) 바로 아래 — 문구 뒤에 깔림 */
+  pointer-events: none;
+  overflow: hidden;
+}
+.resultEffect::before,
+.resultEffect::after { content: ''; position: absolute; inset: 0; }
+
+/* 불태우기 */
+.fxFlame { background: radial-gradient(ellipse at bottom, rgba(255, 90, 0, 0.5), transparent 62%); animation: fxFlameFlicker 0.45s ease-in-out infinite alternate; }
+.fxFlame::after { background: linear-gradient(0deg, rgba(255, 60, 0, 0.6), transparent 48%); mix-blend-mode: screen; animation: fxFlameRise 1.3s ease-in-out infinite; }
+@keyframes fxFlameFlicker { from { opacity: 0.7; } to { opacity: 1; } }
+@keyframes fxFlameRise { 0%, 100% { transform: translateY(12px) scaleY(1); } 50% { transform: translateY(0) scaleY(1.06); } }
+
+/* 와장창 (균열 + 흔들림) */
+.fxShatter {
+  background:
+    repeating-linear-gradient(35deg, rgba(255, 255, 255, 0.07) 0 2px, transparent 2px 64px),
+    repeating-linear-gradient(-52deg, rgba(255, 255, 255, 0.06) 0 2px, transparent 2px 88px);
+  animation: fxShatterShake 0.16s steps(2) 8;
+}
+@keyframes fxShatterShake { 0% { transform: translate(0, 0); } 25% { transform: translate(-7px, 5px); } 50% { transform: translate(6px, -6px); } 75% { transform: translate(-4px, -3px); } 100% { transform: translate(0, 0); } }
+
+/* 먹구름 (어두운 비네팅 + 번개) */
+.fxStorm { background: radial-gradient(ellipse at center, transparent 28%, rgba(8, 10, 28, 0.88)); animation: fxStormLightning 2.6s ease-in-out infinite; }
+@keyframes fxStormLightning { 0%, 100% { filter: brightness(1); } 8% { filter: brightness(2.6); } 10% { filter: brightness(1); } 14% { filter: brightness(2.1); } 16% { filter: brightness(1); } }
+
+/* 눈물바다 (푸른 빗줄기) */
+.fxTears { background: linear-gradient(180deg, rgba(40, 90, 200, 0.22), rgba(20, 40, 120, 0.45)); }
+.fxTears::before {
+  background-image: repeating-linear-gradient(96deg, transparent 0 26px, rgba(120, 180, 255, 0.45) 26px 28px);
+  animation: fxTearsFall 0.8s linear infinite;
+  opacity: 0.55;
+}
+@keyframes fxTearsFall { from { background-position: 0 -100%; } to { background-position: 0 100%; } }
+
+/* 승리 이펙트 — 패배 연출과 같은 테마의 화려/축하 버전(금빛). 승자 화면에 깔린다. */
+.fxWinFlame { background: radial-gradient(ellipse at bottom, rgba(255, 200, 60, 0.5), transparent 62%); animation: fxFlameFlicker 0.45s ease-in-out infinite alternate; }
+.fxWinFlame::after { background: linear-gradient(0deg, rgba(255, 180, 40, 0.6), transparent 48%); mix-blend-mode: screen; animation: fxFlameRise 1.3s ease-in-out infinite; }
+
+.fxWinShatter { background: repeating-conic-gradient(from 0deg at 50% 42%, rgba(255, 216, 107, 0) 0deg 8deg, rgba(255, 216, 107, 0.16) 8deg 10deg); animation: fxWinBurst 1.6s ease-out infinite; }
+@keyframes fxWinBurst { 0% { transform: scale(0.6); opacity: 0.2; } 40% { opacity: 0.9; } 100% { transform: scale(1.3); opacity: 0; } }
+
+.fxWinStorm { background: repeating-conic-gradient(from 0deg at 50% 50%, rgba(255, 255, 255, 0) 0deg 10deg, rgba(255, 248, 220, 0.1) 10deg 12deg); animation: fxWinRays 9s linear infinite; }
+@keyframes fxWinRays { to { transform: rotate(360deg); } }
+
+.fxWinTears { background: radial-gradient(circle at 50% 42%, rgba(255, 240, 180, 0.28), transparent 60%); animation: fxWinSparkle 1.2s ease-in-out infinite; }
+@keyframes fxWinSparkle { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 
 /* ---- 플레이어 카드 (네임플레이트) ---- */
 .playerCard {

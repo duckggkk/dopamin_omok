@@ -13,6 +13,7 @@ public record RoomResponse(
         UserResponse host,
         RoomStatus status,
         GameType gameType,
+        OmokRule omokRule,
         TimeLimit timeLimit,
         ByoyomiOption byoyomiOption,
         Integer maxSpectators,
@@ -22,20 +23,18 @@ public record RoomResponse(
         LocalDateTime createdAt
 ) {
     public static RoomResponse of(Room room, List<GamePlayer> players, Game currentGame) {
-        return of(room, players, currentGame, null, Map.of());
-    }
-
-    public static RoomResponse of(Room room, List<GamePlayer> players, Game currentGame, String winnerDefeatMessage) {
-        return of(room, players, currentGame, winnerDefeatMessage, Map.of());
+        return of(room, players, currentGame, null, null, Map.of());
     }
 
     /**
      * cosmetics: 참가자 내부 userId(Long) → 서버가 해석한 코스메틱 묶음(바둑알 스킨 색 + 착수 효과).
      * 전적으로 user_active_items 에서 읽은 값이라 클라이언트 입력이 아니다.
      * 미보유/미장착 플레이어는 키가 없어 EMPTY(null 스킨/효과)로 내려간다.
+     * winnerDefeatMessage/winnerDefeatEffect: 승자가 장착한 패배 문구/이펙트(패자 화면 연출용, 미장착 null).
      */
     public static RoomResponse of(Room room, List<GamePlayer> players, Game currentGame,
-                                  String winnerDefeatMessage, Map<Long, PlayerCosmetics> cosmetics) {
+                                  String winnerDefeatMessage, String winnerDefeatEffect,
+                                  Map<Long, PlayerCosmetics> cosmetics) {
         Map<Long, PlayerCosmetics> cos = cosmetics != null ? cosmetics : Map.of();
         return new RoomResponse(
                 room.getId(),
@@ -43,6 +42,7 @@ public record RoomResponse(
                 UserResponse.from(room.getHost()),
                 room.getStatus(),
                 room.getGameType(),
+                room.getOmokRule(),
                 room.getTimeLimit(),
                 room.getByoyomiOption(),
                 room.getMaxSpectators(),
@@ -51,12 +51,12 @@ public record RoomResponse(
                         .map(gp -> GamePlayerResponse.from(gp,
                                 cos.getOrDefault(gp.getUser().getId(), PlayerCosmetics.EMPTY)))
                         .toList(),
-                currentGame != null ? GameResponse.from(currentGame, winnerDefeatMessage) : null,
+                currentGame != null ? GameResponse.from(currentGame, winnerDefeatMessage, winnerDefeatEffect) : null,
                 room.getCreatedAt()
         );
     }
 
     public static RoomResponse of(Room room, List<GamePlayer> players) {
-        return of(room, players, null, null, Map.of());
+        return of(room, players, null, null, null, Map.of());
     }
 }

@@ -43,9 +43,9 @@ public class ShopService implements ChargeCurrencyUseCase, OpenGachaUseCase,
 
         List<GachaBoxInfo> boxes = shopProperties.gacha().stream()
                 .map(box -> {
-                    // 상자에서 나올 수 있는 아이템 목록 (기본 지급 아이템 제외, DB 동적 조회)
-                    List<String> possibleItems = loadItemPort.findGachaPoolByType(box.type()).stream()
-                            .map(Item::getDisplayName)
+                    // 상자에서 나올 수 있는 아이템 목록 (기본 지급 아이템 제외, DB 동적 조회) — 미리보기용 설정 포함
+                    List<ItemResponse> possibleItems = loadItemPort.findGachaPoolByType(box.type()).stream()
+                            .map(ItemResponse::from)
                             .toList();
                     return new GachaBoxInfo(box.type().name(), box.name(), box.price(),
                             box.type(), possibleItems);

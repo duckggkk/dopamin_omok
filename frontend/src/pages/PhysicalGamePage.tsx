@@ -27,7 +27,6 @@ const ITEM_META: Record<PhysicalItemType, { emoji: string; label: string }> = {
   SPEED_BOOST: { emoji: '⚡', label: '이동 부스트' },
   CRATER: { emoji: '🕳️', label: '바둑판 붕괴' },
   BOMB: { emoji: '💣', label: '광역 폭탄' },
-  REMOVE_STONE: { emoji: '🎯', label: '상대돌 제거' },
 };
 
 // 아이템 사용 시 효과음(고유)
@@ -35,7 +34,6 @@ const USE_SFX: Record<PhysicalItemType, SfxName> = {
   SPEED_BOOST: 'use_speed',
   CRATER: 'use_crater',
   BOMB: 'use_bomb',
-  REMOVE_STONE: 'use_remove',
 };
 
 // 캐릭터 스킨 face 키워드 → 이모지 (백엔드는 안전 키워드만 저장)
@@ -96,7 +94,7 @@ const drawStone = (
   ctx.stroke();
 };
 
-// 5목 확정 대기(settle) 동안 '연결된 오목'을 강조 — 돌들을 잇는 맥동 글로우 빔 + 각 돌 맥동 링.
+// 오목 확정 대기(settle) 동안 '연결된 오목'을 강조 — 돌들을 잇는 맥동 글로우 빔 + 각 돌 맥동 링.
 // 내 라인은 초록(승리 임박), 상대 라인은 빨강(끊어야 함)으로 배너 색과 일치시킨다.
 const drawWinHighlight = (
   ctx: CanvasRenderingContext2D,
@@ -234,6 +232,7 @@ const PhysicalGamePage = () => {
   const [graceNotice, setGraceNotice] = useState<string | null>(null);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [gameResultDisplayText, setGameResultDisplayText] = useState('');
+  const [gameResultEffect, setGameResultEffect] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const snapshotRef = useRef<PhysicalSnapshot | null>(null);
@@ -372,6 +371,8 @@ const PhysicalGamePage = () => {
         const isWin = game.winner?.id === user?.id;
         setGameResult(isWin ? 'WIN' : 'LOSS');
         setGameResultDisplayText(isWin ? '승리!' : (game.winnerDefeatMessage ?? '패배'));
+        // 승자가 장착한 이펙트(승/패 공용) — 승자는 승리 연출, 패자는 패배 연출. 미장착이면 문구만.
+        setGameResultEffect(game.winnerDefeatEffect ?? null);
       }
     }
     if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
@@ -412,10 +413,12 @@ const PhysicalGamePage = () => {
       if (e.code === 'Space') {
         e.preventDefault();
         sendPhysicalInput('PLACE');
-      } else if (e.key === 'Shift') {
+      } else if (e.key === 'Control') {
+        // 파괴: 기본키 Ctrl (상대 돌 부수기)
         e.preventDefault();
         sendPhysicalInput('DESTROY');
-      } else if (e.key === 'Control') {
+      } else if (e.key === 'Shift') {
+        // 아이템 사용: Shift
         e.preventDefault();
         sendPhysicalInput('USE_ITEM');
       }
@@ -524,7 +527,7 @@ const PhysicalGamePage = () => {
       }
     }
 
-    // 5목 확정 대기 중이면 연결된 라인을 강조(맥동)
+    // 오목 확정 대기 중이면 연결된 라인을 강조(맥동)
     if (snap.pendingWinLine && snap.pendingWinLine.length > 1) {
       const pts = snap.pendingWinLine.map(([px, py]) => ({ x: at(px), y: at(py) }));
       drawWinHighlight(ctx, pts, stoneR, snap.pendingWinColor === mine);
@@ -586,7 +589,7 @@ const PhysicalGamePage = () => {
         </div>
       )}
 
-      <GameResultOverlay result={gameResult} displayText={gameResultDisplayText} />
+      <GameResultOverlay result={gameResult} displayText={gameResultDisplayText} effect={gameResultEffect} />
 
       <div className={styles.arenaArea}>
         <div className={styles.modeBadge}>⚔️ 피지컬 오목</div>
@@ -625,8 +628,8 @@ const PhysicalGamePage = () => {
           {snapshot?.pendingWinColor && (
             <div className={snapshot.pendingWinColor === myColor ? styles.pendingMine : styles.pendingFoe}>
               {snapshot.pendingWinColor === myColor
-                ? '⚡ 5목 완성! 잠깐만 버티면 승리!'
-                : '⚠ 상대 5목! 끊어라 (Ctrl/Shift)!'}
+                ? '⚡ 오목 완성! 잠깐만 버티면 승리!'
+                : '⚠ 상대 오목! 끊어라 (Ctrl/Shift)!'}
             </div>
           )}
 
@@ -635,8 +638,8 @@ const PhysicalGamePage = () => {
               <div className={styles.waitCard}>
                 <h2 className={styles.waitTitle}>⚔️ 피지컬 오목</h2>
                 <p className={styles.waitDesc}>
-                  방향키로 캐릭터를 움직여 <b>Space</b>로 착수! <b>Shift</b>로 상대 돌을 부수고,
-                  필드의 아이템을 주워 <b>Ctrl</b>로 사용하세요. 먼저 <b>5목</b>을 완성하면 승리!
+                  방향키로 캐릭터를 움직여 <b>Space</b>로 착수! <b>Ctrl</b>로 상대 돌을 부수고,
+                  필드의 아이템을 주워 <b>Shift</b>로 사용하세요. 먼저 <b>오목</b>을 완성하면 승리!
                 </p>
                 {!playerRolePlayer && (
                   <>
@@ -667,8 +670,8 @@ const PhysicalGamePage = () => {
         <div className={styles.controls}>
           <span><kbd>←↑↓→</kbd> 이동</span>
           <span><kbd>Space</kbd> 착수</span>
-          <span><kbd>Shift</kbd> 파괴</span>
-          <span><kbd>Ctrl</kbd> 아이템</span>
+          <span><kbd>Ctrl</kbd> 파괴</span>
+          <span><kbd>Shift</kbd> 아이템</span>
         </div>
       </div>
 

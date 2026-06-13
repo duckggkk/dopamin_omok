@@ -22,6 +22,8 @@ final class ConfigChecks {
             Set.of("normal", "multiply", "screen", "overlay", "darken", "lighten", "soft-light", "hard-light");
     // 지원하는 착수 효과 키 (프론트가 렌더할 수 있는 애니메이션). 화이트리스트로 임의 값 차단.
     private static final Set<String> VALID_EFFECTS = Set.of("bounce");
+    // 지원하는 패배 이펙트 키 (패자 화면에서 프론트가 렌더할 연출). 화이트리스트로 임의 값 차단.
+    private static final Set<String> VALID_DEFEAT_EFFECTS = Set.of("flame", "shatter", "storm", "tears");
 
     private ConfigChecks() {}
 
@@ -76,6 +78,13 @@ final class ConfigChecks {
     static void requireEffect(ItemConfig config) {
         if (!config.hasEffect()) throw new InvalidItemConfigException("effect는 필수입니다.");
         validateEffect(config.effect());
+    }
+
+    static void requireDefeatEffect(ItemConfig config) {
+        if (!config.hasEffect()) throw new InvalidItemConfigException("effect는 필수입니다.");
+        if (!VALID_DEFEAT_EFFECTS.contains(config.effect())) {
+            throw new InvalidItemConfigException("지원하지 않는 패배 이펙트입니다: " + config.effect());
+        }
     }
 
     /** STONE_SKIN이 애니메이션을 번들할 수 있으므로 effect가 있으면 키를 검증한다(없으면 무시). */

@@ -3,6 +3,7 @@ package com.dopamin.omok.game.adapter.in.web;
 import com.dopamin.omok.game.adapter.in.web.dto.CreateRoomRequest;
 import com.dopamin.omok.game.application.dto.RoomResponse;
 import com.dopamin.omok.game.application.port.in.*;
+import com.dopamin.omok.game.domain.GameType;
 import com.dopamin.omok.global.common.response.ApiResponse;
 import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
 import jakarta.validation.Valid;
@@ -33,7 +34,8 @@ public class RoomController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody CreateRoomRequest request) {
         RoomResponse response = createRoomUseCase.createRoom(
-                userDetails.getId(), request.gameType(), request.timeLimit(), request.byoyomiOption());
+                userDetails.getId(), request.gameType(), request.omokRule(),
+                request.timeLimit(), request.byoyomiOption());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("방이 생성되었습니다.", response));
     }
@@ -72,8 +74,13 @@ public class RoomController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getWaitingRooms(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) GameType gameType,
+            @RequestParam(required = false, defaultValue = "false") boolean recommended,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<RoomResponse> response = getRoomUseCase.getWaitingRooms(pageable);
+        Page<RoomResponse> response = recommended
+                ? getRoomUseCase.getRecommendedRooms(userDetails.getId(), pageable)
+                : getRoomUseCase.getWaitingRooms(gameType, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

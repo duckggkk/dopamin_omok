@@ -11,6 +11,8 @@ import com.dopamin.omok.game.application.port.out.*;
 import com.dopamin.omok.game.domain.*;
 import com.dopamin.omok.game.physical.application.PhysicalGameEndedEvent;
 import com.dopamin.omok.game.physical.application.PhysicalGameLifecycle;
+import com.dopamin.omok.game.physical.application.dto.PhysicalReplayData;
+import com.dopamin.omok.game.physical.application.port.out.SavePhysicalReplayPort;
 import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.common.exception.OmokException;
 import com.dopamin.omok.shop.application.port.out.LoadUserActiveItemPort;
@@ -19,6 +21,7 @@ import com.dopamin.omok.shop.domain.ItemConfig;
 import com.dopamin.omok.shop.domain.ItemType;
 import com.dopamin.omok.shop.domain.UserActiveItem;
 import com.dopamin.omok.user.application.port.out.LoadUserPort;
+import com.dopamin.omok.user.domain.EloRating;
 import com.dopamin.omok.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,16 +59,18 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     private final LoadUserActiveItemPort loadUserActiveItemPort;
     private final SimpMessagingTemplate messagingTemplate;
     private final PhysicalGameLifecycle physicalGameLifecycle;
+    private final SavePhysicalReplayPort savePhysicalReplayPort;
 
     // 리매치 요청 추적 (roomCode → 요청한 userId 집합)
     private final Map<String, Set<Long>> rematchRequests = new ConcurrentHashMap<>();
 
     @Override
     @Transactional
-    public RoomResponse createRoom(Long userId, GameType gameType, TimeLimit timeLimit, ByoyomiOption byoyomiOption) {
+    public RoomResponse createRoom(Long userId, GameType gameType, OmokRule omokRule,
+                                   TimeLimit timeLimit, ByoyomiOption byoyomiOption) {
         User user = findUserById(userId);
         String roomCode = generateUniqueRoomCode();
-        Room room = Room.create(user, roomCode, gameType, timeLimit, byoyomiOption);
+        Room room = Room.create(user, roomCode, gameType, omokRule, timeLimit, byoyomiOption);
         saveRoomPort.save(room);
 
         GamePlayer host = GamePlayer.createHost(room, user);
@@ -255,8 +260,12 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
 
         game.finish(winner);
         winner.recordWin();
-        if (loser != null) loser.recordLoss();
+        if (loser != null) {
+            loser.recordLoss();
+            EloRating.applyResult(winner, loser, true); // 피지컬 종료 이벤트 → 피지컬 레이팅
+        }
         saveGamePort.save(game);
+        if (event.replay() != null) savePhysicalReplayPort.save(event.replay()); // 리플레이 영속(게임당 1회)
 
         loadRoomPort.findByRoomCode(event.roomCode()).ifPresent(room -> {
             room.waitForNextGame();
@@ -275,9 +284,25 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         return buildRoomResponse(room, currentGame);
     }
 
+    /** 방장 레이팅 추천 밴드(±). 내 레이팅 기준 이 범위 안의 방장이 만든 방만 추천한다. */
+    private static final int RATING_RECOMMEND_BAND = 150;
+
     @Override
-    public Page<RoomResponse> getWaitingRooms(Pageable pageable) {
-        return loadRoomPort.findByStatus(RoomStatus.WAITING, pageable)
+    public Page<RoomResponse> getWaitingRooms(GameType gameType, Pageable pageable) {
+        Page<Room> rooms = (gameType == null)
+                ? loadRoomPort.findByStatus(RoomStatus.WAITING, pageable)
+                : loadRoomPort.findByStatusAndGameType(RoomStatus.WAITING, gameType, pageable);
+        return rooms.map(room -> buildRoomResponse(room));
+    }
+
+    @Override
+    public Page<RoomResponse> getRecommendedRooms(Long userId, Pageable pageable) {
+        User user = findUserById(userId);
+        int c = user.getClassicRating();
+        int p = user.getPhysicalRating();
+        int band = RATING_RECOMMEND_BAND;
+        return loadRoomPort.findRecommendedRooms(
+                        RoomStatus.WAITING, c - band, c + band, p - band, p + band, pageable)
                 .map(room -> buildRoomResponse(room));
     }
 
@@ -367,6 +392,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
                 game.finish(winner);
                 winner.recordWin();
                 loser.recordLoss();
+                EloRating.applyResult(winner, loser, room.getGameType() == GameType.PHYSICAL);
             } else {
                 game.abandon();
             }
@@ -375,7 +401,9 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
 
         deleteGamePlayerPort.deleteByRoomId(room.getId());
         rematchRequests.remove(roomCode);
-        physicalGameLifecycle.stopSession(roomCode); // 피지컬 메모리 세션 정리(클래식이면 no-op)
+        // 피지컬 메모리 세션 정리(클래식이면 null) + 그때까지의 리플레이 저장
+        PhysicalReplayData replay = physicalGameLifecycle.stopSession(roomCode);
+        if (replay != null) savePhysicalReplayPort.save(replay);
 
         messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/closed",
                 Map.of("message", "방장이 방을 나갔습니다."));
@@ -390,6 +418,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             game.finish(winner);
             winner.recordWin();
             loser.recordLoss();
+            EloRating.applyResult(winner, loser, room.getGameType() == GameType.PHYSICAL);
             saveGamePort.save(game);
 
             // 패배한 플레이어를 방에서 제거
@@ -403,7 +432,9 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/status",
                     ApiResponse.success(response));
         });
-        physicalGameLifecycle.stopSession(roomCode); // 피지컬 메모리 세션 정리(클래식이면 no-op)
+        // 피지컬 메모리 세션 정리(클래식이면 null) + 그때까지의 리플레이 저장
+        PhysicalReplayData replay = physicalGameLifecycle.stopSession(roomCode);
+        if (replay != null) savePhysicalReplayPort.save(replay);
     }
 
     private RoomResponse buildRoomResponse(Room room) {
@@ -414,12 +445,22 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     private RoomResponse buildRoomResponse(Room room, Game game) {
         List<GamePlayer> players = loadGamePlayerPort.findByRoomId(room.getId());
         String defeatMessage = null;
+        String defeatEffect = null;
         if (game != null && game.getWinner() != null) {
+            Long winnerId = game.getWinner().getId();
             defeatMessage = loadUserActiveItemPort
-                    .findActiveItemNameByUserIdAndType(game.getWinner().getId(), ItemType.DEFEAT_MESSAGE)
+                    .findActiveItemNameByUserIdAndType(winnerId, ItemType.DEFEAT_MESSAGE)
+                    .orElse(null);
+            // 승자가 패배 이펙트를 장착했다면 그 effect 키를 패자 화면 연출용으로 내려준다(미장착 null → 문구만).
+            defeatEffect = loadUserActiveItemPort
+                    .findByUserIdAndItemType(winnerId, ItemType.DEFEAT_EFFECT)
+                    .map(UserActiveItem::getItem)
+                    .map(Item::getItemConfig)
+                    .map(ItemConfig::effect)
+                    .filter(e -> e != null && !e.isBlank())
                     .orElse(null);
         }
-        return RoomResponse.of(room, players, game, defeatMessage, buildCosmetics(players));
+        return RoomResponse.of(room, players, game, defeatMessage, defeatEffect, buildCosmetics(players));
     }
 
     /**

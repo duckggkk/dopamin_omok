@@ -26,7 +26,8 @@ public class OmokGameEngine {
             count += countInDirection(board, row, col, dir[0], dir[1], color);
             count += countInDirection(board, row, col, -dir[0], -dir[1], color);
 
-            if (count >= WIN_COUNT) {
+            // '오목'만 승리 — 정확히 5목일 때만. 6목 이상(장목/오버라인)은 승리로 인정하지 않는다.
+            if (count == WIN_COUNT) {
                 return true;
             }
         }

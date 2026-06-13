@@ -24,7 +24,9 @@ export type UserRole = 'USER' | 'ADMIN';
 export type GameStatus = 'IN_PROGRESS' | 'FINISHED' | 'DRAW' | 'ABANDONED';
 export type StoneColor = 'BLACK' | 'WHITE';
 export type RoomStatus = 'WAITING' | 'IN_PROGRESS' | 'CLOSED';
-export type GameType = 'CLASSIC' | 'CARD' | 'PHYSICAL';
+export type GameType = 'CLASSIC' | 'PHYSICAL';
+// 오목 규칙 변형. RENJU는 클래식에서 흑(선)에게 금수(3-3·4-4·장목)를 적용. 피지컬은 항상 FREESTYLE.
+export type OmokRule = 'FREESTYLE' | 'RENJU';
 export type PlayerRole = 'HOST' | 'PLAYER' | 'SPECTATOR';
 export type TimeLimit = 'UNLIMITED' | 'ONE_MIN' | 'THREE_MIN' | 'FIVE_MIN' | 'TEN_MIN';
 export type ByoyomiOption = 'NONE' | 'TEN_SEC' | 'FIFTEEN_SEC' | 'THIRTY_SEC';
@@ -39,6 +41,8 @@ export interface User {
   losses: number;
   draws: number;
   totalGames: number;
+  classicRating: number;
+  physicalRating: number;
   currency: number;
   createdAt: string;
 }
@@ -75,6 +79,8 @@ export interface GameInfo {
   finishedAt: string | null;
   lastMoveAt: string | null;
   winnerDefeatMessage: string | null;
+  // 승자가 장착한 패배 이펙트 키(패자 화면 연출용, 미장착 null). 기본 패배는 이펙트 없이 문구만.
+  winnerDefeatEffect: string | null;
 }
 
 export interface Room {
@@ -83,6 +89,7 @@ export interface Room {
   host: User;
   status: RoomStatus;
   gameType: GameType;
+  omokRule: OmokRule;
   timeLimit: TimeLimit;
   byoyomiOption: ByoyomiOption;
   maxSpectators: number;
@@ -116,7 +123,7 @@ export interface ChatMessage {
 export type Board = (StoneColor | null)[][];
 
 // Shop
-export type ItemType = 'DEFEAT_MESSAGE' | 'BOARD_SKIN' | 'STONE_SOUND' | 'STONE_SKIN' | 'STONE_EFFECT' | 'CHARACTER_SKIN';
+export type ItemType = 'DEFEAT_MESSAGE' | 'DEFEAT_EFFECT' | 'BOARD_SKIN' | 'STONE_SOUND' | 'STONE_SKIN' | 'STONE_EFFECT' | 'CHARACTER_SKIN';
 
 // 스킨 렌더링용 색상 (BOARD_SKIN 전용)
 export interface SkinColors {
@@ -174,7 +181,7 @@ export interface GachaBox {
   name: string;
   price: number;
   itemType: ItemType;
-  possibleItems: string[];
+  possibleItems: ShopItem[]; // 미리보기용 — 각 아이템의 itemConfig 포함
 }
 
 export interface ShopInfo {
@@ -196,7 +203,8 @@ export interface Inventory {
 
 // ===== 피지컬 오목 (실시간 액션 모드) =====
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
-export type PhysicalItemType = 'SPEED_BOOST' | 'CRATER' | 'BOMB' | 'REMOVE_STONE';
+// 파괴(상대 돌 제거)는 아이템이 아니라 Ctrl 기본키 동작이므로 아이템 목록에서 제외.
+export type PhysicalItemType = 'SPEED_BOOST' | 'CRATER' | 'BOMB';
 export type PhysicalInputType = 'MOVE_START' | 'MOVE_STOP' | 'PLACE' | 'DESTROY' | 'USE_ITEM';
 
 // 피지컬 캐릭터 스킨(절차적) — body/accent는 hex, face는 이모지 매핑 키워드. 백엔드 ItemConfig.character 와 동일.
@@ -236,8 +244,8 @@ export interface PhysicalSnapshot {
   players: PhysicalPlayerView[];
   items: PhysicalItemDrop[];
   winnerColor: StoneColor | null;
-  pendingWinColor: StoneColor | null; // 5목 확정 대기 중인 색(이 동안 끊으면 무효), 없으면 null
-  pendingWinLine: number[][] | null; // 확정 대기 중인 5목을 이루는 칸 좌표들([[x,y],...]) — 강조용, 없으면 null
+  pendingWinColor: StoneColor | null; // 오목 확정 대기 중인 색(이 동안 끊으면 무효), 없으면 null
+  pendingWinLine: number[][] | null; // 확정 대기 중인 오목을 이루는 칸 좌표들([[x,y],...]) — 강조용, 없으면 null
   serverTime: number; // epoch ms — 쿨다운 계산 기준
 }
 
@@ -251,6 +259,69 @@ export interface RankingEntry {
   losses: number;
   draws: number;
   totalGames: number;
+  classicRating: number;
+  physicalRating: number;
   winRate: number;
+}
+
+// ===== 만남의 광장 (실시간 아바타 커뮤니티) =====
+export type PlazaInputType = 'MOVE_START' | 'MOVE_STOP';
+
+// 아바타 외형(레이어 키). Phase 1 플레이스홀더 — 소유권 검증 없이 서버가 중계.
+export interface PlazaAppearance {
+  body: string;
+  hair: string;
+  outfit: string;
+  accessory: string | null;
+}
+
+export interface PlazaPlayerView {
+  playerId: string; // publicId(UUID) — 클라가 자기 것과 매칭해 '나'를 찾음
+  nickname: string;
+  x: number;
+  y: number;
+  facing: Direction;
+  moving: boolean;
+  appearance: PlazaAppearance;
+}
+
+// 서버가 틱마다 /topic/plaza/{channelId} 로 보내는 채널 스냅샷(raw, 서버 권위)
+export interface PlazaSnapshot {
+  channelId: string;
+  worldWidth: number;
+  worldHeight: number;
+  players: PlazaPlayerView[];
+  serverTime: number;
+}
+
+export interface PlazaJoinResponse {
+  channelId: string;
+  worldWidth: number;
+  worldHeight: number;
+  capacity: number;
+}
+
+// ===== 피지컬 오목 리플레이 (기록 재생) =====
+export interface PhysicalReplayPlayer {
+  color: StoneColor;
+  nickname: string;
+}
+
+// 보드 칸 변화 한 건. v: 0=빈칸, 1=흑, 2=백, 3=분화구
+export interface PhysicalReplayEvent {
+  t: number; // 게임 시작 기준 경과 ms
+  x: number;
+  y: number;
+  v: number;
+}
+
+export interface PhysicalReplay {
+  gameId: number;
+  boardSize: number;
+  winCount: number;
+  durationMs: number;
+  winnerColor: StoneColor | null;
+  players: PhysicalReplayPlayer[];
+  events: PhysicalReplayEvent[];
 }
 

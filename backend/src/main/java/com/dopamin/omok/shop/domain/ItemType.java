@@ -2,6 +2,7 @@ package com.dopamin.omok.shop.domain;
 
 public enum ItemType {
     DEFEAT_MESSAGE,
+    DEFEAT_EFFECT,
     BOARD_SKIN,
     STONE_SOUND,
     STONE_SKIN,

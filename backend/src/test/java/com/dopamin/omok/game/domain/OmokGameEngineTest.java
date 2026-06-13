@@ -55,6 +55,16 @@ class OmokGameEngineTest {
     }
 
     @Test
+    @DisplayName("6목(장목)은 승리가 아니다 — '오목'만 인정")
+    void overlineSixIsNotWin() {
+        StoneColor[][] board = emptyBoard();
+        for (int c = 0; c < 6; c++) board[7][c] = StoneColor.BLACK;
+        // 어느 칸 기준으로 판정해도 연속 길이가 6이라 승리가 아니다
+        assertThat(engine.checkWin(board, 7, 5)).isFalse();
+        assertThat(engine.checkWin(board, 7, 2)).isFalse();
+    }
+
+    @Test
     @DisplayName("빈 칸 기준 승리 판정은 false")
     void emptyCellIsNotWin() {
         assertThat(engine.checkWin(emptyBoard(), 7, 7)).isFalse();

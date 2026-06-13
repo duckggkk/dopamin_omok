@@ -18,13 +18,19 @@ public record GameResponse(
         LocalDateTime startedAt,
         LocalDateTime finishedAt,
         LocalDateTime lastMoveAt,
-        String winnerDefeatMessage
+        String winnerDefeatMessage,
+        // 승자가 장착한 패배 이펙트 키(패자 화면 연출용, 미장착 null) — DEFEAT_EFFECT
+        String winnerDefeatEffect
 ) {
     public static GameResponse from(Game game) {
-        return from(game, null);
+        return from(game, null, null);
     }
 
     public static GameResponse from(Game game, String winnerDefeatMessage) {
+        return from(game, winnerDefeatMessage, null);
+    }
+
+    public static GameResponse from(Game game, String winnerDefeatMessage, String winnerDefeatEffect) {
         return new GameResponse(
                 game.getId(),
                 game.getGameNumber(),
@@ -36,7 +42,8 @@ public record GameResponse(
                 game.getStartedAt(),
                 game.getFinishedAt(),
                 game.getLastMoveAt(),
-                winnerDefeatMessage
+                winnerDefeatMessage,
+                winnerDefeatEffect
         );
     }
 }

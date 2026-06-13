@@ -16,6 +16,8 @@ public record RankingResponse(
         int losses,
         int draws,
         int totalGames,
+        int classicRating,
+        int physicalRating,
         int winRate
 ) {
     public static RankingResponse of(int rank, User user) {
@@ -30,6 +32,8 @@ public record RankingResponse(
                 user.getLosses(),
                 user.getDraws(),
                 total,
+                user.getClassicRating(),
+                user.getPhysicalRating(),
                 winRate
         );
     }

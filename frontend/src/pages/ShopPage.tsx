@@ -2,11 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { shopApi } from '@/api/shop';
 import { useAuthStore } from '@/store/authStore';
 import { ShopInfo, Inventory, GachaResult, ShopItem, ItemType } from '@/types';
+import ItemPreview from '@/components/shop/ItemPreview';
+import PreviewBoard from '@/components/shop/PreviewBoard';
 import styles from './ShopPage.module.css';
 
 // 타입별 표시 메타 (아이콘/카테고리 라벨). 새 코스메틱 타입 추가 시 여기 한 줄만 추가.
 const ITEM_TYPE_META: Record<ItemType, { icon: string; label: string }> = {
   DEFEAT_MESSAGE: { icon: '💬', label: '패배 문구' },
+  DEFEAT_EFFECT: { icon: '🔥', label: '승패 이펙트' },
   BOARD_SKIN: { icon: '🎨', label: '바둑판 스킨' },
   STONE_SOUND: { icon: '🔊', label: '착수음' },
   STONE_SKIN: { icon: '⚫', label: '바둑알 스킨' },
@@ -24,6 +27,15 @@ const ShopPage = () => {
   const [isOpening, setIsOpening] = useState(false);
   const [equippingId, setEquippingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // 미리보기 모드 — 클래식 바둑판 / 피지컬 오목(캐릭터 등장) 전환
+  const [previewMode, setPreviewMode] = useState<'classic' | 'physical'>('classic');
+  // 미리보기 바둑판에 적용된 코스메틱 — 카테고리(itemType)별 1개씩 겹쳐서 미리보기
+  const [preview, setPreview] = useState<Partial<Record<ItemType, ShopItem>>>({});
+
+  const togglePreview = (item: ShopItem) =>
+    setPreview((p) => ({ ...p, [item.itemType]: p[item.itemType]?.id === item.id ? undefined : item }));
+  const isPreviewing = (item: ShopItem) => preview[item.itemType]?.id === item.id;
+  const hasPreview = Object.values(preview).some(Boolean);
 
   const loadData = useCallback(async () => {
     try {
@@ -117,6 +129,8 @@ const ShopPage = () => {
 
       {error && <p className={styles.error}>{error}</p>}
 
+      <div className={styles.layout}>
+        <div className={styles.mainCol}>
       {tab === 'shop' && shopInfo && (
         <div className={styles.shopContent}>
           {/* 돌 충전 */}
@@ -156,10 +170,18 @@ const ShopPage = () => {
                   </div>
                   <h3 className={styles.boxName}>{box.name}</h3>
                   <div className={styles.boxItems}>
-                    <p className={styles.boxItemsLabel}>포함 아이템</p>
-                    <div className={styles.boxItemTags}>
-                      {box.possibleItems.map((name) => (
-                        <span key={name} className={styles.boxItemTag}>{name}</span>
+                    <p className={styles.boxItemsLabel}>포함 아이템 · 미리보기</p>
+                    <div className={styles.previewGrid}>
+                      {box.possibleItems.map((it) => (
+                        <button
+                          key={it.id}
+                          className={`${styles.previewItem} ${isPreviewing(it) ? styles.previewItemOn : ''}`}
+                          onClick={() => togglePreview(it)}
+                          title="미리보기에 적용"
+                        >
+                          <ItemPreview item={it} />
+                          <span className={styles.previewName}>{getItemDisplayName(it)}</span>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -224,9 +246,13 @@ const ShopPage = () => {
                         const equipped = isEquipped(item);
                         return (
                           <div key={item.id} className={`${styles.itemCard} ${equipped ? styles.itemCardEquipped : ''}`}>
-                            <div className={styles.itemIcon}>
-                              {ITEM_TYPE_META[item.itemType].icon}
-                            </div>
+                            <button
+                              className={`${styles.itemPreview} ${isPreviewing(item) ? styles.itemPreviewOn : ''}`}
+                              onClick={() => togglePreview(item)}
+                              title="미리보기에 적용"
+                            >
+                              <ItemPreview item={item} />
+                            </button>
                             <p className={styles.itemName}>{getItemDisplayName(item)}</p>
                             {equipped ? (
                               <span className={styles.equippedBadge}>장착 중</span>
@@ -250,6 +276,44 @@ const ShopPage = () => {
           )}
         </div>
       )}
+        </div>
+
+        <aside className={styles.previewPanel}>
+          <h3 className={styles.previewTitle}>🔍 미리보기</h3>
+          <div className={styles.previewModeTabs}>
+            <button
+              className={previewMode === 'classic' ? styles.previewModeOn : styles.previewModeTab}
+              onClick={() => setPreviewMode('classic')}
+            >
+              일반 오목
+            </button>
+            <button
+              className={previewMode === 'physical' ? styles.previewModeOn : styles.previewModeTab}
+              onClick={() => setPreviewMode('physical')}
+            >
+              피지컬 오목
+            </button>
+          </div>
+          <PreviewBoard
+            variant={previewMode}
+            boardCfg={preview.BOARD_SKIN?.itemConfig ?? null}
+            stoneStyle={preview.STONE_SKIN?.itemConfig?.stone ?? null}
+            effect={preview.STONE_EFFECT?.itemConfig?.effect ?? null}
+            soundKey={preview.STONE_SOUND?.itemConfig?.assetKey ?? null}
+            character={preview.CHARACTER_SKIN?.itemConfig?.character ?? null}
+            defeatText={preview.DEFEAT_MESSAGE ? getItemDisplayName(preview.DEFEAT_MESSAGE) : null}
+            defeatEffect={preview.DEFEAT_EFFECT?.itemConfig?.effect ?? null}
+          />
+          <p className={styles.previewHint}>
+            {previewMode === 'physical'
+              ? '피지컬 오목 미리보기 — 캐릭터·바둑알·착수 효과가 실시간 액션 모드에서 어떻게 보이는지 확인하세요.'
+              : '상품을 클릭해 적용하고, 바둑판을 직접 둬보며 스킨·착수음·효과를 확인하세요. 카테고리별로 1개씩 겹쳐 볼 수 있어요.'}
+          </p>
+          {hasPreview && (
+            <button className={styles.previewReset} onClick={() => setPreview({})}>선택 초기화</button>
+          )}
+        </aside>
+      </div>
     </div>
   );
 };
