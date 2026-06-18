@@ -5,6 +5,7 @@ import com.dopamin.omok.game.physical.application.dto.PhysicalReplayData;
 import com.dopamin.omok.game.physical.application.dto.PhysicalSnapshot;
 import com.dopamin.omok.game.physical.application.dto.PhysicalSnapshot.ItemDropView;
 import com.dopamin.omok.game.physical.application.dto.PhysicalSnapshot.PhysicalPlayerView;
+import com.dopamin.omok.game.physical.application.port.out.PhysicalEventPublisherPort;
 import com.dopamin.omok.game.physical.config.PhysicalOmokProperties;
 import com.dopamin.omok.game.physical.domain.Direction;
 import com.dopamin.omok.game.physical.domain.ItemDrop;
@@ -16,7 +17,6 @@ import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -41,7 +41,7 @@ public class PhysicalGameSessionManager {
 
     private final PhysicalOmokEngine engine;
     private final PhysicalOmokProperties props;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final PhysicalEventPublisherPort snapshotPublisher;
     private final ApplicationEventPublisher eventPublisher;
 
     private final ConcurrentHashMap<String, Session> sessions = new ConcurrentHashMap<>();
@@ -232,7 +232,7 @@ public class PhysicalGameSessionManager {
     // ===================== 브로드캐스트 =====================
 
     private void broadcast(PhysicalGame game) {
-        messagingTemplate.convertAndSend("/topic/room/" + game.roomCode() + "/physical", toSnapshot(game));
+        snapshotPublisher.publishSnapshot(game.roomCode(), toSnapshot(game));
     }
 
     private PhysicalSnapshot toSnapshot(PhysicalGame game) {

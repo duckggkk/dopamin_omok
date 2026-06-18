@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useChat } from '@/hooks/useChat';
@@ -470,6 +470,37 @@ const PlazaPage = () => {
     chat.setInput('');
   };
 
+  const handleCanvasClick = (event: MouseEvent<HTMLCanvasElement>) => {
+    if (dressOpenRef.current) return;
+    const snap = snapshotRef.current;
+    if (!snap) return;
+
+    const canvas = event.currentTarget;
+    const rect = canvas.getBoundingClientRect();
+    const { w: canvasWidth, h: canvasHeight } = dimsRef.current;
+    const x = (event.clientX - rect.left) * (canvasWidth / rect.width);
+    const y = (event.clientY - rect.top) * (canvasHeight / rect.height);
+
+    const me = snap.players.find((p) => p.playerId === myId);
+    const meRp = me ? (renderPosRef.current[me.playerId] ?? { x: me.x, y: me.y }) : {
+      x: snap.worldWidth / 2,
+      y: snap.worldHeight / 2,
+    };
+    const camX = clamp(meRp.x - canvasWidth / 2, 0, Math.max(0, snap.worldWidth - canvasWidth));
+    const camY = clamp(meRp.y - canvasHeight / 2, 0, Math.max(0, snap.worldHeight - canvasHeight));
+
+    const hit = [...snap.players]
+      .sort((a, b) => b.y - a.y)
+      .find((p) => {
+        const rp = renderPosRef.current[p.playerId] ?? { x: p.x, y: p.y };
+        const dx = x - (rp.x - camX);
+        const dy = y - (rp.y - camY - 8);
+        return Math.hypot(dx, dy) <= 34;
+      });
+
+    if (hit) navigate(hit.playerId === myId ? '/profile' : `/profile/${hit.playerId}`);
+  };
+
   if (error) {
     return (
       <div className={styles.errorWrap}>
@@ -489,7 +520,13 @@ const PlazaPage = () => {
         </div>
 
         <div className={styles.canvasWrap} ref={wrapRef}>
-          <canvas ref={canvasRef} width={INIT_W} height={INIT_H} className={styles.canvas} />
+          <canvas
+            ref={canvasRef}
+            width={INIT_W}
+            height={INIT_H}
+            className={styles.canvas}
+            onClick={handleCanvasClick}
+          />
 
           {/* 아바타 꾸미기 — 광장 화면 우상단 불투명 버튼. 클릭 시 팝업으로 연다. */}
           <button className={styles.dressBtn} onClick={() => setDressOpen(true)}>
@@ -599,6 +636,7 @@ const PlazaPage = () => {
         <div className={styles.controls}>
           <span><kbd>←↑↓→</kbd> / <kbd>WASD</kbd> 이동</span>
           <span><kbd>Enter</kbd> 채팅</span>
+          <span>아바타 클릭: 프로필</span>
           <span className={styles.muted}>춤·상호작용은 다음 단계에서 추가됩니다</span>
         </div>
       </div>

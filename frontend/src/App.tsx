@@ -14,6 +14,9 @@ import EmailSentPage from '@/pages/EmailSentPage';
 import ShopPage from '@/pages/ShopPage';
 import RankingPage from '@/pages/RankingPage';
 import PlazaPage from '@/pages/PlazaPage';
+import GameGuidePage from '@/pages/GameGuidePage';
+import TermsPage from '@/pages/TermsPage';
+import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage';
 
 const Layout = () => {
   useAuth();
@@ -31,6 +34,8 @@ const router = createBrowserRouter([
     children: [
       { path: '/login', element: <LoginPage /> },
       { path: '/register', element: <RegisterPage /> },
+      { path: '/terms', element: <TermsPage /> },
+      { path: '/privacy', element: <PrivacyPolicyPage /> },
       { path: '/verify-email', element: <VerifyEmailPage /> },
       { path: '/email-sent', element: <EmailSentPage /> },
       {
@@ -40,8 +45,10 @@ const router = createBrowserRouter([
           { path: '/lobby', element: <LobbyPage /> },
           { path: '/plaza', element: <PlazaPage /> },
           { path: '/ranking', element: <RankingPage /> },
+          { path: '/guide', element: <GameGuidePage /> },
           { path: '/game/:gameId', element: <GamePage /> },
           { path: '/profile', element: <ProfilePage /> },
+          { path: '/profile/:userId', element: <ProfilePage /> },
           { path: '/shop', element: <ShopPage /> },
         ],
       },

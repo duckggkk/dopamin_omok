@@ -81,6 +81,25 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+.privacyBadge {
+  background: rgba(150, 140, 120, 0.12);
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  padding: 3px 11px;
+  border-radius: var(--r-pill);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.privacyToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  user-select: none;
+}
+.privacyToggle input { accent-color: var(--gold); }
+.privateView { text-align: center; padding: 34px 0; }
 
 .editForm { display: flex; flex-direction: column; gap: 10px; }
 .nicknameInput {

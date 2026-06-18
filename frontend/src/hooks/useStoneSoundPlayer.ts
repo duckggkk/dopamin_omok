@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { resolveAssetUrl } from './useProtectedAsset';
+import { selectStoneVolume, useSettingsStore } from '@/store/settingsStore';
 
 /**
  * assetKey 별로 착수음을 재생하는 함수를 반환한다.
@@ -11,6 +12,8 @@ export function useStoneSoundPlayer(): (assetKey: string | null | undefined) => 
   const audioCache = useRef<Map<string, HTMLAudioElement>>(new Map());
 
   const playCached = (audio: HTMLAudioElement) => {
+    // 재생 직전 최신 설정 볼륨(전체 × 착수음)을 반영
+    audio.volume = selectStoneVolume(useSettingsStore.getState());
     audio.currentTime = 0;
     // 자동재생 정책 등으로 실패 시 조용히 무시
     audio.play().catch(() => {});

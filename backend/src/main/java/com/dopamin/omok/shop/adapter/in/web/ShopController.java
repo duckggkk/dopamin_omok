@@ -5,6 +5,7 @@ import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
 import com.dopamin.omok.shop.adapter.in.web.dto.ChargeCurrencyRequest;
 import com.dopamin.omok.shop.adapter.in.web.dto.EquipItemRequest;
 import com.dopamin.omok.shop.adapter.in.web.dto.OpenGachaRequest;
+import com.dopamin.omok.shop.adapter.in.web.dto.UnequipItemRequest;
 import com.dopamin.omok.shop.application.dto.*;
 import com.dopamin.omok.shop.application.port.in.*;
 import jakarta.validation.Valid;
@@ -61,6 +62,15 @@ public class ShopController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody EquipItemRequest request) {
         equipItemUseCase.equipItem(userDetails.getId(), request.itemId());
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    /** 장착 해제 — 해당 카테고리를 기본값으로 되돌린다(예: 바둑알 스킨 → 기본 스킨). */
+    @PostMapping("/unequip")
+    public ResponseEntity<ApiResponse<Void>> unequipItem(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody UnequipItemRequest request) {
+        equipItemUseCase.unequip(userDetails.getId(), request.itemType());
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

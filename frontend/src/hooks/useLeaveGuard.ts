@@ -8,16 +8,13 @@ interface LeaveGuardOptions {
   /** 새로고침/탭 닫기를 경고할지 */
   warnActive: boolean;
   isHost: boolean;
-  isInProgress: boolean;
   roomCode: string;
 }
 
-const buildLeaveMessage = (isHost: boolean, isInProgress: boolean): string =>
+const buildLeaveMessage = (isHost: boolean): string =>
   isHost
-    ? '방을 나가면 방이 폭파됩니다.\n정말 나가시겠습니까?'
-    : isInProgress
-      ? '게임 진행 중 나가면 패배 처리됩니다.\n정말 나가시겠습니까?'
-      : '방을 나가시겠습니까?';
+    ? '방을 나가시겠습니까?\n방장이 나가면 방이 사라집니다.'
+    : '방을 나가시겠습니까?';
 
 /**
  * 게임 방 이탈 가드. 실수로 나가는 것을 막는다.
@@ -29,7 +26,6 @@ export function useLeaveGuard({
   blockActive,
   warnActive,
   isHost,
-  isInProgress,
   roomCode,
 }: LeaveGuardOptions) {
   const navigate = useNavigate();
@@ -43,7 +39,7 @@ export function useLeaveGuard({
   // blocker 발동 시 확인 다이얼로그
   useEffect(() => {
     if (blocker.state !== 'blocked') return;
-    if (window.confirm(buildLeaveMessage(isHost, isInProgress))) {
+    if (window.confirm(buildLeaveMessage(isHost))) {
       gameApi.leaveRoom(roomCode).catch(() => {}).finally(() => blocker.proceed?.());
     } else {
       blocker.reset?.();
@@ -64,7 +60,7 @@ export function useLeaveGuard({
 
   // "방 나가기" 버튼 핸들러. confirmFirst=true 면 확인 다이얼로그 후 진행.
   const leaveRoom = async (confirmFirst: boolean) => {
-    if (confirmFirst && !window.confirm(buildLeaveMessage(isHost, isInProgress))) return;
+    if (confirmFirst && !window.confirm(buildLeaveMessage(isHost))) return;
     intentionalLeaveRef.current = true;
     try {
       await gameApi.leaveRoom(roomCode);

@@ -7,14 +7,20 @@ import { useChat } from '@/hooks/useChat';
 import { useCosmetics } from '@/hooks/useCosmetics';
 import { useStoneSoundPlayer } from '@/hooks/useStoneSoundPlayer';
 import { useLeaveGuard } from '@/hooks/useLeaveGuard';
+import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
+import { areSameStoneSkin } from '@/utils/stoneSkin';
 import OmokBoard from '@/components/game/OmokBoard';
 import PlayerCard from '@/components/game/PlayerCard';
+import PlayerProfileModal from '@/components/game/PlayerProfileModal';
+import StoneSkinPicker from '@/components/game/StoneSkinPicker';
 import ChatPanel from '@/components/game/ChatPanel';
 import MoveHistory from '@/components/game/MoveHistory';
 import GameResultOverlay, { GameResult } from '@/components/game/GameResultOverlay';
 import { Room, GameMove, Board, StoneColor, ApiResponse, NoticePayload } from '@/types';
 import { createEmptyBoard } from '@/constants/board';
 import styles from './GamePage.module.css';
+
+const CLASSIC_BGM_SRC = '/audio/classic-omok-bgm.mp3';
 
 const ClassicGamePage = () => {
   const { gameId: roomCode } = useParams<{ gameId: string }>();
@@ -33,6 +39,9 @@ const ClassicGamePage = () => {
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [gameResultDisplayText, setGameResultDisplayText] = useState<string>('');
   const [gameResultEffect, setGameResultEffect] = useState<string | null>(null);
+  // 이름 클릭 시 보여줄 간략 프로필 대상(없으면 null), 바둑알 스킨 선택 모달 열림 여부
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [skinPickerOpen, setSkinPickerOpen] = useState(false);
 
   const prevGameIdRef = useRef<number | undefined>(undefined);
   const prevRoomStatusRef = useRef<string | undefined>(undefined);
@@ -50,6 +59,7 @@ const ClassicGamePage = () => {
   const myPlayer = room?.players.find((p) => p.userId === user?.id) ?? null;
   const blackPlayer = room?.players.find((p) => p.color === 'BLACK' && p.role !== 'SPECTATOR') ?? null;
   const whitePlayer = room?.players.find((p) => p.color === 'WHITE' && p.role !== 'SPECTATOR') ?? null;
+  const sameStoneSkin = areSameStoneSkin(blackPlayer?.stoneSkin, whitePlayer?.stoneSkin);
   const playerRolePlayer = room?.players.find((p) => p.role === 'PLAYER') ?? null;
   const spectators = room?.players.filter((p) => p.role === 'SPECTATOR') ?? [];
   const currentGame = room?.currentGame ?? null;
@@ -59,12 +69,14 @@ const ClassicGamePage = () => {
   const myColor: StoneColor | null = myPlayer?.color ?? null;
   const isInProgress = currentGame?.status === 'IN_PROGRESS';
 
+  // BGM은 게임이 진행 중일 때만 재생(대기 중엔 무음)
+  useBackgroundMusic(CLASSIC_BGM_SRC, { enabled: isInProgress });
+
   // 이탈 가드(라우터 차단 + 새로고침 경고 + 의도적 이탈)
   const { leaveRoom } = useLeaveGuard({
     blockActive: !!(myPlayer && room && room.status !== 'CLOSED' && !closedMessage),
     warnActive: !!(myPlayer && room && !closedMessage),
     isHost,
-    isInProgress,
     roomCode: roomCode!,
   });
 
@@ -111,7 +123,7 @@ const ClassicGamePage = () => {
     [navigate],
   );
 
-  const { sendMove, sendSurrender, sendReady, sendStart, sendChat } = useWebSocket({
+  const { sendMove, sendSurrender, sendReady, sendStart, sendChat, sendChangeSkin } = useWebSocket({
     roomCode: roomCode!,
     onMove: handleMove,
     onRoomStatus: handleRoomStatus,
@@ -218,6 +230,8 @@ const ClassicGamePage = () => {
     if (room.status === 'WAITING') {
       if (!playerRolePlayer) {
         setStatusMessage('상대방을 기다리는 중...');
+      } else if (sameStoneSkin) {
+        setStatusMessage('두 플레이어가 같은 바둑알 스킨입니다. 한 명이 다른 스킨으로 바꿔야 시작할 수 있습니다.');
       } else if (isHost) {
         setStatusMessage(playerRolePlayer.ready ? '준비 완료! 시작 버튼을 누르세요.' : '상대방이 준비 중입니다...');
       } else {
@@ -242,7 +256,7 @@ const ClassicGamePage = () => {
         setStatusMessage('상대방이 게임을 포기했습니다.');
         break;
     }
-  }, [room, user, myPlayer, playerRolePlayer, currentGame, isHost, myColor]);
+  }, [room, user, myPlayer, playerRolePlayer, currentGame, isHost, myColor, sameStoneSkin]);
 
   if (isLoading) {
     return <div className={styles.loading}>게임을 불러오는 중...</div>;
@@ -291,6 +305,22 @@ const ClassicGamePage = () => {
 
       <GameResultOverlay result={gameResult} displayText={gameResultDisplayText} effect={gameResultEffect} />
 
+      {profileUserId && (
+        <PlayerProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
+      )}
+
+      {skinPickerOpen && (
+        <StoneSkinPicker
+          currentSkin={myPlayer?.stoneSkin ?? null}
+          myColor={myColor}
+          onSelect={(itemId) => {
+            sendChangeSkin(itemId);
+            setSkinPickerOpen(false);
+          }}
+          onClose={() => setSkinPickerOpen(false)}
+        />
+      )}
+
       <div className={styles.gameArea}>
         <PlayerCard
           color="BLACK"
@@ -298,6 +328,8 @@ const ClassicGamePage = () => {
           myUserId={user?.id}
           roomStatus={room.status}
           currentGame={currentGame}
+          onShowProfile={setProfileUserId}
+          onChangeSkin={() => setSkinPickerOpen(true)}
         />
 
         <div className={styles.boardWrapper}>
@@ -325,6 +357,8 @@ const ClassicGamePage = () => {
           myUserId={user?.id}
           roomStatus={room.status}
           currentGame={currentGame}
+          onShowProfile={setProfileUserId}
+          onChangeSkin={() => setSkinPickerOpen(true)}
         />
       </div>
 
@@ -359,13 +393,21 @@ const ClassicGamePage = () => {
               </button>
             )}
             {isHost && playerRolePlayer && (
-              <button
-                onClick={() => sendStart()}
-                disabled={!playerRolePlayer.ready}
-                className={styles.startBtn}
-              >
-                시작
-              </button>
+              <>
+                {sameStoneSkin && (
+                  <p className={styles.skinConflict}>
+                    같은 바둑알 스킨은 혼동을 막기 위해 시작할 수 없습니다.
+                  </p>
+                )}
+                <button
+                  onClick={() => sendStart()}
+                  disabled={!playerRolePlayer.ready || sameStoneSkin}
+                  className={styles.startBtn}
+                  title={sameStoneSkin ? '상대와 다른 바둑알 스킨을 장착해야 시작할 수 있습니다.' : undefined}
+                >
+                  시작
+                </button>
+              </>
             )}
           </div>
         )}

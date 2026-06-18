@@ -44,6 +44,21 @@ export interface User {
   classicRating: number;
   physicalRating: number;
   currency: number;
+  profilePrivate: boolean;
+  createdAt: string;
+}
+
+export interface PublicUser {
+  id: string; // UUID (publicId)
+  nickname: string;
+  profileImageUrl: string | null;
+  wins: number;
+  losses: number;
+  draws: number;
+  totalGames: number;
+  classicRating: number;
+  physicalRating: number;
+  profilePrivate: boolean;
   createdAt: string;
 }
 
@@ -71,9 +86,9 @@ export interface GameInfo {
   id: number;
   gameNumber: number;
   status: GameStatus;
-  blackPlayer: User | null;
-  whitePlayer: User | null;
-  winner: User | null;
+  blackPlayer: PublicUser | null;
+  whitePlayer: PublicUser | null;
+  winner: PublicUser | null;
   currentTurn: StoneColor | null;
   startedAt: string | null;
   finishedAt: string | null;
@@ -86,7 +101,7 @@ export interface GameInfo {
 export interface Room {
   id: number;
   roomCode: string;
-  host: User;
+  host: PublicUser;
   status: RoomStatus;
   gameType: GameType;
   omokRule: OmokRule;
@@ -167,6 +182,7 @@ export interface ShopItem {
   itemType: ItemType;
   description: string;
   itemConfig?: ItemConfig | null;
+  defaultGrant?: boolean; // 기본 지급 아이템(목록 1순위로 정렬)
 }
 
 export interface CurrencyPackage {
@@ -324,4 +340,3 @@ export interface PhysicalReplay {
   players: PhysicalReplayPlayer[];
   events: PhysicalReplayEvent[];
 }
-

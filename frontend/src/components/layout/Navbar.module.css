@@ -100,6 +100,7 @@
 }
 .currencyBadge:hover { filter: brightness(1.1); }
 
+.userMenu { position: relative; }
 .userChip {
   display: inline-flex;
   align-items: center;
@@ -108,10 +109,54 @@
   background: var(--surface-3);
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
-  padding: 4px 14px 4px 4px;
+  padding: 4px 12px 4px 4px;
+  cursor: pointer;
+  font: inherit;
   transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
 }
 .userChip:hover { border-color: var(--gold-soft-border); background: var(--border-strong); }
+.chevron { display: inline-flex; color: var(--text-faint); }
+
+/* ---- 사용자 드롭다운 ---- */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-card);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 200;
+  animation: navDropdownIn 0.14s var(--ease);
+}
+@keyframes navDropdownIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.dropdownItem:hover { color: var(--text); background: rgba(224, 168, 63, 0.08); }
+.dropdownDivider { height: 1px; background: var(--border); margin: 4px 0; }
+.dropdownDanger { color: var(--danger); }
+.dropdownDanger:hover { color: var(--danger); background: var(--danger-soft); }
 .avatar {
   width: 30px;
   height: 30px;

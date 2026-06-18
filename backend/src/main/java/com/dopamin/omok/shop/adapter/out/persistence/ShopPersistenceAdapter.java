@@ -77,4 +77,9 @@ public class ShopPersistenceAdapter implements
     public void save(UserActiveItem userActiveItem) {
         userActiveItemRepository.save(userActiveItem);
     }
+
+    @Override
+    public void delete(UserActiveItem userActiveItem) {
+        userActiveItemRepository.delete(userActiveItem);
+    }
 }

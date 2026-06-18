@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { Board, ItemConfig, SkinColors, SkinFilter, StoneColor, StoneStyle } from '@/types';
 import { useProtectedAsset } from '@/hooks/useProtectedAsset';
+import { DEFAULT_BLACK_STONE, DEFAULT_WHITE_STONE } from '@/utils/stoneSkin';
 import { BOARD_SIZE, CELL_SIZE, PADDING, BOARD_PX, STAR_POINTS } from '@/constants/board';
 
 interface OmokBoardProps {
@@ -24,10 +25,6 @@ const CLASSIC_COLORS: SkinColors = { bg: '#dcb95b', lines: '#8b6914', dots: '#8b
 const CLASSIC_FILTER: SkinFilter = {
   type: 'fractalNoise', freqX: 0.65, freqY: 0.06, octaves: 4, seed: 3, blend: 'overlay',
 };
-
-// 기본 바둑알 스타일 — 스킨 미장착 시 폴백 (기존 #1a1a1a / #f5f5f0 광택 유지)
-const DEFAULT_BLACK_STONE: StoneStyle = { fill: '#1a1a1a', stroke: '#000000', shine: '#666666' };
-const DEFAULT_WHITE_STONE: StoneStyle = { fill: '#f5f5f0', stroke: '#bbbbbb', shine: '#ffffff' };
 
 const OmokBoard: React.FC<OmokBoardProps> = ({
   board,
@@ -118,12 +115,12 @@ const OmokBoard: React.FC<OmokBoardProps> = ({
           <style>{`
             @keyframes stone-pop {
               0%   { transform: scale(0.2); }
-              55%  { transform: scale(1.18); }
-              75%  { transform: scale(0.94); }
+              55%  { transform: scale(1.22); }
+              75%  { transform: scale(0.92); }
               100% { transform: scale(1); }
             }
             .stone-pop {
-              animation: stone-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+              animation: stone-pop 0.62s cubic-bezier(0.34, 1.56, 0.64, 1) both;
               transform-origin: center;
               transform-box: fill-box;
             }

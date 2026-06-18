@@ -3,7 +3,6 @@ package com.dopamin.omok.game.application.service;
 import com.dopamin.omok.game.application.dto.PlayerCosmetics;
 import com.dopamin.omok.game.application.dto.RoomResponse;
 import com.dopamin.omok.game.application.dto.StoneSkinResponse;
-import com.dopamin.omok.global.common.response.ApiResponse;
 import com.dopamin.omok.game.application.port.in.*;
 import com.dopamin.omok.game.application.port.in.ReadyGameUseCase;
 import com.dopamin.omok.game.application.port.in.StartGameUseCase;
@@ -15,6 +14,7 @@ import com.dopamin.omok.game.physical.application.dto.PhysicalReplayData;
 import com.dopamin.omok.game.physical.application.port.out.SavePhysicalReplayPort;
 import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.common.exception.OmokException;
+import com.dopamin.omok.shop.application.port.in.EquipItemUseCase;
 import com.dopamin.omok.shop.application.port.out.LoadUserActiveItemPort;
 import com.dopamin.omok.shop.domain.Item;
 import com.dopamin.omok.shop.domain.ItemConfig;
@@ -28,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +44,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, SpectateRoomUseCase,
-        LeaveRoomUseCase, RequestRematchUseCase, GetRoomUseCase, ReadyGameUseCase, StartGameUseCase {
+        LeaveRoomUseCase, RequestRematchUseCase, GetRoomUseCase, ReadyGameUseCase, StartGameUseCase,
+        ChangeStoneSkinUseCase {
 
     private final com.dopamin.omok.global.websocket.DisconnectGraceManager disconnectGraceManager;
     private final LoadRoomPort loadRoomPort;
@@ -57,7 +57,8 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     private final SaveGamePort saveGamePort;
     private final LoadUserPort loadUserPort;
     private final LoadUserActiveItemPort loadUserActiveItemPort;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final EquipItemUseCase equipItemUseCase;
+    private final RoomEventPublisherPort roomEventPublisherPort;
     private final PhysicalGameLifecycle physicalGameLifecycle;
     private final SavePhysicalReplayPort savePhysicalReplayPort;
 
@@ -105,9 +106,8 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         GamePlayer player = GamePlayer.createPlayer(room, user);
         saveGamePlayerPort.save(player);
 
-        RoomResponse response = buildRoomResponse(room);
-        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/status",
-                ApiResponse.success(response));
+        RoomResponse response = buildRoomResponse(room, null);
+        roomEventPublisherPort.publishStatus(roomCode, response);
         return response;
     }
 
@@ -154,9 +154,8 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
                 room.waitForNextGame();
                 saveRoomPort.save(room);
             }
-            RoomResponse response = buildRoomResponse(room);
-            messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/status",
-                    ApiResponse.success(response));
+            RoomResponse response = buildRoomResponse(room, null);
+            roomEventPublisherPort.publishStatus(roomCode, response);
         }
     }
 
@@ -200,9 +199,8 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         player.toggleReady();
         saveGamePlayerPort.save(player);
 
-        RoomResponse response = buildRoomResponse(room);
-        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/status",
-                ApiResponse.success(response));
+        RoomResponse response = buildRoomResponse(room, null);
+        roomEventPublisherPort.publishStatus(roomCode, response);
         return response;
     }
 
@@ -223,6 +221,8 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         GamePlayer host = loadGamePlayerPort.findByRoomIdAndRole(room.getId(), PlayerRole.HOST)
                 .stream().findFirst().orElseThrow();
 
+        ensureDifferentStoneSkins(host, player);
+
         player.resetReady();
         saveGamePlayerPort.save(player);
 
@@ -238,8 +238,32 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         }
 
         RoomResponse response = buildRoomResponse(room, game);
-        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/status",
-                ApiResponse.success(response));
+        roomEventPublisherPort.publishStatus(roomCode, response);
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public RoomResponse changeStoneSkin(String roomCode, Long userId, Long itemId) {
+        Room room = findRoom(roomCode);
+        // 대기 중에만 변경 가능(게임 중 스킨 교체로 인한 혼동 방지)
+        if (!room.isWaiting()) throw new OmokException(ErrorCode.STONE_SKIN_CHANGE_NOT_AVAILABLE);
+
+        GamePlayer player = loadGamePlayerPort.findByRoomIdAndUserId(room.getId(), userId)
+                .orElseThrow(() -> new OmokException(ErrorCode.NOT_IN_ROOM));
+        if (!player.isParticipant()) throw new OmokException(ErrorCode.NOT_GAME_PARTICIPANT);
+
+        if (itemId == null) {
+            // 기본 스킨으로 되돌림(흑은 흑·백은 백 기본 외형)
+            equipItemUseCase.unequip(userId, ItemType.STONE_SKIN);
+        } else {
+            // 보유·타입(STONE_SKIN) 검증은 샵 유스케이스가 수행한다(유료재화 보호).
+            equipItemUseCase.equipStoneSkin(userId, itemId);
+        }
+
+        // 코스메틱 포함 방 상태를 양쪽 클라이언트에 즉시 반영
+        RoomResponse response = buildRoomResponse(room, null);
+        roomEventPublisherPort.publishStatus(roomCode, response);
         return response;
     }
 
@@ -271,8 +295,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             room.waitForNextGame();
             saveRoomPort.save(room);
             RoomResponse response = buildRoomResponse(room, game);
-            messagingTemplate.convertAndSend("/topic/room/" + event.roomCode() + "/status",
-                    ApiResponse.success(response));
+            roomEventPublisherPort.publishStatus(event.roomCode(), response);
         });
     }
 
@@ -330,14 +353,13 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
                     closeRoomByHost(room, roomCode);
                 } else if (gp.isPlayer()) {
                     deleteGamePlayerPort.delete(gp);
-                    messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/status",
-                            ApiResponse.success(buildRoomResponse(room)));
+                    roomEventPublisherPort.publishStatus(roomCode, buildRoomResponse(room, null));
                 }
             } else if (room.isInProgress()) {
                 // 게임 중: 30초 유예, 최대 2번
                 String nickname = gp.getUser().getNickname();
-                messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/notice",
-                        Map.of("message", nickname + "님의 연결이 끊겼습니다. 30초 내 재접속하지 않으면 패배 처리됩니다."));
+                roomEventPublisherPort.publishNotice(
+                        roomCode, nickname + "님의 연결이 끊겼습니다. 30초 내 재접속하지 않으면 패배 처리됩니다.");
                 disconnectGraceManager.scheduleGrace(roomCode, userId, () ->
                         loadRoomPort.findByRoomCode(roomCode).ifPresent(r -> {
                             if (r.isClosed() || !r.isInProgress()) return;
@@ -354,6 +376,10 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     }
 
     private RoomResponse startRematch(Room room, List<GamePlayer> participants) {
+        if (participants.size() >= 2) {
+            ensureDifferentStoneSkins(participants.get(0), participants.get(1));
+        }
+
         // 색상 교체
         participants.forEach(gp -> {
             gp.swapColor();
@@ -373,8 +399,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         saveGamePort.save(newGame);
 
         RoomResponse response = buildRoomResponse(room, newGame);
-        messagingTemplate.convertAndSend("/topic/room/" + room.getRoomCode() + "/status",
-                ApiResponse.success(response));
+        roomEventPublisherPort.publishStatus(room.getRoomCode(), response);
         return response;
     }
 
@@ -405,8 +430,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         PhysicalReplayData replay = physicalGameLifecycle.stopSession(roomCode);
         if (replay != null) savePhysicalReplayPort.save(replay);
 
-        messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/closed",
-                Map.of("message", "방장이 방을 나갔습니다."));
+        roomEventPublisherPort.publishClosed(roomCode, "방장이 방을 나갔습니다.");
     }
 
     private void handlePlayerDisconnectDuringGame(Room room, Long userId, String roomCode) {
@@ -429,8 +453,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             saveRoomPort.save(room);
 
             RoomResponse response = buildRoomResponse(room, game);
-            messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/status",
-                    ApiResponse.success(response));
+            roomEventPublisherPort.publishStatus(roomCode, response);
         });
         // 피지컬 메모리 세션 정리(클래식이면 null) + 그때까지의 리플레이 저장
         PhysicalReplayData replay = physicalGameLifecycle.stopSession(roomCode);
@@ -501,6 +524,18 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             }
         }
         return cosmetics;
+    }
+
+    private void ensureDifferentStoneSkins(GamePlayer first, GamePlayer second) {
+        Optional<UserActiveItem> firstSkin = loadUserActiveItemPort
+                .findByUserIdAndItemType(first.getUser().getId(), ItemType.STONE_SKIN);
+        Optional<UserActiveItem> secondSkin = loadUserActiveItemPort
+                .findByUserIdAndItemType(second.getUser().getId(), ItemType.STONE_SKIN);
+
+        if (firstSkin.isPresent() && secondSkin.isPresent()
+                && firstSkin.get().getItem().getId().equals(secondSkin.get().getItem().getId())) {
+            throw new OmokException(ErrorCode.DUPLICATE_STONE_SKIN);
+        }
     }
 
     private Room findRoom(String roomCode) {

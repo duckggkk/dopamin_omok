@@ -1,6 +1,7 @@
 package com.dopamin.omok.user.application.service;
 
 import com.dopamin.omok.user.application.dto.RankingResponse;
+import com.dopamin.omok.user.application.dto.PublicUserResponse;
 import com.dopamin.omok.user.application.dto.UserResponse;
 import com.dopamin.omok.user.application.port.in.GetRankingUseCase;
 import com.dopamin.omok.user.application.port.in.GetUserUseCase;
@@ -34,15 +35,18 @@ public class UserService implements GetUserUseCase, UpdateProfileUseCase, GetRan
     }
 
     @Override
-    public UserResponse getUserByPublicId(UUID publicId) {
+    public PublicUserResponse getUserByPublicId(UUID publicId, Long viewerUserId) {
         User user = loadUserPort.findByPublicId(publicId)
                 .orElseThrow(() -> new OmokException(ErrorCode.USER_NOT_FOUND));
-        return UserResponse.from(user);
+        if (user.isProfilePrivate() && !user.getId().equals(viewerUserId)) {
+            throw new OmokException(ErrorCode.PROFILE_PRIVATE);
+        }
+        return PublicUserResponse.from(user);
     }
 
     @Override
     @Transactional
-    public UserResponse updateProfile(Long userId, String nickname, String profileImageUrl) {
+    public UserResponse updateProfile(Long userId, String nickname, String profileImageUrl, Boolean profilePrivate) {
         User user = loadUserPort.findById(userId)
                 .orElseThrow(() -> new OmokException(ErrorCode.USER_NOT_FOUND));
 
@@ -55,6 +59,9 @@ public class UserService implements GetUserUseCase, UpdateProfileUseCase, GetRan
 
         if (profileImageUrl != null) {
             user.updateProfileImageUrl(profileImageUrl);
+        }
+        if (profilePrivate != null) {
+            user.updateProfilePrivate(profilePrivate);
         }
 
         return UserResponse.from(user);

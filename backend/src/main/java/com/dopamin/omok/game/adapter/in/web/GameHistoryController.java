@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -52,6 +53,34 @@ public class GameHistoryController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long gameId) {
         PhysicalReplayData replay = getPhysicalReplayUseCase.getReplay(gameId, userDetails.getId());
+        return ResponseEntity.ok(ApiResponse.success(replay));
+    }
+
+    @GetMapping("/users/{publicId}/games")
+    public ResponseEntity<ApiResponse<Page<GameResponse>>> getPublicGames(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable UUID publicId,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<GameResponse> response = getMyGamesUseCase.getPublicGames(publicId, userDetails.getId(), pageable);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/users/{publicId}/games/{gameId}/moves")
+    public ResponseEntity<ApiResponse<List<GameMoveResponse>>> getPublicGameMoves(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable UUID publicId,
+            @PathVariable Long gameId) {
+        List<GameMoveResponse> response = getGameMovesUseCase
+                .getPublicGameMovesByGameId(publicId, gameId, userDetails.getId());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/users/{publicId}/games/{gameId}/physical-replay")
+    public ResponseEntity<ApiResponse<PhysicalReplayData>> getPublicPhysicalReplay(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable UUID publicId,
+            @PathVariable Long gameId) {
+        PhysicalReplayData replay = getPhysicalReplayUseCase.getPublicReplay(publicId, gameId, userDetails.getId());
         return ResponseEntity.ok(ApiResponse.success(replay));
     }
 }

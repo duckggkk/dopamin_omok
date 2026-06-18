@@ -11,10 +11,8 @@ import com.dopamin.omok.user.application.port.out.LoadUserPort;
 import com.dopamin.omok.user.application.port.out.SaveUserPort;
 import com.dopamin.omok.user.domain.User;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class EmailVerificationService {
@@ -31,7 +29,6 @@ public class EmailVerificationService {
     public void sendCode(User user) {
         EmailVerificationToken token = EmailVerificationToken.create(user.getId(), VALID_MINUTES);
         saveEmailVerificationTokenPort.save(token);
-        log.info("[이메일 인증] email={} token={}", user.getEmail(), token.getToken());
         emailService.sendVerificationEmail(user.getEmail(), token.getToken());
     }
 
@@ -45,7 +42,7 @@ public class EmailVerificationService {
 
         EmailVerificationToken token = loadEmailVerificationTokenPort
                 .findByUserIdAndToken(user.getId(), code)
-                .orElseThrow(() -> new OmokException(ErrorCode.VERIFICATION_TOKEN_NOT_FOUND));
+                .orElseGet(() -> recordFailedAttempt(user.getId()));
 
         //만료된 토큰일시 삭제후 throw
         if (token.isExpired()) {
@@ -68,5 +65,23 @@ public class EmailVerificationService {
 
         deleteEmailVerificationTokenPort.deleteByUserId(user.getId());
         sendCode(user);
+    }
+
+    private EmailVerificationToken recordFailedAttempt(Long userId) {
+        EmailVerificationToken token = loadEmailVerificationTokenPort.findLatestByUserId(userId)
+                .orElseThrow(() -> new OmokException(ErrorCode.VERIFICATION_TOKEN_NOT_FOUND));
+
+        if (token.isExpired()) {
+            deleteEmailVerificationTokenPort.delete(token);
+            throw new OmokException(ErrorCode.VERIFICATION_TOKEN_EXPIRED);
+        }
+
+        token.recordFailedAttempt();
+        if (token.isAttemptLimitExceeded()) {
+            deleteEmailVerificationTokenPort.delete(token);
+            throw new OmokException(ErrorCode.VERIFICATION_ATTEMPTS_EXCEEDED);
+        }
+        saveEmailVerificationTokenPort.save(token);
+        throw new OmokException(ErrorCode.VERIFICATION_TOKEN_NOT_FOUND);
     }
 }

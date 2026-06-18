@@ -73,7 +73,8 @@
 .silver { background: linear-gradient(160deg, #e8e8ee, #aeb2bd); color: #2a2c33; border-color: #f0f0f5; }
 .bronze { background: linear-gradient(160deg, #e3a875, #b06f3c); color: #3a2410; border-color: #edbf95; }
 
-.cPlayer { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.cPlayer { display: flex; align-items: center; gap: 11px; min-width: 0; color: inherit; text-decoration: none; }
+.cPlayer:hover .name { color: var(--gold-bright); }
 .avatar {
   width: 34px; height: 34px;
   border-radius: 50%;

@@ -5,8 +5,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Entity
 @Table(name = "email_verification_tokens", indexes = {
@@ -16,6 +16,9 @@ import java.util.concurrent.ThreadLocalRandom;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class EmailVerificationToken {
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final int MAX_FAILED_ATTEMPTS = 5;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,6 +33,9 @@ public class EmailVerificationToken {
     @Column(nullable = false)
     private LocalDateTime expiresAt;
 
+    @Column(nullable = false)
+    private int failedAttempts = 0;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -37,11 +43,12 @@ public class EmailVerificationToken {
         this.userId = userId;
         this.token = token;
         this.expiresAt = expiresAt;
+        this.failedAttempts = 0;
         this.createdAt = LocalDateTime.now();
     }
 
     public static EmailVerificationToken create(Long userId, long validMinutes) {
-        String code = String.format("%06d", ThreadLocalRandom.current().nextInt(0, 1_000_000));
+        String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
         return new EmailVerificationToken(
                 userId,
                 code,
@@ -51,5 +58,13 @@ public class EmailVerificationToken {
 
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(expiresAt);
+    }
+
+    public void recordFailedAttempt() {
+        this.failedAttempts++;
+    }
+
+    public boolean isAttemptLimitExceeded() {
+        return failedAttempts >= MAX_FAILED_ATTEMPTS;
     }
 }

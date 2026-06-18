@@ -4,7 +4,36 @@ import { useAuthStore } from '@/store/authStore';
 import { ShopInfo, Inventory, GachaResult, ShopItem, ItemType } from '@/types';
 import ItemPreview from '@/components/shop/ItemPreview';
 import PreviewBoard from '@/components/shop/PreviewBoard';
+import { useStoneSoundPlayer } from '@/hooks/useStoneSoundPlayer';
+import { DEFAULT_BLACK_STONE } from '@/utils/stoneSkin';
 import styles from './ShopPage.module.css';
+
+// 목록 첫 칸에 보여줄 가상의 '기본'(장착 해제) 카드용 sentinel id (실제 아이템 아님)
+const DEFAULT_ITEM_ID = -1;
+
+// 기본 바둑판 외형 — OmokBoard/미리보기 폴백과 동일
+const DEFAULT_BOARD_COLORS = { bg: '#dcb95b', lines: '#8b6914', dots: '#8b6914' };
+const DEFAULT_BOARD_FILTER = {
+  type: 'fractalNoise', freqX: 0.65, freqY: 0.06, octaves: 4, seed: 3, blend: 'overlay',
+};
+
+// 기본 지급(default_grant) 실아이템이 없는 카테고리에만 보여줄 가상 '기본' 카드(누르면 장착 해제).
+// DEFEAT_MESSAGE·STONE_SOUND 는 이미 기본 지급 실아이템('패배'·'기본음')이 있어 정렬로 1순위 처리한다.
+const DEFAULT_ITEMS: Partial<Record<ItemType, ShopItem>> = {
+  STONE_SKIN: {
+    id: DEFAULT_ITEM_ID, name: '기본 스킨', displayName: '기본 스킨', itemType: 'STONE_SKIN',
+    description: '기본 바둑알입니다.', itemConfig: { displayName: '기본 스킨', stone: DEFAULT_BLACK_STONE },
+  },
+  BOARD_SKIN: {
+    id: DEFAULT_ITEM_ID, name: '기본 스킨', displayName: '기본 스킨', itemType: 'BOARD_SKIN',
+    description: '기본 바둑판입니다.',
+    itemConfig: { displayName: '기본 스킨', colors: DEFAULT_BOARD_COLORS, filter: DEFAULT_BOARD_FILTER },
+  },
+  STONE_EFFECT: {
+    id: DEFAULT_ITEM_ID, name: '일반 착수', displayName: '일반 착수', itemType: 'STONE_EFFECT',
+    description: '효과 없는 기본 착수입니다.', itemConfig: { displayName: '일반 착수' },
+  },
+};
 
 // 타입별 표시 메타 (아이콘/카테고리 라벨). 새 코스메틱 타입 추가 시 여기 한 줄만 추가.
 const ITEM_TYPE_META: Record<ItemType, { icon: string; label: string }> = {
@@ -16,10 +45,13 @@ const ITEM_TYPE_META: Record<ItemType, { icon: string; label: string }> = {
   STONE_EFFECT: { icon: '✨', label: '착수 효과' },
   CHARACTER_SKIN: { icon: '🧙', label: '피지컬 캐릭터' },
 };
-const INVENTORY_TYPES = Object.keys(ITEM_TYPE_META) as ItemType[];
+const COMING_SOON_TYPES = new Set<ItemType>(['DEFEAT_EFFECT']);
+const INVENTORY_TYPES = (Object.keys(ITEM_TYPE_META) as ItemType[])
+  .filter((type) => !COMING_SOON_TYPES.has(type));
 
 const ShopPage = () => {
   const { user, setUser } = useAuthStore();
+  const playStoneSound = useStoneSoundPlayer();
   const [shopInfo, setShopInfo] = useState<ShopInfo | null>(null);
   const [inventory, setInventory] = useState<Inventory | null>(null);
   const [tab, setTab] = useState<'shop' | 'inventory'>('shop');
@@ -29,11 +61,25 @@ const ShopPage = () => {
   const [error, setError] = useState<string | null>(null);
   // 미리보기 모드 — 클래식 바둑판 / 피지컬 오목(캐릭터 등장) 전환
   const [previewMode, setPreviewMode] = useState<'classic' | 'physical'>('classic');
+  const [resultPreviewMode, setResultPreviewMode] = useState<'win' | 'loss'>('win');
   // 미리보기 바둑판에 적용된 코스메틱 — 카테고리(itemType)별 1개씩 겹쳐서 미리보기
   const [preview, setPreview] = useState<Partial<Record<ItemType, ShopItem>>>({});
 
-  const togglePreview = (item: ShopItem) =>
+  const handlePreviewClick = (item: ShopItem) => {
+    if (item.itemType === 'STONE_SOUND') {
+      playStoneSound(item.itemConfig?.assetKey);
+    }
+    if (item.itemType === 'CHARACTER_SKIN') {
+      setPreviewMode('physical');
+    }
+    if (item.itemType === 'DEFEAT_EFFECT') {
+      setResultPreviewMode('win');
+    }
+    if (item.itemType === 'DEFEAT_MESSAGE') {
+      setResultPreviewMode('loss');
+    }
     setPreview((p) => ({ ...p, [item.itemType]: p[item.itemType]?.id === item.id ? undefined : item }));
+  };
   const isPreviewing = (item: ShopItem) => preview[item.itemType]?.id === item.id;
   const hasPreview = Object.values(preview).some(Boolean);
 
@@ -88,7 +134,12 @@ const ShopPage = () => {
   const handleEquip = async (item: ShopItem) => {
     setEquippingId(item.id);
     try {
-      await shopApi.equipItem(item.id);
+      // 기본 카드 = 해당 카테고리 장착 해제
+      if (item.id === DEFAULT_ITEM_ID) {
+        await shopApi.unequipItem(item.itemType);
+      } else {
+        await shopApi.equipItem(item.id);
+      }
       await loadData();
     } catch {
       setError('장착에 실패했습니다.');
@@ -101,7 +152,9 @@ const ShopPage = () => {
   const getItemDisplayName = (item: ShopItem) => item.displayName ?? item.name;
 
   const isEquipped = (item: ShopItem) =>
-    inventory?.activeItems[item.itemType]?.id === item.id;
+    item.id === DEFAULT_ITEM_ID
+      ? !inventory?.activeItems[item.itemType]          // 장착된 아이템이 없으면 기본이 활성
+      : inventory?.activeItems[item.itemType]?.id === item.id;
 
   return (
     <div className={styles.container}>
@@ -163,38 +216,49 @@ const ShopPage = () => {
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>🎲 랜덤 뽑기 상자</h2>
             <div className={styles.boxGrid}>
-              {shopInfo.boxes.map((box) => (
-                <div key={box.type} className={styles.boxCard}>
-                  <div className={styles.boxIcon}>
-                    {ITEM_TYPE_META[box.itemType].icon}
-                  </div>
-                  <h3 className={styles.boxName}>{box.name}</h3>
-                  <div className={styles.boxItems}>
-                    <p className={styles.boxItemsLabel}>포함 아이템 · 미리보기</p>
-                    <div className={styles.previewGrid}>
-                      {box.possibleItems.map((it) => (
-                        <button
-                          key={it.id}
-                          className={`${styles.previewItem} ${isPreviewing(it) ? styles.previewItemOn : ''}`}
-                          onClick={() => togglePreview(it)}
-                          title="미리보기에 적용"
-                        >
-                          <ItemPreview item={it} />
-                          <span className={styles.previewName}>{getItemDisplayName(it)}</span>
-                        </button>
-                      ))}
+              {shopInfo.boxes.map((box) => {
+                const comingSoon = COMING_SOON_TYPES.has(box.itemType);
+                return (
+                  <div key={box.type} className={`${styles.boxCard} ${comingSoon ? styles.boxCardComingSoon : ''}`}>
+                    <div className={styles.boxIcon}>
+                      {ITEM_TYPE_META[box.itemType].icon}
                     </div>
+                    <h3 className={styles.boxName}>{box.name}</h3>
+                    <div className={styles.boxItems}>
+                      {comingSoon ? (
+                        <div className={styles.comingSoonNotice}>
+                          <span className={styles.comingSoonTitle}>준비중</span>
+                        </div>
+                      ) : (
+                        <>
+                          <p className={styles.boxItemsLabel}>포함 아이템 · 미리보기</p>
+                          <div className={styles.previewGrid}>
+                            {box.possibleItems.map((it) => (
+                              <button
+                                key={it.id}
+                                className={`${styles.previewItem} ${isPreviewing(it) ? styles.previewItemOn : ''}`}
+                                onClick={() => handlePreviewClick(it)}
+                                title="미리보기에 적용"
+                              >
+                                <ItemPreview item={it} />
+                                <span className={styles.previewName}>{getItemDisplayName(it)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <div className={styles.boxPrice}>{comingSoon ? '준비중' : `🪨 ${box.price} 돌`}</div>
+                    <button
+                      className={styles.openBtn}
+                      onClick={() => handleOpenGacha(box.type)}
+                      disabled={isOpening || comingSoon}
+                    >
+                      {comingSoon ? '준비 중' : isOpening ? '뽑는 중...' : '뽑기!'}
+                    </button>
                   </div>
-                  <div className={styles.boxPrice}>🪨 {box.price} 돌</div>
-                  <button
-                    className={styles.openBtn}
-                    onClick={() => handleOpenGacha(box.type)}
-                    disabled={isOpening}
-                  >
-                    {isOpening ? '뽑는 중...' : '뽑기!'}
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
 
@@ -234,7 +298,13 @@ const ShopPage = () => {
           ) : (
             <>
               {INVENTORY_TYPES.map((type) => {
-                const typeItems = inventory.items.filter((i) => i.itemType === type);
+                // 기본 지급(default_grant) 아이템을 앞으로 정렬(패배 문구 '패배', 착수음 '기본음' 등)
+                const owned = inventory.items
+                  .filter((i) => i.itemType === type)
+                  .sort((a, b) => Number(b.defaultGrant) - Number(a.defaultGrant));
+                // 기본 지급 실아이템이 없는 카테고리는 가상 '기본' 카드를 맨 앞에 둔다
+                const def = DEFAULT_ITEMS[type];
+                const typeItems = def ? [def, ...owned] : owned;
                 if (typeItems.length === 0) return null;
                 return (
                   <section key={type} className={styles.section}>
@@ -248,7 +318,7 @@ const ShopPage = () => {
                           <div key={item.id} className={`${styles.itemCard} ${equipped ? styles.itemCardEquipped : ''}`}>
                             <button
                               className={`${styles.itemPreview} ${isPreviewing(item) ? styles.itemPreviewOn : ''}`}
-                              onClick={() => togglePreview(item)}
+                              onClick={() => handlePreviewClick(item)}
                               title="미리보기에 적용"
                             >
                               <ItemPreview item={item} />
@@ -294,6 +364,23 @@ const ShopPage = () => {
               피지컬 오목
             </button>
           </div>
+          {preview.DEFEAT_EFFECT && (
+            <div className={styles.resultPreviewTabs} aria-label="승패 이펙트 미리보기 화면 선택">
+              <span className={styles.resultPreviewLabel}>승패 이펙트</span>
+              <button
+                className={resultPreviewMode === 'win' ? styles.previewModeOn : styles.previewModeTab}
+                onClick={() => setResultPreviewMode('win')}
+              >
+                승리 화면
+              </button>
+              <button
+                className={resultPreviewMode === 'loss' ? styles.previewModeOn : styles.previewModeTab}
+                onClick={() => setResultPreviewMode('loss')}
+              >
+                패배 화면
+              </button>
+            </div>
+          )}
           <PreviewBoard
             variant={previewMode}
             boardCfg={preview.BOARD_SKIN?.itemConfig ?? null}
@@ -303,6 +390,7 @@ const ShopPage = () => {
             character={preview.CHARACTER_SKIN?.itemConfig?.character ?? null}
             defeatText={preview.DEFEAT_MESSAGE ? getItemDisplayName(preview.DEFEAT_MESSAGE) : null}
             defeatEffect={preview.DEFEAT_EFFECT?.itemConfig?.effect ?? null}
+            resultPreview={preview.DEFEAT_EFFECT ? resultPreviewMode : 'loss'}
           />
           <p className={styles.previewHint}>
             {previewMode === 'physical'

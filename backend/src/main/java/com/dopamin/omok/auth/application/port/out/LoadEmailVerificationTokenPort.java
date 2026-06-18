@@ -7,4 +7,5 @@ import java.util.Optional;
 public interface LoadEmailVerificationTokenPort {
     Optional<EmailVerificationToken> findByToken(String token);
     Optional<EmailVerificationToken> findByUserIdAndToken(Long userId, String token);
+    Optional<EmailVerificationToken> findLatestByUserId(Long userId);
 }

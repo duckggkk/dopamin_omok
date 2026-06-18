@@ -2,6 +2,7 @@ package com.dopamin.omok.user.adapter.in.web;
 
 import com.dopamin.omok.user.adapter.in.web.dto.UpdateProfileRequest;
 import com.dopamin.omok.user.application.dto.RankingResponse;
+import com.dopamin.omok.user.application.dto.PublicUserResponse;
 import com.dopamin.omok.user.application.dto.UserResponse;
 import com.dopamin.omok.user.application.port.in.GetRankingUseCase;
 import com.dopamin.omok.user.application.port.in.GetUserUseCase;
@@ -34,9 +35,10 @@ public class UserController {
     }
 
     @GetMapping("/{publicId}")
-    public ResponseEntity<ApiResponse<UserResponse>> getUserProfile(
+    public ResponseEntity<ApiResponse<PublicUserResponse>> getUserProfile(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable UUID publicId) {
-        UserResponse response = getUserUseCase.getUserByPublicId(publicId);
+        PublicUserResponse response = getUserUseCase.getUserByPublicId(publicId, userDetails.getId());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -45,7 +47,7 @@ public class UserController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody UpdateProfileRequest request) {
         UserResponse response = updateProfileUseCase.updateProfile(
-                userDetails.getId(), request.nickname(), request.profileImageUrl());
+                userDetails.getId(), request.nickname(), request.profileImageUrl(), request.profilePrivate());
         return ResponseEntity.ok(ApiResponse.success("프로필이 업데이트되었습니다.", response));
     }
 

@@ -87,6 +87,11 @@ const RegisterPage = () => {
         </form>
 
         <p className={styles.footer}>
+          가입하면 <Link to="/terms">이용약관</Link> 및 <Link to="/privacy">개인정보처리방침</Link>에
+          동의하는 것으로 간주됩니다.
+        </p>
+
+        <p className={styles.footer}>
           이미 계정이 있으신가요? <Link to="/login">로그인</Link>
         </p>
       </div>

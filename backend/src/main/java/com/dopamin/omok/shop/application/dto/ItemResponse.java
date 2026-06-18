@@ -10,7 +10,8 @@ public record ItemResponse(
         String displayName,
         ItemType itemType,
         String description,
-        ItemConfig itemConfig
+        ItemConfig itemConfig,
+        boolean defaultGrant
 ) {
     public static ItemResponse from(Item item) {
         return new ItemResponse(
@@ -19,7 +20,8 @@ public record ItemResponse(
                 item.getDisplayName(),
                 item.getItemType(),
                 item.getDescription(),
-                item.getItemConfig()
+                item.getItemConfig(),
+                item.isDefaultGrant()
         );
     }
 }

@@ -75,6 +75,9 @@ public class User {
     private boolean emailVerified = false;
 
     @Column(nullable = false)
+    private boolean profilePrivate = false;
+
+    @Column(nullable = false)
     private Long tokenVersion = 0L;
 
     @CreatedDate
@@ -98,6 +101,7 @@ public class User {
         this.providerId = providerId;
         this.profileImageUrl = profileImageUrl;
         this.emailVerified = emailVerified;
+        this.profilePrivate = false;
         this.wins = 0;
         this.losses = 0;
         this.draws = 0;
@@ -145,6 +149,10 @@ public class User {
 
     public void updateProfileImageUrl(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
+    }
+
+    public void updateProfilePrivate(boolean profilePrivate) {
+        this.profilePrivate = profilePrivate;
     }
 
     public void updatePassword(String encodedPassword) {

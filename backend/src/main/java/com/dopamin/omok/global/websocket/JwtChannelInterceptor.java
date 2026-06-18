@@ -1,5 +1,11 @@
 package com.dopamin.omok.global.websocket;
 
+import com.dopamin.omok.game.application.port.out.LoadGamePlayerPort;
+import com.dopamin.omok.game.application.port.out.LoadRoomPort;
+import com.dopamin.omok.game.domain.GamePlayer;
+import com.dopamin.omok.game.domain.Room;
+import com.dopamin.omok.global.common.exception.ErrorCode;
+import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
 import com.dopamin.omok.global.security.jwt.JwtAuthenticator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,20 +19,33 @@ import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Component;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtChannelInterceptor implements ChannelInterceptor {
 
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final Pattern ROOM_TOPIC_PATTERN = Pattern.compile("^/topic/room/([^/]+)(?:/.*)?$");
+    private static final Pattern GAME_APP_PATTERN = Pattern.compile("^/app/game/([^/]+)/[^/]+$");
+    private static final Pattern PHYSICAL_APP_PATTERN = Pattern.compile("^/app/physical/([^/]+)/[^/]+$");
+    private static final Pattern PLAZA_PATTERN = Pattern.compile("^/(?:topic|app)/plaza/([^/]+)(?:/.*)?$");
 
     private final JwtAuthenticator jwtAuthenticator;
+    private final LoadRoomPort loadRoomPort;
+    private final LoadGamePlayerPort loadGamePlayerPort;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
+        if (accessor == null || accessor.getCommand() == null) {
+            return message;
+        }
+
+        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
             String authHeader = accessor.getFirstNativeHeader("Authorization");
             String token = (authHeader != null && authHeader.startsWith(BEARER_PREFIX))
                     ? authHeader.substring(BEARER_PREFIX.length())
@@ -42,6 +61,74 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                     });
             accessor.setUser(authentication);
         }
+
+        if (StompCommand.SUBSCRIBE.equals(accessor.getCommand()) || StompCommand.SEND.equals(accessor.getCommand())) {
+            authorizeDestination(accessor);
+        }
         return message;
+    }
+
+    private void authorizeDestination(StompHeaderAccessor accessor) {
+        String destination = accessor.getDestination();
+        if (destination == null) return;
+
+        Long userId = extractUserId(accessor);
+        if (userId == null) {
+            throw new MessagingException("WebSocket 인증이 필요합니다.");
+        }
+
+        Matcher roomTopic = ROOM_TOPIC_PATTERN.matcher(destination);
+        if (roomTopic.matches()) {
+            requireRoomMember(roomTopic.group(1), userId);
+            return;
+        }
+
+        Matcher gameApp = GAME_APP_PATTERN.matcher(destination);
+        if (gameApp.matches()) {
+            requireRoomMember(gameApp.group(1), userId);
+            return;
+        }
+
+        Matcher physicalApp = PHYSICAL_APP_PATTERN.matcher(destination);
+        if (physicalApp.matches()) {
+            requireRoomParticipant(physicalApp.group(1), userId);
+            return;
+        }
+
+        Matcher plaza = PLAZA_PATTERN.matcher(destination);
+        if (plaza.matches() || destination.startsWith("/user/")) {
+            return;
+        }
+
+        if (destination.startsWith("/topic/") || destination.startsWith("/app/")) {
+            throw new MessagingException("허용되지 않은 WebSocket destination 입니다.");
+        }
+    }
+
+    private void requireRoomMember(String roomCode, Long userId) {
+        Room room = loadRoomPort.findByRoomCode(roomCode)
+                .orElseThrow(() -> reject(ErrorCode.ROOM_NOT_FOUND.getMessage()));
+        loadGamePlayerPort.findByRoomIdAndUserId(room.getId(), userId)
+                .orElseThrow(() -> reject(ErrorCode.NOT_IN_ROOM.getMessage()));
+    }
+
+    private void requireRoomParticipant(String roomCode, Long userId) {
+        Room room = loadRoomPort.findByRoomCode(roomCode)
+                .orElseThrow(() -> reject(ErrorCode.ROOM_NOT_FOUND.getMessage()));
+        loadGamePlayerPort.findByRoomIdAndUserId(room.getId(), userId)
+                .filter(GamePlayer::isParticipant)
+                .orElseThrow(() -> reject(ErrorCode.NOT_GAME_PARTICIPANT.getMessage()));
+    }
+
+    private MessagingException reject(String message) {
+        return new MessagingException(message);
+    }
+
+    private Long extractUserId(StompHeaderAccessor accessor) {
+        if (accessor.getUser() instanceof UsernamePasswordAuthenticationToken authToken
+                && authToken.getPrincipal() instanceof CustomUserDetails userDetails) {
+            return userDetails.getId();
+        }
+        return null;
     }
 }

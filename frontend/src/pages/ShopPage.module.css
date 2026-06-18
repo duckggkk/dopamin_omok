@@ -101,6 +101,22 @@
 }
 .previewModeTab:hover { color: var(--text); }
 .previewModeOn { background: var(--gold); color: #1a1206; }
+.resultPreviewTabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  background: rgba(0, 0, 0, 0.16);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+}
+.resultPreviewLabel {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0 8px 0 10px;
+  white-space: nowrap;
+}
 .previewHint { margin: 0; font-size: 0.76rem; color: var(--text-faint); line-height: 1.45; text-align: center; }
 .previewReset {
   background: var(--inset); border: 1px solid var(--border-strong); color: var(--text-muted);
@@ -195,6 +211,15 @@
   border-color: var(--gold-soft-border);
   box-shadow: var(--shadow-raised);
 }
+.boxCardComingSoon {
+  opacity: 0.78;
+  border-style: dashed;
+}
+.boxCardComingSoon:hover {
+  transform: none;
+  border-color: var(--border);
+  box-shadow: var(--shadow-card);
+}
 .boxIcon {
   font-size: 2.6rem;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
@@ -205,6 +230,24 @@
 .boxItems { width: 100%; }
 .boxItemsLabel { font-size: 0.75rem; color: var(--text-faint); margin: 0 0 8px; }
 .boxItemTags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.comingSoonNotice {
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--r-md);
+  border: 1px dashed var(--border-strong);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 16px;
+  text-align: center;
+}
+.comingSoonTitle {
+  color: var(--gold-bright);
+  font-weight: 900;
+  font-size: 0.95rem;
+}
 
 /* 미리보기 그리드 (가챠 상자 안 아이템들) */
 .previewGrid {

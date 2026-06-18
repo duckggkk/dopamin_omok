@@ -178,7 +178,15 @@
 
 .roomInfo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .roomCode { font-family: var(--font-mono); font-size: 1.12rem; color: var(--gold-bright); font-weight: 700; letter-spacing: 3px; }
-.roomHost { color: var(--text-muted); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; }
+.roomHost {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+.roomHost:hover { color: var(--gold-bright); }
 .ratingTag {
   font-size: 0.76rem;
   font-weight: 700;

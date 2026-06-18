@@ -9,5 +9,7 @@ public record UpdateProfileRequest(
                 message = "닉네임은 한글, 영문, 숫자만 사용 가능합니다.")
         String nickname,
 
-        String profileImageUrl
+        String profileImageUrl,
+
+        Boolean profilePrivate
 ) {}

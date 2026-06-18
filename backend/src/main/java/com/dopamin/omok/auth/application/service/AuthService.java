@@ -85,7 +85,7 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = OmokException.class)
     public void verifyEmail(String email, String code) {
         emailVerificationService.verifyEmail(email, code);
     }

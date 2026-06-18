@@ -19,6 +19,7 @@ public record UserResponse(
         Integer classicRating,
         Integer physicalRating,
         Integer currency,
+        boolean profilePrivate,
         LocalDateTime createdAt
 ) {
     public static UserResponse from(User user) {
@@ -35,6 +36,7 @@ public record UserResponse(
                 user.getClassicRating(),
                 user.getPhysicalRating(),
                 user.getCurrency() != null ? user.getCurrency() : 0,
+                user.isProfilePrivate(),
                 user.getCreatedAt()
         );
     }

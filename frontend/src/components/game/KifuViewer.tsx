@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { gameApi } from '@/api/game';
-import { Board, GameInfo, GameMove } from '@/types';
+import { ApiResponse, Board, GameInfo, GameMove } from '@/types';
+import { AxiosResponse } from 'axios';
 import { createEmptyBoard } from '@/constants/board';
 import OmokBoard from './OmokBoard';
 import styles from './KifuViewer.module.css';
@@ -8,6 +9,7 @@ import styles from './KifuViewer.module.css';
 interface Props {
   game: GameInfo;
   onClose: () => void;
+  loadMoves?: (gameId: number) => Promise<AxiosResponse<ApiResponse<GameMove[]>>>;
 }
 
 const fmtDate = (iso?: string | null) => {
@@ -16,15 +18,15 @@ const fmtDate = (iso?: string | null) => {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 };
 
-const KifuViewer = ({ game, onClose }: Props) => {
+const KifuViewer = ({ game, onClose, loadMoves }: Props) => {
   const [moves, setMoves] = useState<GameMove[] | null>(null);
   const [step, setStep] = useState(0);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    gameApi
-      .getGameMovesById(game.id)
+    const fetchMoves = loadMoves ?? gameApi.getGameMovesById;
+    fetchMoves(game.id)
       .then((res) => {
         if (cancelled) return;
         const ms = res.data.data ?? [];
@@ -33,7 +35,7 @@ const KifuViewer = ({ game, onClose }: Props) => {
       })
       .catch(() => { if (!cancelled) setError(true); });
     return () => { cancelled = true; };
-  }, [game.id]);
+  }, [game.id, loadMoves]);
 
   const total = moves?.length ?? 0;
 

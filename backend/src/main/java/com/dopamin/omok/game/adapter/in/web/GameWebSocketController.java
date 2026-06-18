@@ -1,10 +1,12 @@
 package com.dopamin.omok.game.adapter.in.web;
 
+import com.dopamin.omok.game.adapter.in.web.dto.ChangeStoneSkinRequest;
 import com.dopamin.omok.game.adapter.in.web.dto.ChatMessageRequest;
 import com.dopamin.omok.game.adapter.in.web.dto.GameMoveRequest;
 import com.dopamin.omok.game.application.dto.ChatMessageResponse;
 import com.dopamin.omok.game.application.dto.GameMoveResponse;
 import com.dopamin.omok.game.application.dto.RoomResponse;
+import com.dopamin.omok.game.application.port.in.ChangeStoneSkinUseCase;
 import com.dopamin.omok.game.application.port.in.GetRoomUseCase;
 import com.dopamin.omok.game.application.port.in.PlaceStoneUseCase;
 import com.dopamin.omok.game.application.port.in.ReadyGameUseCase;
@@ -12,6 +14,7 @@ import com.dopamin.omok.game.application.port.in.StartGameUseCase;
 import com.dopamin.omok.game.application.port.in.SurrenderUseCase;
 import com.dopamin.omok.game.application.port.out.LoadGamePlayerPort;
 import com.dopamin.omok.game.application.port.out.LoadRoomPort;
+import com.dopamin.omok.game.application.port.out.RoomEventPublisherPort;
 import com.dopamin.omok.game.domain.GamePlayer;
 import com.dopamin.omok.game.domain.Room;
 import com.dopamin.omok.game.domain.StoneColor;
@@ -30,7 +33,6 @@ import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Controller;
 
@@ -46,10 +48,11 @@ public class GameWebSocketController {
     private final GetRoomUseCase getRoomUseCase;
     private final ReadyGameUseCase readyGameUseCase;
     private final StartGameUseCase startGameUseCase;
+    private final ChangeStoneSkinUseCase changeStoneSkinUseCase;
     private final LoadRoomPort loadRoomPort;
     private final LoadGamePlayerPort loadGamePlayerPort;
     private final WebSocketSessionRegistry sessionRegistry;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final RoomEventPublisherPort roomEventPublisher;
 
     @MessageMapping("/game/{roomCode}/move")
     @SendTo("/topic/room/{roomCode}")
@@ -64,8 +67,7 @@ public class GameWebSocketController {
             GameMoveResponse response = placeStoneUseCase.placeStone(roomCode, userId, request.row(), request.col());
             // 매 수마다 방 상태(currentTurn 포함) 브로드캐스트 — 클라이언트 턴 동기화
             RoomResponse roomStatus = getRoomUseCase.getRoom(roomCode);
-            messagingTemplate.convertAndSend("/topic/room/" + roomCode + "/status",
-                    ApiResponse.success(roomStatus));
+            roomEventPublisher.publishStatus(roomCode, roomStatus);
             return ApiResponse.success(response);
         } catch (Exception e) {
             log.warn("WebSocket move error for room {}: {}", roomCode, e.getMessage());
@@ -125,6 +127,25 @@ public class GameWebSocketController {
         }
     }
 
+    @MessageMapping("/game/{roomCode}/change-skin")
+    public void handleChangeSkin(
+            @DestinationVariable String roomCode,
+            @Valid @Payload ChangeStoneSkinRequest request,
+            SimpMessageHeaderAccessor headerAccessor) {
+        Long userId = extractUserId(headerAccessor);
+        registerSession(headerAccessor, roomCode, userId);
+        if (userId == null) {
+            log.warn("Unauthenticated change-skin for room {}", roomCode);
+            return;
+        }
+        try {
+            // 성공 시 changeStoneSkin 내부에서 방 상태를 양쪽에 브로드캐스트한다.
+            changeStoneSkinUseCase.changeStoneSkin(roomCode, userId, request.itemId());
+        } catch (Exception e) {
+            log.warn("WebSocket change-skin error for room {}: {}", roomCode, e.getMessage());
+        }
+    }
+
     @MessageMapping("/game/{roomCode}/chat")
     @SendTo("/topic/room/{roomCode}/chat")
     public ApiResponse<ChatMessageResponse> handleChat(
@@ -136,21 +157,18 @@ public class GameWebSocketController {
         Long userId = userDetails.getId();
         String nickname = userDetails.getUser().getNickname();
         registerSession(headerAccessor, roomCode, userId);
-        StoneColor color = null;
-        boolean spectator = true;
         try {
-            Room room = loadRoomPort.findByRoomCode(roomCode).orElse(null);
-            if (room != null) {
-                GamePlayer gp = loadGamePlayerPort.findByRoomIdAndUserId(room.getId(), userId).orElse(null);
-                if (gp != null && !gp.isSpectator()) {
-                    color = gp.getColor();
-                    spectator = false;
-                }
-            }
+            Room room = loadRoomPort.findByRoomCode(roomCode)
+                    .orElseThrow(() -> new OmokException(com.dopamin.omok.global.common.exception.ErrorCode.ROOM_NOT_FOUND));
+            GamePlayer gp = loadGamePlayerPort.findByRoomIdAndUserId(room.getId(), userId)
+                    .orElseThrow(() -> new OmokException(com.dopamin.omok.global.common.exception.ErrorCode.NOT_IN_ROOM));
+            StoneColor color = gp.isSpectator() ? null : gp.getColor();
+            boolean spectator = gp.isSpectator();
+            return ApiResponse.success(new ChatMessageResponse(nickname, color, spectator, request.content(), LocalDateTime.now()));
         } catch (Exception e) {
             log.warn("Chat player lookup error for room {}: {}", roomCode, e.getMessage());
+            return ApiResponse.error(clientMessage(e));
         }
-        return ApiResponse.success(new ChatMessageResponse(nickname, color, spectator, request.content(), LocalDateTime.now()));
     }
 
     // @Valid 페이로드 검증 실패(예: 200자 초과/빈 채팅)를 STOMP 에러 프레임 대신

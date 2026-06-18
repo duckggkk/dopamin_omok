@@ -140,6 +140,7 @@
   display: block;
   width: 100%;
   height: 100%;
+  cursor: pointer;
 }
 
 /* 아바타 꾸미기 — 광장 우상단 불투명 버튼 */
@@ -170,9 +171,9 @@
   inset: 0;
   z-index: 20;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 58px 16px 16px;
   background: rgba(0, 0, 0, 0.5);
   -webkit-backdrop-filter: blur(2px);
           backdrop-filter: blur(2px);
@@ -181,8 +182,8 @@
 }
 @keyframes dressFade { from { opacity: 0; } to { opacity: 1; } }
 .dressModal {
-  width: min(380px, 100%);
-  max-height: 100%;
+  width: min(360px, calc(100% - 32px));
+  max-height: calc(100% - 74px);
   overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--border-strong);

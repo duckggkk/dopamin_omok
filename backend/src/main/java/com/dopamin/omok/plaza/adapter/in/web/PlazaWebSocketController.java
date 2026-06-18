@@ -2,18 +2,17 @@ package com.dopamin.omok.plaza.adapter.in.web;
 
 import com.dopamin.omok.game.adapter.in.web.dto.ChatMessageRequest;
 import com.dopamin.omok.game.application.dto.ChatMessageResponse;
-import com.dopamin.omok.global.common.response.ApiResponse;
 import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
 import com.dopamin.omok.plaza.adapter.in.web.dto.PlazaInputRequest;
 import com.dopamin.omok.plaza.adapter.in.web.dto.PlazaJoinRequest;
 import com.dopamin.omok.plaza.application.PlazaSessionManager;
+import com.dopamin.omok.plaza.application.port.out.PlazaEventPublisherPort;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Controller;
@@ -30,6 +29,7 @@ import java.time.LocalDateTime;
 public class PlazaWebSocketController {
 
     private final PlazaSessionManager manager;
+    private final PlazaEventPublisherPort eventPublisher;
 
     @MessageMapping("/plaza/{channelId}/join")
     public void handleJoin(
@@ -74,16 +74,16 @@ public class PlazaWebSocketController {
     }
 
     @MessageMapping("/plaza/{channelId}/chat")
-    @SendTo("/topic/plaza/{channelId}/chat")
-    public ApiResponse<ChatMessageResponse> handleChat(
+    public void handleChat(
             @DestinationVariable String channelId,
             @Valid @Payload ChatMessageRequest request,
             SimpMessageHeaderAccessor accessor) {
         CustomUserDetails user = extractUser(accessor);
-        if (user == null) return ApiResponse.error("인증이 필요합니다.");
+        if (user == null || !manager.isMember(channelId, user.getId())) return;
         String nickname = user.getUser().getNickname();
         // 광장 채팅엔 색/관전 개념이 없으므로 color=null, spectator=true 로 ChatMessageResponse 를 재사용한다.
-        return ApiResponse.success(new ChatMessageResponse(nickname, null, true, request.content(), LocalDateTime.now()));
+        ChatMessageResponse response = new ChatMessageResponse(nickname, null, true, request.content(), LocalDateTime.now());
+        eventPublisher.publishChat(channelId, response);
     }
 
     // JwtChannelInterceptor 가 CONNECT 시 accessor.setUser(auth) 로 설정한 값을 읽는다.

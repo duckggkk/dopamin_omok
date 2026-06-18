@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +61,10 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
 
         // 시간 제한 체크
         checkAndDeductTime(room, game, userId);
+
+        if (!gameEngine.isValidPosition(row, col)) {
+            throw new OmokException(ErrorCode.INVALID_MOVE);
+        }
 
         List<GameMove> existingMoves = loadGameMovesPort.findByGameIdOrderByMoveNumberAsc(game.getId());
         StoneColor[][] board = gameEngine.buildBoardFromMoves(existingMoves);
@@ -156,6 +161,16 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
     }
 
     @Override
+    public List<GameMoveResponse> getPublicGameMovesByGameId(UUID publicId, Long gameId, Long viewerUserId) {
+        User owner = findVisibleProfileOwner(publicId, viewerUserId);
+        Game game = findVisibleOwnerGame(gameId, owner);
+        return loadGameMovesPort.findByGameIdOrderByMoveNumberAsc(game.getId())
+                .stream()
+                .map(GameMoveResponse::from)
+                .toList();
+    }
+
+    @Override
     public PhysicalReplayData getReplay(Long gameId, Long userId) {
         Game game = loadGamePort.findById(gameId)
                 .orElseThrow(() -> new OmokException(ErrorCode.GAME_NOT_FOUND));
@@ -166,8 +181,22 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
     }
 
     @Override
+    public PhysicalReplayData getPublicReplay(UUID publicId, Long gameId, Long viewerUserId) {
+        User owner = findVisibleProfileOwner(publicId, viewerUserId);
+        Game game = findVisibleOwnerGame(gameId, owner);
+        return loadPhysicalReplayPort.findByGameId(game.getId()).orElse(null);
+    }
+
+    @Override
     public Page<GameResponse> getMyGames(Long userId, Pageable pageable) {
         return loadGamePort.findCompletedByUserId(userId, pageable)
+                .map(GameResponse::from);
+    }
+
+    @Override
+    public Page<GameResponse> getPublicGames(UUID publicId, Long viewerUserId, Pageable pageable) {
+        User owner = findVisibleProfileOwner(publicId, viewerUserId);
+        return loadGamePort.findCompletedByUserId(owner.getId(), pageable)
                 .map(GameResponse::from);
     }
 
@@ -195,6 +224,24 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
     private Game findActiveGame(String roomCode) {
         return loadGamePort.findActiveGameByRoomCode(roomCode)
                 .orElseThrow(() -> new OmokException(ErrorCode.GAME_NOT_FOUND));
+    }
+
+    private User findVisibleProfileOwner(UUID publicId, Long viewerUserId) {
+        User owner = loadUserPort.findByPublicId(publicId)
+                .orElseThrow(() -> new OmokException(ErrorCode.USER_NOT_FOUND));
+        if (owner.isProfilePrivate() && !owner.getId().equals(viewerUserId)) {
+            throw new OmokException(ErrorCode.PROFILE_PRIVATE);
+        }
+        return owner;
+    }
+
+    private Game findVisibleOwnerGame(Long gameId, User owner) {
+        Game game = loadGamePort.findById(gameId)
+                .orElseThrow(() -> new OmokException(ErrorCode.GAME_NOT_FOUND));
+        if (!game.isParticipant(owner.getId()) || game.isInProgress()) {
+            throw new OmokException(ErrorCode.GAME_NOT_FOUND);
+        }
+        return game;
     }
 
     private void updateWinLoss(Game game, User winner) {

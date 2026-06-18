@@ -18,6 +18,7 @@ public enum ErrorCode {
     EMAIL_NOT_VERIFIED(HttpStatus.FORBIDDEN, "이메일 인증이 필요합니다. 이메일을 확인해주세요."),
     VERIFICATION_TOKEN_NOT_FOUND(HttpStatus.BAD_REQUEST, "유효하지 않은 인증 토큰입니다."),
     VERIFICATION_TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, "인증 토큰이 만료되었습니다. 재발송을 요청해주세요."),
+    VERIFICATION_ATTEMPTS_EXCEEDED(HttpStatus.BAD_REQUEST, "인증 시도 횟수를 초과했습니다. 재발송을 요청해주세요."),
     EMAIL_ALREADY_VERIFIED(HttpStatus.BAD_REQUEST, "이미 인증된 이메일입니다."),
     EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이메일 발송에 실패했습니다."),
 
@@ -25,6 +26,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     NICKNAME_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
+    PROFILE_PRIVATE(HttpStatus.FORBIDDEN, "비공개 프로필입니다."),
 
     // Room
     ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "방을 찾을 수 없습니다."),
@@ -37,6 +39,8 @@ public enum ErrorCode {
     REMATCH_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "리매치를 요청할 수 없는 상태입니다."),
     NOT_ENOUGH_PLAYERS(HttpStatus.BAD_REQUEST, "아직 상대방이 입장하지 않았습니다."),
     PLAYER_NOT_READY(HttpStatus.BAD_REQUEST, "상대방이 아직 준비 완료하지 않았습니다."),
+    DUPLICATE_STONE_SKIN(HttpStatus.BAD_REQUEST, "두 플레이어가 같은 바둑알 스킨을 장착해 게임을 시작할 수 없습니다."),
+    STONE_SKIN_CHANGE_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "대기 중에만 바둑알 스킨을 바꿀 수 있습니다."),
 
     // Game
     GAME_NOT_FOUND(HttpStatus.NOT_FOUND, "게임을 찾을 수 없습니다."),

@@ -10,12 +10,16 @@ const DEFAULT_FILTER: SkinFilter = { type: 'fractalNoise', freqX: 0.65, freqY: 0
 const BLACK_STONE: StoneStyle = { fill: '#1a1a1a', stroke: '#000000', shine: '#777777' };
 const WHITE_STONE: StoneStyle = { fill: '#f5f5f0', stroke: '#bbbbbb', shine: '#ffffff' };
 const FACE_EMOJI: Record<string, string> = { robot: '🤖', rabbit: '🐰', ghost: '👻', cat: '🐱', fox: '🦊', bear: '🐻' };
-// 피지컬 오목 미리보기 — 잔디 필드 팔레트(실시간 액션 모드 분위기)
-const PHYSICAL_COLORS: SkinColors = { bg: '#5a8f4f', lines: '#3f6b38', dots: '#2f5230' };
 const clamp = (v: number, min: number, max: number) => (v < min ? min : v > max ? max : v);
 
-// 패배 이펙트 키 → 바둑판 위 연출 클래스 (게임 패배 화면과 동일한 4종)
-const DEFEAT_FX_CLASS: Record<string, string> = {
+// 승패 이펙트 키 → 바둑판 위 연출 클래스 (게임 결과 화면과 동일한 4종)
+const WIN_FX_CLASS: Record<string, string> = {
+  flame: styles.fxWinFlame,
+  shatter: styles.fxWinShatter,
+  storm: styles.fxWinStorm,
+  tears: styles.fxWinTears,
+};
+const LOSS_FX_CLASS: Record<string, string> = {
   flame: styles.fxFlame,
   shatter: styles.fxShatter,
   storm: styles.fxStorm,
@@ -38,15 +42,25 @@ interface Props {
   character?: CharacterStyle | null;
   defeatText?: string | null;
   defeatEffect?: string | null;
-  // 'physical'이면 잔디 필드 + 캐릭터를 바둑판에 올려 피지컬 오목 분위기로 보여준다.
+  resultPreview?: 'win' | 'loss';
+  // 'physical'이면 캐릭터를 바둑판에 올려 피지컬 오목 분위기로 보여준다.
   variant?: 'classic' | 'physical';
 }
 
-const PreviewBoard = ({ boardCfg, stoneStyle, effect, soundKey, character, defeatText, defeatEffect, variant = 'classic' }: Props) => {
+const PreviewBoard = ({
+  boardCfg,
+  stoneStyle,
+  effect,
+  soundKey,
+  character,
+  defeatText,
+  defeatEffect,
+  resultPreview = 'loss',
+  variant = 'classic',
+}: Props) => {
   const uid = useId().replace(/:/g, '');
   const isPhysical = variant === 'physical';
-  // 피지컬 모드는 잔디 필드를 쓰므로 바둑판 스킨(이미지/색)은 적용하지 않는다.
-  const boardImg = useProtectedAsset('BOARD_SKIN', isPhysical ? null : boardCfg?.assetKey ?? null);
+  const boardImg = useProtectedAsset('BOARD_SKIN', boardCfg?.assetKey ?? null);
   const playStoneSound = useStoneSoundPlayer();
 
   const [stones, setStones] = useState<Placed[]>([]);
@@ -56,8 +70,8 @@ const PreviewBoard = ({ boardCfg, stoneStyle, effect, soundKey, character, defea
   const [avatar, setAvatar] = useState({ r: CENTER_CELL, c: CENTER_CELL });
   const holderRef = useRef<HTMLDivElement>(null);
 
-  const colors = isPhysical ? PHYSICAL_COLORS : boardCfg?.colors ?? DEFAULT_COLORS;
-  const filter = isPhysical ? null : boardCfg ? boardCfg.filter ?? null : DEFAULT_FILTER;
+  const colors = boardCfg?.colors ?? DEFAULT_COLORS;
+  const filter = boardCfg ? boardCfg.filter ?? null : DEFAULT_FILTER;
   const blackStyle = stoneStyle ?? BLACK_STONE;
 
   const x = (i: number) => PAD + i * CELL;
@@ -90,8 +104,10 @@ const PreviewBoard = ({ boardCfg, stoneStyle, effect, soundKey, character, defea
     setAvatar((p) => ({ r: clamp(p.r + dr, 0, N - 1), c: clamp(p.c + dc, 0, N - 1) }));
   };
 
-  // 피지컬 모드 진입 시 캐릭터를 중앙으로 두고 보드에 포커스(바로 방향키 조작 가능)
+  // 모드 전환 시 기존 착수 상태는 섞이지 않도록 초기화한다.
   useEffect(() => {
+    setStones([]);
+    nextId.current = 0;
     if (isPhysical) {
       setAvatar({ r: CENTER_CELL, c: CENTER_CELL });
       holderRef.current?.focus();
@@ -100,7 +116,12 @@ const PreviewBoard = ({ boardCfg, stoneStyle, effect, soundKey, character, defea
   }, [isPhysical]);
 
   const lastId = stones.length ? stones[stones.length - 1].id : -1;
-  const face = character ? FACE_EMOJI[character.face] ?? '🙂' : null;
+  const hasResultPreview = !!(defeatText || defeatEffect);
+  const isWinPreview = resultPreview === 'win' && !!defeatEffect;
+  const resultEffectClass = defeatEffect
+    ? isWinPreview ? WIN_FX_CLASS[defeatEffect] : LOSS_FX_CLASS[defeatEffect]
+    : null;
+  const resultText = isWinPreview ? '승리!' : defeatText ?? '패배';
 
   return (
     <div className={styles.wrap}>
@@ -175,13 +196,20 @@ const PreviewBoard = ({ boardCfg, stoneStyle, effect, soundKey, character, defea
           )}
         </svg>
 
-        {/* 패배 문구·이펙트 — 패자 화면처럼 바둑판 위에 오버레이 (이펙트만/문구만/둘 다 가능) */}
-        {(defeatText || defeatEffect) && (
-          <div className={styles.defeatOverlay}>
-            {defeatEffect && (
-              <div className={`${styles.defeatFx} ${DEFEAT_FX_CLASS[defeatEffect] ?? ''}`} aria-hidden="true" />
+        {/* 승패 문구·이펙트 — 실제 결과 화면의 승/패 차이를 작은 보드 위에서 분리해 보여준다. */}
+        {hasResultPreview && (
+          <div className={styles.resultOverlay}>
+            {resultEffectClass && (
+              <div className={`${styles.resultFx} ${resultEffectClass}`} aria-hidden="true" />
             )}
-            {defeatText && <span className={styles.defeatBanner}>{defeatText}</span>}
+            <span className={isWinPreview ? styles.resultWinBanner : styles.resultLossBanner}>
+              {resultText}
+            </span>
+            {defeatEffect && (
+              <span className={styles.resultModeLabel}>
+                {isWinPreview ? '승리 화면' : '패배 화면'}
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -195,16 +223,6 @@ const PreviewBoard = ({ boardCfg, stoneStyle, effect, soundKey, character, defea
         </button>
       </div>
 
-      {!isPhysical && face && (
-        <div className={styles.extras}>
-          <div className={styles.extraItem}>
-            <span className={styles.charAvatar} style={{ background: character?.body, borderColor: character?.accent }}>
-              {face}
-            </span>
-            <span className={styles.extraLabel}>피지컬 캐릭터</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

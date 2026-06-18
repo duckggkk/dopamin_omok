@@ -122,6 +122,17 @@ public class ShopService implements ChargeCurrencyUseCase, OpenGachaUseCase,
 
     @Override
     @Transactional
+    public void equipStoneSkin(Long userId, Long itemId) {
+        Item item = loadItemPort.findById(itemId)
+                .orElseThrow(() -> new OmokException(ErrorCode.ITEM_NOT_FOUND));
+        if (item.getItemType() != ItemType.STONE_SKIN) {
+            throw new OmokException(ErrorCode.INVALID_REQUEST);
+        }
+        equipItem(userId, itemId);
+    }
+
+    @Override
+    @Transactional
     public void equipItem(Long userId, Long itemId) {
         if (!loadUserItemPort.existsByUserIdAndItemId(userId, itemId)) {
             throw new OmokException(ErrorCode.ITEM_NOT_OWNED);
@@ -137,6 +148,13 @@ public class ShopService implements ChargeCurrencyUseCase, OpenGachaUseCase,
                         ua -> { ua.updateItem(item); saveUserActiveItemPort.save(ua); },
                         () -> saveUserActiveItemPort.save(UserActiveItem.of(user, item.getItemType(), item))
                 );
+    }
+
+    @Override
+    @Transactional
+    public void unequip(Long userId, ItemType itemType) {
+        loadUserActiveItemPort.findByUserIdAndItemType(userId, itemType)
+                .ifPresent(saveUserActiveItemPort::delete);
     }
 
     private ItemType parseItemType(String boxType) {

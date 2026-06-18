@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { userApi } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
 import { RankingEntry } from '@/types';
@@ -50,13 +51,13 @@ const RankingPage = () => {
                 <span className={styles.cRank}>
                   <span className={`${styles.rankNum} ${medalClass(r.rank)}`}>{r.rank}</span>
                 </span>
-                <span className={styles.cPlayer}>
+                <Link to={isMe ? '/profile' : `/profile/${r.userId}`} className={styles.cPlayer}>
                   <span className={styles.avatar}>
                     {r.profileImageUrl ? <img src={r.profileImageUrl} alt="" /> : r.nickname[0].toUpperCase()}
                   </span>
                   <span className={styles.name}>{r.nickname}</span>
                   {isMe && <span className={styles.meBadge}>나</span>}
-                </span>
+                </Link>
                 <span className={styles.cRecord}>
                   <b className={styles.w}>{r.wins}</b>승 <b className={styles.l}>{r.losses}</b>패 {r.draws}무
                 </span>

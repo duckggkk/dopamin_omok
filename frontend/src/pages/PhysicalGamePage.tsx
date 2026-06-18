@@ -6,6 +6,8 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { useChat } from '@/hooks/useChat';
 import { useLeaveGuard } from '@/hooks/useLeaveGuard';
 import { useStoneSoundPlayer } from '@/hooks/useStoneSoundPlayer';
+import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
+import { areSameStoneSkin, stonePreviewStyle } from '@/utils/stoneSkin';
 import { playSfx, SfxName } from '@/utils/sfx';
 import ChatPanel from '@/components/game/ChatPanel';
 import GameResultOverlay, { GameResult } from '@/components/game/GameResultOverlay';
@@ -22,6 +24,7 @@ import {
 import styles from './PhysicalGamePage.module.css';
 
 const CANVAS_PX = 600;
+const PHYSICAL_BGM_SRC = '/audio/physical-omok-bgm.mp3';
 
 const ITEM_META: Record<PhysicalItemType, { emoji: string; label: string }> = {
   SPEED_BOOST: { emoji: '⚡', label: '이동 부스트' },
@@ -251,20 +254,26 @@ const PhysicalGamePage = () => {
 
   // 파생
   const myPlayer = room?.players.find((p) => p.userId === user?.id) ?? null;
+  const blackPlayer = room?.players.find((p) => p.color === 'BLACK' && p.role !== 'SPECTATOR') ?? null;
+  const whitePlayer = room?.players.find((p) => p.color === 'WHITE' && p.role !== 'SPECTATOR') ?? null;
   const playerRolePlayer = room?.players.find((p) => p.role === 'PLAYER') ?? null;
+  const opponentRoomPlayer = room?.players.find((p) => p.role !== 'SPECTATOR' && p.userId !== user?.id) ?? null;
   const spectators = room?.players.filter((p) => p.role === 'SPECTATOR') ?? [];
   const currentGame = room?.currentGame ?? null;
   const isHost = myPlayer?.role === 'HOST';
   const isPlayerRole = myPlayer?.role === 'PLAYER';
   const myColor: StoneColor | null = myPlayer?.color ?? null;
+  const sameStoneSkin = areSameStoneSkin(blackPlayer?.stoneSkin, whitePlayer?.stoneSkin);
   const isInProgress = room?.status === 'IN_PROGRESS' && currentGame?.status === 'IN_PROGRESS';
   const controllable = !!(room?.status === 'IN_PROGRESS' && myColor);
+
+  // BGM은 게임이 진행 중일 때만 재생(대기 중엔 무음)
+  useBackgroundMusic(PHYSICAL_BGM_SRC, { enabled: !!isInProgress });
 
   const { leaveRoom } = useLeaveGuard({
     blockActive: !!(myPlayer && room && room.status !== 'CLOSED' && !closedMessage),
     warnActive: !!(myPlayer && room && !closedMessage),
     isHost,
-    isInProgress: !!isInProgress,
     roomCode: roomCode!,
   });
 
@@ -455,7 +464,7 @@ const PhysicalGamePage = () => {
         if (ctx) {
           if (snap) drawArena(ctx, snap, myColor);
           else {
-            ctx.fillStyle = '#caa15e';
+            ctx.fillStyle = '#dcb95b';
             ctx.fillRect(0, 0, CANVAS_PX, CANVAS_PX);
           }
         }
@@ -483,11 +492,11 @@ const PhysicalGamePage = () => {
     const stoneR = gap * 0.46;
 
     // 보드 배경
-    ctx.fillStyle = '#caa15e';
+    ctx.fillStyle = '#dcb95b';
     ctx.fillRect(0, 0, CANVAS_PX, CANVAS_PX);
 
     // 격자선 — 바둑판처럼 선을 긋고 돌·캐릭터는 교차점(점)에 놓는다
-    ctx.strokeStyle = 'rgba(70,45,15,0.7)';
+    ctx.strokeStyle = '#8b6914';
     ctx.lineWidth = 1;
     const lo = at(0), hi = at(N - 1);
     for (let i = 0; i < N; i++) {
@@ -502,7 +511,7 @@ const PhysicalGamePage = () => {
       ctx.stroke();
     }
     // 화점
-    ctx.fillStyle = 'rgba(60,40,15,0.85)';
+    ctx.fillStyle = '#8b6914';
     const star = [3, N - 4];
     for (const sx of star) {
       for (const sy of star) {
@@ -565,6 +574,8 @@ const PhysicalGamePage = () => {
 
   const me = myColor ? snapshot?.players.find((p) => p.color === myColor) ?? null : null;
   const opp = snapshot?.players.find((p) => p.color !== myColor) ?? null;
+  const myHudSkin = myPlayer?.stoneSkin ?? me?.skin ?? null;
+  const opponentHudSkin = opponentRoomPlayer?.stoneSkin ?? opp?.skin ?? null;
   const destroyRemaining =
     me && snapshot ? Math.max(0, (me.destroyReadyAt - snapshot.serverTime) / 1000) : 0;
 
@@ -597,8 +608,13 @@ const PhysicalGamePage = () => {
         {/* HUD */}
         <div className={styles.hud}>
           <div className={`${styles.hudPlayer} ${myColor ? styles.hudMe : ''}`}>
-            <span className={`${styles.dot} ${myColor === 'WHITE' ? styles.dotW : styles.dotB}`} />
+            <span
+              className={`${styles.dot} ${myColor === 'WHITE' ? styles.dotW : styles.dotB}`}
+              style={stonePreviewStyle(myHudSkin)}
+              title={myHudSkin ? '내 바둑알 스킨' : '내 기본 바둑알'}
+            />
             <span className={styles.hudName}>{myPlayer?.nickname ?? '나'}</span>
+            {myHudSkin && <span className={styles.skinTag}>스킨</span>}
             {me?.speedBoosted && <span className={styles.boost}>⚡부스트</span>}
           </div>
           <div className={styles.hudCenter}>
@@ -615,8 +631,13 @@ const PhysicalGamePage = () => {
             </span>
           </div>
           <div className={styles.hudPlayer}>
-            <span className={`${styles.dot} ${opp?.color === 'WHITE' ? styles.dotW : styles.dotB}`} />
-            <span className={styles.hudName}>{opp?.nickname ?? '상대'}</span>
+            <span
+              className={`${styles.dot} ${opp?.color === 'WHITE' || opponentRoomPlayer?.color === 'WHITE' ? styles.dotW : styles.dotB}`}
+              style={stonePreviewStyle(opponentHudSkin)}
+              title={opponentHudSkin ? '상대 바둑알 스킨' : '상대 기본 바둑알'}
+            />
+            <span className={styles.hudName}>{opp?.nickname ?? opponentRoomPlayer?.nickname ?? '상대'}</span>
+            {opponentHudSkin && <span className={styles.skinTag}>스킨</span>}
             {opp?.heldItem && <span className={styles.muted}>{ITEM_META[opp.heldItem].emoji}</span>}
           </div>
         </div>
@@ -658,9 +679,21 @@ const PhysicalGamePage = () => {
                   </button>
                 )}
                 {isHost && playerRolePlayer && (
-                  <button className={styles.startBtn} disabled={!playerRolePlayer.ready} onClick={() => sendStart()}>
-                    게임 시작
-                  </button>
+                  <>
+                    {sameStoneSkin && (
+                      <p className={styles.skinConflict}>
+                        같은 바둑알 스킨은 혼동을 막기 위해 시작할 수 없습니다.
+                      </p>
+                    )}
+                    <button
+                      className={styles.startBtn}
+                      disabled={!playerRolePlayer.ready || sameStoneSkin}
+                      onClick={() => sendStart()}
+                      title={sameStoneSkin ? '상대와 다른 바둑알 스킨을 장착해야 시작할 수 있습니다.' : undefined}
+                    >
+                      게임 시작
+                    </button>
+                  </>
                 )}
               </div>
             </div>

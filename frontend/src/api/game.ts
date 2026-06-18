@@ -79,4 +79,15 @@ export const gameApi = {
   // 피지컬 리플레이 — 기록 없으면 data=null (일반 오목 등)
   getPhysicalReplay: (gameId: number) =>
     apiClient.get<ApiResponse<PhysicalReplay | null>>(`/games/${gameId}/physical-replay`),
+
+  getUserGames: (userId: string, page = 0, size = 10) =>
+    apiClient.get<ApiResponse<PageResponse<GameInfo>>>(`/users/${userId}/games`, {
+      params: { page, size },
+    }),
+
+  getUserGameMoves: (userId: string, gameId: number) =>
+    apiClient.get<ApiResponse<GameMove[]>>(`/users/${userId}/games/${gameId}/moves`),
+
+  getUserPhysicalReplay: (userId: string, gameId: number) =>
+    apiClient.get<ApiResponse<PhysicalReplay | null>>(`/users/${userId}/games/${gameId}/physical-replay`),
 };

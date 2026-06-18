@@ -99,7 +99,9 @@ const ItemPreview = ({ item }: Props) => {
       );
     }
     case 'STONE_EFFECT': {
-      // 착수 효과는 한 돌의 등장 모션 — 바둑알 1개를 크게, 반복 재생해 보여준다
+      // 착수 효과는 한 돌의 등장 모션 — 바둑알 1개를 크게, 반복 재생해 보여준다.
+      // 효과가 없는 '일반 착수'(기본)는 모션 없이 정적으로 보여준다.
+      const hasEffect = !!cfg?.effect;
       const r = 27;
       const cx = PX / 2;
       return (
@@ -107,7 +109,7 @@ const ItemPreview = ({ item }: Props) => {
           <rect width={PX} height={PX} rx={8} fill={DEFAULT_COLORS.bg} />
           <line x1={cx} y1={6} x2={cx} y2={PX - 6} stroke={DEFAULT_COLORS.lines} strokeWidth={1} />
           <line x1={6} y1={cx} x2={PX - 6} y2={cx} stroke={DEFAULT_COLORS.lines} strokeWidth={1} />
-          <g className={styles.popStone}>
+          <g className={hasEffect ? styles.popStone : undefined}>
             <circle cx={cx} cy={cx} r={r} fill={BLACK_STONE.fill} stroke={BLACK_STONE.stroke} strokeWidth={1.5}
               style={{ filter: 'drop-shadow(1px 2px 3px rgba(0,0,0,0.5))' }} />
             <circle cx={cx - r * 0.32} cy={cx - r * 0.34} r={r * 0.42} fill={BLACK_STONE.shine} opacity={0.55} />

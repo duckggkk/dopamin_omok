@@ -1,46 +1,26 @@
 package com.dopamin.omok.auth.application.service;
 
+import com.dopamin.omok.auth.application.port.out.SendEmailPort;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-
-@Slf4j
+/**
+ * 인증 메일의 "내용"(제목·HTML 템플릿)을 만드는 application 서비스.
+ * 실제 발송(SMTP 연결·재시도)은 {@link SendEmailPort} 어댑터에 위임한다(infra 격리).
+ * @Async 로 요청 스레드를 막지 않고 비동기 발송한다.
+ */
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
-    private final JavaMailSender mailSender;
-
-    @Value("${app.mail.from}")
-    private String fromAddress;
+    private final SendEmailPort sendEmailPort;
 
     @Async
     public void sendVerificationEmail(String to, String code) {
         String subject = "[도파민 오목] 이메일 인증 코드";
         String content = buildVerificationEmailContent(code);
-        sendHtmlEmail(to, subject, content);
-    }
-
-    private void sendHtmlEmail(String to, String subject, String htmlContent) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromAddress);
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlContent, true);
-            mailSender.send(message);
-            log.info("이메일 발송 완료: {}", to);
-        } catch (MessagingException e) {
-            log.warn("이메일 발송 실패 (토큰은 콘솔 로그 확인): to={}, error={}", to, e.getMessage());
-        }
+        sendEmailPort.sendHtml(to, subject, content);
     }
 
     private String buildVerificationEmailContent(String code) {

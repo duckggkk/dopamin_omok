@@ -1,7 +1,7 @@
 package com.dopamin.omok.game.application.dto;
 
 import com.dopamin.omok.game.domain.*;
-import com.dopamin.omok.user.application.dto.UserResponse;
+import com.dopamin.omok.user.application.dto.PublicUserResponse;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -10,7 +10,7 @@ import java.util.Map;
 public record RoomResponse(
         Long id,
         String roomCode,
-        UserResponse host,
+        PublicUserResponse host,
         RoomStatus status,
         GameType gameType,
         OmokRule omokRule,
@@ -39,7 +39,7 @@ public record RoomResponse(
         return new RoomResponse(
                 room.getId(),
                 room.getRoomCode(),
-                UserResponse.from(room.getHost()),
+                PublicUserResponse.from(room.getHost()),
                 room.getStatus(),
                 room.getGameType(),
                 room.getOmokRule(),

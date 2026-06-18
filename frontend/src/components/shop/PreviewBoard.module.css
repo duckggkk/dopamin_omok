@@ -34,8 +34,8 @@
   to   { transform: scale(1); opacity: 1; }
 }
 
-/* 패배 문구 오버레이 */
-.defeatOverlay {
+/* 승패 결과 미리보기 오버레이 */
+.resultOverlay {
   position: absolute;
   inset: 0;
   border-radius: 10px;
@@ -44,27 +44,37 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: rgba(20, 6, 6, 0.55);
+  background: transparent;
   pointer-events: none;
 }
-.defeatBanner {
+.resultWinBanner,
+.resultLossBanner {
   position: relative;
   z-index: 1;
   font-size: 1.5rem;
   font-weight: 900;
   color: #ff8d8d;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-  padding: 6px 18px;
-  border: 2px solid rgba(255, 120, 120, 0.5);
-  border-radius: var(--r-sm);
-  background: rgba(40, 12, 12, 0.6);
   word-break: break-word;
   text-align: center;
 }
-.defeatSub { font-size: 0.72rem; color: rgba(255, 200, 200, 0.85); }
+.resultWinBanner {
+  color: #ffd86b;
+  text-shadow: 0 0 10px rgba(255, 216, 107, 0.75), 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+.resultLossBanner { color: #ff8d8d; }
+.resultModeLabel {
+  position: relative;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.8);
+}
 
 /* 패배 이펙트 레이어 — 바둑판 영역에 맞춰 깔리는 연출(게임 패배 화면 4종과 동일 콘셉트) */
-.defeatFx { position: absolute; inset: 0; border-radius: 10px; overflow: hidden; z-index: 0; }
+.resultFx { position: absolute; inset: 0; border-radius: 10px; overflow: hidden; z-index: 0; }
 .fxFlame { background: radial-gradient(ellipse at bottom, rgba(255, 90, 0, 0.5), transparent 65%); animation: pbFlame 0.5s ease-in-out infinite alternate; }
 @keyframes pbFlame { from { opacity: 0.7; } to { opacity: 1; } }
 .fxShatter {
@@ -79,6 +89,14 @@
 .fxTears { background: linear-gradient(180deg, rgba(40, 90, 200, 0.25), rgba(20, 40, 120, 0.45)); }
 .fxTears::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(96deg, transparent 0 14px, rgba(120, 180, 255, 0.45) 14px 16px); animation: pbTears 0.8s linear infinite; opacity: 0.5; }
 @keyframes pbTears { from { background-position: 0 -100%; } to { background-position: 0 100%; } }
+
+.fxWinFlame { background: radial-gradient(ellipse at bottom, rgba(255, 200, 60, 0.5), transparent 65%); animation: pbFlame 0.5s ease-in-out infinite alternate; }
+.fxWinShatter { background: repeating-conic-gradient(from 0deg at 50% 42%, rgba(255, 216, 107, 0) 0deg 8deg, rgba(255, 216, 107, 0.2) 8deg 10deg); animation: pbWinBurst 1.6s ease-out infinite; }
+@keyframes pbWinBurst { 0% { transform: scale(0.6); opacity: 0.2; } 42% { opacity: 0.9; } 100% { transform: scale(1.28); opacity: 0; } }
+.fxWinStorm { background: repeating-conic-gradient(from 0deg at 50% 50%, rgba(255, 255, 255, 0) 0deg 10deg, rgba(255, 248, 220, 0.14) 10deg 12deg); animation: pbWinRays 9s linear infinite; }
+@keyframes pbWinRays { to { transform: rotate(360deg); } }
+.fxWinTears { background: radial-gradient(circle at 50% 42%, rgba(255, 240, 180, 0.3), transparent 62%); animation: pbWinSparkle 1.2s ease-in-out infinite; }
+@keyframes pbWinSparkle { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 
 .toolRow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .hint { font-size: 0.76rem; color: var(--text-faint); }

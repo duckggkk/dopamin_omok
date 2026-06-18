@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { gameApi, CreateRoomOptions, WaitingRoomFilter } from '@/api/game';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/contexts/ToastContext';
@@ -231,12 +231,15 @@ const LobbyPage = () => {
                 <div key={room.id} className={styles.roomCard}>
                   <div className={styles.roomInfo}>
                     <span className={styles.roomCode}>{room.roomCode}</span>
-                    <span className={styles.roomHost}>
+                    <Link
+                      className={styles.roomHost}
+                      to={room.host.id === user?.id ? '/profile' : `/profile/${room.host.id}`}
+                    >
                       {room.host.nickname} 의 방
                       <span className={styles.ratingTag}>
                         📈 {room.gameType === 'PHYSICAL' ? room.host.physicalRating : room.host.classicRating}
                       </span>
-                    </span>
+                    </Link>
                     <span className={styles.roomMeta}>
                       {GAME_TYPE_LABELS[room.gameType]}{room.omokRule === 'RENJU' && ' · 렌주룰'} · {TIME_LIMIT_LABELS[room.timeLimit]}
                       {room.byoyomiOption !== 'NONE' && ` · 초읽기 ${BYOYOMI_LABELS[room.byoyomiOption]}`}

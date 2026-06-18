@@ -249,25 +249,6 @@ const HomePage = () => {
         )}
       </section>
 
-      {/* ---- 게임 방법 ---- */}
-      <section className={styles.howto}>
-        <h2 className={styles.colTitle}>게임 방법</h2>
-        <div className={styles.steps}>
-          <div className={styles.step}>
-            <span className={styles.stepNo}>1</span>
-            <p className={styles.stepText}><b>방 입장</b><br />방 만들기 또는 로비에서 방에 참가합니다.</p>
-          </div>
-          <div className={styles.step}>
-            <span className={styles.stepNo}>2</span>
-            <p className={styles.stepText}><b>번갈아 착수</b><br />흑(선)부터 한 수씩 교대로 돌을 놓습니다.</p>
-          </div>
-          <div className={styles.step}>
-            <span className={styles.stepNo}>3</span>
-            <p className={styles.stepText}><b>오목 완성</b><br />가로·세로·대각 어느 방향이든 돌 5개를 먼저 잇습니다.</p>
-          </div>
-        </div>
-      </section>
-
       {showCreateModal && (
         <CreateRoomModal
           busy={busy}

@@ -32,6 +32,11 @@ public class EmailVerificationTokenPersistenceAdapter
     }
 
     @Override
+    public Optional<EmailVerificationToken> findLatestByUserId(Long userId) {
+        return repository.findFirstByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    @Override
     public void delete(EmailVerificationToken token) {
         repository.delete(token);
     }

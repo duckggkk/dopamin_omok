@@ -141,6 +141,19 @@ export const useWebSocket = ({
     [roomCode],
   );
 
+  // 대기 중 바둑알 스킨 변경 — 서버가 장착 후 방 상태를 양쪽에 브로드캐스트한다.
+  // itemId=null 이면 기본 스킨으로 되돌림(장착 해제).
+  const sendChangeSkin = useCallback(
+    (itemId: number | null) => {
+      if (!clientRef.current?.connected) return;
+      clientRef.current.publish({
+        destination: `/app/game/${roomCode}/change-skin`,
+        body: JSON.stringify({ itemId }),
+      });
+    },
+    [roomCode],
+  );
+
   // 피지컬 오목: 단일 입력 엔드포인트로 전송(direction 은 MOVE_START 일 때만 의미)
   const sendPhysicalInput = useCallback(
     (type: PhysicalInputType, direction?: Direction) => {
@@ -172,6 +185,7 @@ export const useWebSocket = ({
     sendReady,
     sendStart,
     sendChat,
+    sendChangeSkin,
     sendPhysicalInput,
     sendPhysicalSurrender,
     isConnected: isConnectedRef,

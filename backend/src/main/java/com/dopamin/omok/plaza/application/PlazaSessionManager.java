@@ -3,6 +3,7 @@ package com.dopamin.omok.plaza.application;
 import com.dopamin.omok.plaza.application.dto.PlazaJoinResponse;
 import com.dopamin.omok.plaza.application.dto.PlazaSnapshot;
 import com.dopamin.omok.plaza.application.dto.PlazaSnapshot.PlazaPlayerView;
+import com.dopamin.omok.plaza.application.port.out.PlazaEventPublisherPort;
 import com.dopamin.omok.plaza.config.PlazaProperties;
 import com.dopamin.omok.plaza.domain.Direction;
 import com.dopamin.omok.plaza.domain.PlazaAppearance;
@@ -11,7 +12,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -38,7 +38,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class PlazaSessionManager {
 
     private final PlazaProperties props;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final PlazaEventPublisherPort eventPublisher;
 
     private final ConcurrentHashMap<String, Channel> channels = new ConcurrentHashMap<>();
     /** disconnect 역추적용: sessionId → 어느 채널의 어느 유저인지. */
@@ -152,6 +152,17 @@ public class PlazaSessionManager {
         }
     }
 
+    public boolean isMember(String channelId, Long userId) {
+        Channel c = channels.get(channelId);
+        if (c == null) return false;
+        c.lock.lock();
+        try {
+            return c.players.containsKey(userId);
+        } finally {
+            c.lock.unlock();
+        }
+    }
+
     /** 연결 끊김 시 호출(WebSocketEventListener). 광장 세션이 아니면 no-op. */
     public void handleDisconnect(String sessionId) {
         Member m = sessionIndex.remove(sessionId);
@@ -207,7 +218,7 @@ public class PlazaSessionManager {
     // ===================== 브로드캐스트 =====================
 
     private void broadcast(Channel c) {
-        messagingTemplate.convertAndSend("/topic/plaza/" + c.id, toSnapshot(c));
+        eventPublisher.publishSnapshot(c.id, toSnapshot(c));
     }
 
     private PlazaSnapshot toSnapshot(Channel c) {
