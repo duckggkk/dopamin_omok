@@ -1,0 +1,19 @@
+# Prometheus 수집(scrape) 설정
+#   - 백엔드의 /api/actuator/prometheus 를 도커 내부망에서 직접 긁어온다.
+#   - 외부(Caddy)를 거치지 않으므로 메트릭이 인터넷에 노출되지 않는다.
+
+global:
+  scrape_interval: 15s        # 15초마다 수집
+  scrape_timeout: 10s
+
+scrape_configs:
+  # Spring Boot 백엔드 (Micrometer 메트릭)
+  - job_name: 'spring-backend'
+    metrics_path: '/api/actuator/prometheus'   # context-path(/api) 포함
+    static_configs:
+      - targets: ['backend:8080']              # docker 내부망 주소(외부 비노출)
+
+  # Prometheus 자기 자신도 모니터링
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

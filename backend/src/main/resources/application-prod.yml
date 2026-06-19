@@ -77,17 +77,23 @@ springdoc:
   swagger-ui:
     enabled: false
 
-# Actuator: 헬스 체크만 노출(나머지 엔드포인트는 닫음). 외부 노출 URL은 /api/actuator/health
+# Actuator: 헬스 체크 + Prometheus 메트릭만 노출(나머지 엔드포인트는 닫음).
+#   - health:     외부 공개(/api/actuator/health) — 배포/컨테이너 헬스체크용
+#   - prometheus: 내부망 전용(/api/actuator/prometheus) — Caddy가 외부 접근을 차단하고,
+#                 도커 내부망의 Prometheus 컨테이너만 직접 수집한다.
 management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,prometheus
   endpoint:
     health:
       show-details: never
       probes:
         enabled: true
+  metrics:
+    tags:
+      application: dopamin-omok      # Grafana에서 앱 단위로 구분할 공통 라벨
 
 logging:
   level:

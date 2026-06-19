@@ -184,10 +184,6 @@ const TermsPage = () => (
         <p>본 약관은 {EFFECTIVE_DATE}부터 시행합니다.</p>
       </section>
     </article>
-
-    <footer className={styles.footer}>
-      <Link to="/register">← 회원가입으로 돌아가기</Link>
-    </footer>
   </div>
 );
 

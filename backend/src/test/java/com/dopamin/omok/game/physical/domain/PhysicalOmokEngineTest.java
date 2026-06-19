@@ -36,7 +36,7 @@ class PhysicalOmokEngineTest {
         weights.put(PhysicalItemType.BOMB, 20);
         // boardSize=14, winCount=5, move=100, place=300, destroy=2000, winSettle=400, tick=60,
         // spawnInterval=1000, maxItems=3, boostDuration=5000, boostMoveCd=50
-        return new PhysicalOmokProperties(SIZE, 5, 100, 300, 2000, 400, 60, 1000, 3, 5000, 50, weights);
+        return new PhysicalOmokProperties(SIZE, 5, 100, 300, 2000, 400, 60, 1000, 3, 5000, 50, weights, false);
     }
 
     private PhysicalGame newGame() {

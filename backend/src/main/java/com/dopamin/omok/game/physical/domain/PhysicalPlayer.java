@@ -27,6 +27,7 @@ public class PhysicalPlayer {
     private long lastDestroyAt;
     private PhysicalItemType heldItem;   // 보유 아이템(1슬롯, 없으면 null)
     private long speedBoostUntil;        // 이동 부스트 만료 시각(epoch ms)
+    private boolean bot;                 // true = AI 봇이 조종(드라이버가 입력 생성). 기본 false(사람)
 
     public PhysicalPlayer(Long userId, String nickname, StoneColor color, StoneSkinResponse skin,
                           CharacterSkinResponse character, String soundAssetKey, int x, int y) {
@@ -76,5 +77,10 @@ public class PhysicalPlayer {
 
     public boolean isSpeedBoosted(long now) {
         return now < speedBoostUntil;
+    }
+
+    /** 이 플레이어를 AI 봇으로 표시한다(드라이버가 매 틱 입력을 생성). */
+    public void markAsBot() {
+        this.bot = true;
     }
 }

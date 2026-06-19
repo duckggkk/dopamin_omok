@@ -23,7 +23,8 @@ public record PhysicalOmokProperties(
         int maxItemsOnField,
         long speedBoostDurationMs,
         long speedBoostMoveCooldownMs,
-        Map<PhysicalItemType, Integer> itemWeights
+        Map<PhysicalItemType, Integer> itemWeights,
+        boolean trainingLogEnabled   // true 면 게임마다 ML 학습용 행동 로그를 기록(서버 전용 저장)
 ) {
     public PhysicalOmokProperties {
         // 설정 누락 시(예: 테스트 프로파일) 안전한 기본값으로 보정 — 게임이 0ms 쿨다운/0 크기로 깨지지 않게 함.

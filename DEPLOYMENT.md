@@ -199,3 +199,41 @@ gunzip -c backups/dopamin_omok_YYYYmmdd_HHMMSS.sql.gz | \
 | 메일 인증이 안 옴 | `MAIL_*` 값/Gmail 앱 비밀번호 확인. 스팸함도 확인 |
 | 이미지 pull 거부 | GHCR 패키지가 private인데 서버 미로그인 → 1-4 참고 |
 | 소형 VM OOM | `.env.prod` 의 `JAVA_TOOL_OPTIONS=-Xmx256m` 로 축소 |
+
+---
+
+## 8. 모니터링 (Grafana + Prometheus)
+
+서버/앱 상태를 그래프로 보는 대시보드입니다. compose에 이미 포함돼 있어 별도 설치는 없습니다.
+
+```
+backend(/api/actuator/prometheus)  ──내부망──▶  Prometheus(수집·저장)  ◀──  Grafana(대시보드)
+                                                                              │ /grafana
+                                                                         Caddy(로그인 보호)
+```
+
+- **메트릭 경로는 외부에 노출되지 않습니다.** Prometheus가 `backend:8080`을 도커 내부망에서 직접 긁고, 외부에서 `/api/actuator/prometheus`로 들어오면 Caddy가 404로 막습니다.
+- Grafana만 `https://<도메인>/grafana` 로 열리며 **Grafana 자체 로그인**으로 보호됩니다.
+
+### 8-1. 켜기
+`.env.prod` 에 비밀번호만 추가하면 됩니다.
+```bash
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=<강력한-비밀번호>
+```
+그 뒤 평소처럼 기동:
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+```
+
+### 8-2. 접속 & 첫 대시보드
+1. 브라우저에서 `https://<도메인>/grafana` → 위 계정으로 로그인.
+2. Prometheus 데이터소스는 **자동 등록**돼 있습니다(별도 설정 불필요).
+3. 왼쪽 메뉴 **Dashboards → New → Import** → 대시보드 ID `4701`(JVM Micrometer) 입력 → 데이터소스 `Prometheus` 선택 → Import.
+   - 응답 수/지연시간이 더 필요하면 `4701` 외에 Spring/HikariCP 대시보드도 같은 방식으로 추가.
+
+### 8-3. 메모리 주의
+Prometheus+Grafana는 약 300~400MB를 더 씁니다. **Oracle ARM(24GB)** 이면 넉넉하지만, **1GB 소형 VM**이면 부담됩니다. 그 경우 모니터링을 끄려면 두 서비스만 내리면 됩니다.
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod stop prometheus grafana
+```

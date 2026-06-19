@@ -28,6 +28,22 @@
 		}
 	}
 
+	# ── 메트릭 엔드포인트 외부 차단 ──────────────────────────────────────────
+	# /api/actuator/prometheus 는 서버 내부 지표라 외부에 노출하면 안 된다.
+	# (수집은 도커 내부망의 Prometheus 가 backend:8080 을 직접 긁어가므로 영향 없음)
+	@metrics path /api/actuator/prometheus
+	handle @metrics {
+		respond 404
+	}
+
+	# ── 모니터링 대시보드(Grafana) — https://<도메인>/grafana ──────────────────
+	# Grafana 자체 로그인(GRAFANA_ADMIN_*)으로 보호된다. 접두사(/grafana)를 그대로
+	# 넘기고, Grafana 는 serve_from_sub_path 설정으로 하위 경로 서빙을 처리한다.
+	@grafana path /grafana /grafana/*
+	handle @grafana {
+		reverse_proxy grafana:3000
+	}
+
 	# ── 평상시: 프론트(nginx)로 프록시 (SPA + /api + /ws WebSocket 자동 처리) ──
 	handle {
 		reverse_proxy frontend:80

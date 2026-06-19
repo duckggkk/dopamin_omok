@@ -145,10 +145,6 @@ const PrivacyPolicyPage = () => (
             <strong>접근 통제</strong>: 데이터베이스 등 내부 시스템은 외부에 직접 노출되지 않으며, 인증된
             요청만 처리됩니다.
           </li>
-          <li>
-            <strong>부정 접근 방지</strong>: 로그인 등 인증 요청에 대한 요청 빈도 제한을 적용해 무차별
-            대입 시도를 차단합니다.
-          </li>
         </ul>
       </section>
 
@@ -201,10 +197,6 @@ const PrivacyPolicyPage = () => (
         <p>본 방침은 {EFFECTIVE_DATE}부터 시행합니다.</p>
       </section>
     </article>
-
-    <footer className={styles.footer}>
-      <Link to="/register">← 회원가입으로 돌아가기</Link>
-    </footer>
   </div>
 );
 

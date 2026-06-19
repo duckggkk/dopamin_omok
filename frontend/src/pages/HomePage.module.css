@@ -128,6 +128,54 @@
 }
 .hero:hover .decoBoard { transform: rotate(0deg); }
 
+/* ---------- 혼자 연습(AI) 배너 — 레이팅 대국과 구분되는 차분한 톤 ---------- */
+.aiBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(96, 140, 200, 0.16), transparent 55%),
+    linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--border);
+  border-left: 4px solid #5f86c4;
+  border-radius: var(--r-lg);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-card);
+}
+.aiBannerMain { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.aiIcon { font-size: 2rem; flex-shrink: 0; }
+.aiText { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.aiTitle { font-size: 1.15rem; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 10px; }
+.aiTag {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9cc0ff;
+  background: rgba(96, 140, 200, 0.16);
+  border: 1px solid rgba(96, 140, 200, 0.4);
+  border-radius: var(--r-pill);
+  padding: 3px 9px;
+}
+.aiDesc { font-size: 0.86rem; color: var(--text-muted); }
+.aiDesc b { color: var(--text); }
+.aiBtn {
+  flex-shrink: 0;
+  background: #4d6fa8;
+  color: #fff;
+  border: 1px solid #5f86c4;
+  border-radius: var(--r-sm);
+  padding: 12px 22px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: filter var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.aiBtn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
 /* ---------- 내 현황 ---------- */
 .statRow {
   display: grid;

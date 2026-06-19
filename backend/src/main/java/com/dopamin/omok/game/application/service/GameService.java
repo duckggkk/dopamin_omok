@@ -177,14 +177,15 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         if (!game.isParticipant(userId)) {
             throw new OmokException(ErrorCode.NOT_GAME_PARTICIPANT);
         }
-        return loadPhysicalReplayPort.findByGameId(gameId).orElse(null);
+        // forClient(): 서버 전용 학습 로그를 떼고 내려보낸다.
+        return loadPhysicalReplayPort.findByGameId(gameId).map(PhysicalReplayData::forClient).orElse(null);
     }
 
     @Override
     public PhysicalReplayData getPublicReplay(UUID publicId, Long gameId, Long viewerUserId) {
         User owner = findVisibleProfileOwner(publicId, viewerUserId);
         Game game = findVisibleOwnerGame(gameId, owner);
-        return loadPhysicalReplayPort.findByGameId(game.getId()).orElse(null);
+        return loadPhysicalReplayPort.findByGameId(game.getId()).map(PhysicalReplayData::forClient).orElse(null);
     }
 
     @Override

@@ -36,6 +36,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-mail")
     // Actuator — /actuator/health 헬스체크(무중단 판단·배포 검증·컨테이너 healthcheck)
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // Micrometer → Prometheus: /actuator/prometheus 로 메트릭 노출(Grafana 대시보드용, 내부망 전용)
+    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
     // MySQL
     runtimeOnly("com.mysql:mysql-connector-j")

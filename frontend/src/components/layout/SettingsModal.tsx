@@ -12,9 +12,11 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
     masterVolume,
     bgmVolume,
     stoneVolume,
+    stoneFallbackSound,
     setMasterVolume,
     setBgmVolume,
     setStoneVolume,
+    setStoneFallbackSound,
   } = useSettingsStore();
 
   const rows: { label: string; value: number; set: (v: number) => void }[] = [
@@ -48,7 +50,21 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
             </label>
           ))}
         </div>
-        <p className={styles.hint}>실제 볼륨은 전체 음량 × 각 항목으로 적용됩니다.</p>
+
+        <label className={styles.toggle}>
+          <span className={styles.toggleLabel}>기본 착수음 (착수음 스킨 미장착 시)</span>
+          <input
+            type="checkbox"
+            className={styles.check}
+            checked={stoneFallbackSound}
+            onChange={(e) => setStoneFallbackSound(e.target.checked)}
+          />
+        </label>
+
+        <p className={styles.hint}>
+          실제 볼륨은 전체 음량 × 각 항목으로 적용됩니다.
+          기본 착수음을 켜면 스킨이 없어도 합성음이 나며 일반전·AI전이 동일하게 들립니다.
+        </p>
       </div>
     </div>
   );

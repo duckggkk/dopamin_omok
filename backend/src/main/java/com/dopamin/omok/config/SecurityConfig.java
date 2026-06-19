@@ -61,6 +61,9 @@ public class SecurityConfig {
                         // OpenAPI / Swagger UI (springdoc) — context-path(/api) 하위에서 노출
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
+                        // Prometheus 메트릭: 외부 접근은 Caddy에서 차단하고, 백엔드 포트(8080)는
+                        // 외부에 노출되지 않으므로 내부망의 Prometheus 컨테이너만 직접 수집한다.
+                        .requestMatchers("/actuator/prometheus").permitAll()
                         // 그 외 모든 요청은 인증 필요. 게임/방 조회도 로그인 후에만 접근(프론트 동작과 일치).
                         .anyRequest().authenticated()
                 )

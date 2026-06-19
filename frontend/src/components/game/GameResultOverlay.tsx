@@ -17,6 +17,10 @@ const LOSS_EFFECT_CLASS: Record<string, string> = {
   tears: styles.fxTears,
 };
 
+/** 승리 이펙트 키 → CSS 클래스(없으면 null). 다른 화면(AI전 등)에서 같은 연출을 재사용하기 위해 공개한다. */
+export const winEffectClass = (effect: string | null | undefined): string | null =>
+  effect ? WIN_EFFECT_CLASS[effect] ?? null : null;
+
 interface GameResultOverlayProps {
   result: GameResult | null;
   displayText: string;

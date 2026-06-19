@@ -5,7 +5,10 @@ import com.dopamin.omok.game.physical.application.dto.PhysicalReplayData;
 import com.dopamin.omok.game.physical.application.dto.PhysicalSnapshot;
 import com.dopamin.omok.game.physical.application.dto.PhysicalSnapshot.ItemDropView;
 import com.dopamin.omok.game.physical.application.dto.PhysicalSnapshot.PhysicalPlayerView;
+import com.dopamin.omok.game.physical.application.dto.PhysicalTrainingLog;
 import com.dopamin.omok.game.physical.application.port.out.PhysicalEventPublisherPort;
+import com.dopamin.omok.game.physical.bot.BotDecision;
+import com.dopamin.omok.game.physical.bot.PhysicalBotDriver;
 import com.dopamin.omok.game.physical.config.PhysicalOmokProperties;
 import com.dopamin.omok.game.physical.domain.Direction;
 import com.dopamin.omok.game.physical.domain.ItemDrop;
@@ -20,6 +23,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -43,6 +47,7 @@ public class PhysicalGameSessionManager {
     private final PhysicalOmokProperties props;
     private final PhysicalEventPublisherPort snapshotPublisher;
     private final ApplicationEventPublisher eventPublisher;
+    private final PhysicalBotDriver botDriver;
 
     private final ConcurrentHashMap<String, Session> sessions = new ConcurrentHashMap<>();
     private ScheduledExecutorService scheduler;
@@ -51,9 +56,12 @@ public class PhysicalGameSessionManager {
         final PhysicalGame game;
         final ReentrantLock lock = new ReentrantLock();
         final Recorder recorder;
-        Session(PhysicalGame game) {
+        final TrainingRecorder training;
+        Session(PhysicalGame game, boolean trainingEnabled) {
             this.game = game;
-            this.recorder = new Recorder(game.board().size(), System.currentTimeMillis());
+            long start = System.currentTimeMillis();
+            this.recorder = new Recorder(game.board().size(), start);
+            this.training = new TrainingRecorder(start, trainingEnabled);
         }
     }
 
@@ -90,6 +98,48 @@ public class PhysicalGameSessionManager {
         }
     }
 
+    /**
+     * ML 학습용 행동 로그 기록기 — 양 플레이어의 입력/결정 + 아이템 스폰을 시간순으로 모은다.
+     * 활성(trainingLogEnabled) 시에만 동작하고, 어뷰징/메모리 대비 상한을 둔다. 세션 락 하에서만 호출되어 스레드 안전.
+     */
+    private static final class TrainingRecorder {
+        private static final int MAX_ACTIONS = 20000;
+        final long startMs;
+        final boolean enabled;
+        final List<PhysicalTrainingLog.StartState> starts = new ArrayList<>();
+        final List<PhysicalTrainingLog.Action> actions = new ArrayList<>();
+        final List<PhysicalTrainingLog.ItemSpawn> spawns = new ArrayList<>();
+
+        TrainingRecorder(long startMs, boolean enabled) {
+            this.startMs = startMs;
+            this.enabled = enabled;
+        }
+
+        void recordStarts(Collection<PhysicalPlayer> players) {
+            if (!enabled) return;
+            for (PhysicalPlayer p : players) {
+                starts.add(new PhysicalTrainingLog.StartState(
+                        p.getColor().name(), p.getNickname(), p.getX(), p.getY(), p.isBot()));
+            }
+        }
+
+        void recordAction(long nowMs, StoneColor color, String type, Direction dir, int x, int y) {
+            if (!enabled || actions.size() >= MAX_ACTIONS) return;
+            actions.add(new PhysicalTrainingLog.Action(
+                    nowMs - startMs, color.name(), type, dir != null ? dir.name() : null, x, y));
+        }
+
+        void recordSpawn(long nowMs, ItemDrop drop) {
+            if (!enabled || spawns.size() >= MAX_ACTIONS) return;
+            spawns.add(new PhysicalTrainingLog.ItemSpawn(nowMs - startMs, drop.x(), drop.y(), drop.type().name()));
+        }
+
+        PhysicalTrainingLog build() {
+            if (!enabled) return null;
+            return new PhysicalTrainingLog(List.copyOf(starts), List.copyOf(actions), List.copyOf(spawns));
+        }
+    }
+
     @PostConstruct
     void startLoop() {
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -110,7 +160,9 @@ public class PhysicalGameSessionManager {
     // ===================== 생명주기 =====================
 
     public void register(PhysicalGame game) {
-        sessions.put(game.roomCode(), new Session(game));
+        Session session = new Session(game, props.trainingLogEnabled());
+        session.training.recordStarts(game.players());
+        sessions.put(game.roomCode(), session);
         broadcast(game);
         log.debug("피지컬 세션 등록: room={}", game.roomCode());
     }
@@ -146,6 +198,7 @@ public class PhysicalGameSessionManager {
             if (player == null) return; // 참가자 아님 → 무시
 
             long now = System.currentTimeMillis();
+            int preX = player.getX(), preY = player.getY(); // 행동 직전 위치(학습 로그 상태 앵커)
             switch (type) {
                 case MOVE_START -> engine.startMove(game, player, direction, now);
                 case MOVE_STOP -> engine.stopMove(player);
@@ -153,8 +206,9 @@ public class PhysicalGameSessionManager {
                 case DESTROY -> engine.destroy(game, player, now);
                 case USE_ITEM -> engine.useItem(game, player, now);
             }
-            // 보드 칸은 입력에서만 바뀐다(틱은 이동/스폰만) → 입력 직후에만 diff 기록하면 충분.
+            // 보드 칸은 사람 입력 또는 (봇이 있으면) 틱에서 바뀐다 → 양쪽 모두에서 diff 기록한다.
             s.recorder.capture(game.board().encode(), now);
+            s.training.recordAction(now, player.getColor(), type.name(), direction, preX, preY);
             broadcast(game); // 입력 직후 즉시 동기화(반응성)
         } finally {
             s.lock.unlock();
@@ -202,7 +256,18 @@ public class PhysicalGameSessionManager {
         long durationMs = System.currentTimeMillis() - s.recorder.startMs;
         return new PhysicalReplayData(
                 g.gameId(), g.board().size(), g.winCount(), durationMs, winner,
-                players, List.copyOf(s.recorder.events));
+                players, List.copyOf(s.recorder.events), s.training.build());
+    }
+
+    /** 봇 결정 종류를 학습 로그용 입력 타입 문자열로 매핑(사람 입력과 어휘 통일). IDLE 은 기록 안 함. */
+    private String botActionType(BotDecision d) {
+        return switch (d.action().kind()) {
+            case MOVE -> "MOVE_START";
+            case PLACE -> "PLACE";
+            case DESTROY -> "DESTROY";
+            case USE_ITEM -> "USE_ITEM";
+            case IDLE -> null;
+        };
     }
 
     // ===================== 틱 루프 =====================
@@ -215,9 +280,27 @@ public class PhysicalGameSessionManager {
             try {
                 PhysicalGame game = s.game;
                 if (!game.isInProgress()) continue;
+
+                // 봇이 있으면 매 틱 결정 → 사람과 같은 엔진 호출로 적용. 결정은 학습 로그에 남긴다.
+                List<BotDecision> decisions = botDriver.drive(game, now);
+                for (BotDecision d : decisions) {
+                    String type = botActionType(d);
+                    if (type != null) {
+                        s.training.recordAction(now, d.color(), type, d.action().direction(), d.x(), d.y());
+                    }
+                }
+
+                int dropsBefore = game.drops().size();
                 engine.tickMovement(game, now);
                 engine.maybeSpawnItem(game, now);
+                if (game.drops().size() > dropsBefore) { // 이번 틱에 스폰된 아이템(랜덤) 기록
+                    s.training.recordSpawn(now, game.drops().get(game.drops().size() - 1));
+                }
                 engine.settlePendingWin(game, now); // 5목이 settle 동안 유지됐으면 여기서 승리 확정
+
+                // 봇 행동으로 보드가 바뀌었을 수 있으니 틱에서도 칸 변화를 기록한다(사람 게임은 변화 없어 비용 0).
+                if (!decisions.isEmpty()) s.recorder.capture(game.board().encode(), now);
+
                 broadcast(game);
                 if (!game.isInProgress()) winnerUserId = game.winnerUserId();
             } catch (Exception e) {
