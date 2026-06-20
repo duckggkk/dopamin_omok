@@ -35,9 +35,11 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      # arm64 크로스 빌드용 에뮬레이터 — amd64 러너에서 arm64(Oracle Ampere 등) 이미지도 만들기 위함
-      - uses: docker/setup-qemu-action@v3
-
+      # 운영 서버가 x86(amd64, 4 vCPU)이라 amd64 단일 아키텍처만 빌드한다.
+      # → arm64 크로스 빌드(QEMU 에뮬레이션) 불필요: 빌드가 빠르고, Node/Gradle 의
+      #   QEMU "illegal instruction" 크래시도 발생하지 않는다.
+      #   (나중에 ARM 서버로 옮기면 platforms 에 linux/arm64 를 다시 넣고,
+      #    각 Dockerfile builder 단계에 FROM --platform=$BUILDPLATFORM 를 붙이면 됨)
       - uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
@@ -51,7 +53,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          platforms: linux/amd64,linux/arm64   # 인텔(amd64) + ARM(arm64) 동시 빌드 → 어느 서버든 동작
+          platforms: linux/amd64   # 운영 서버가 x86(4 vCPU) — amd64만 빌드(QEMU 불필요, 빠름)
           push: true
           tags: |
             ghcr.io/${{ env.OWNER_REPO }}/backend:latest
@@ -63,7 +65,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          platforms: linux/amd64,linux/arm64   # 인텔(amd64) + ARM(arm64) 동시 빌드 → 어느 서버든 동작
+          platforms: linux/amd64   # 운영 서버가 x86(4 vCPU) — amd64만 빌드(QEMU 불필요, 빠름)
           push: true
           tags: |
             ghcr.io/${{ env.OWNER_REPO }}/frontend:latest

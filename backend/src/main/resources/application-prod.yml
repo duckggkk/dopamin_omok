@@ -5,8 +5,10 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      maximum-pool-size: 20
-      minimum-idle: 10
+      # 4 vCPU / 4GB 서버 + 같은 호스트의 MySQL → 풀을 작게. 커넥션 1개당 MySQL 메모리를
+      # 쓰므로 과하게 잡으면 손해. 코어 수 기준 10이면 이 규모 트래픽엔 충분.
+      maximum-pool-size: 10
+      minimum-idle: 5
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000

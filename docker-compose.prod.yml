@@ -18,6 +18,14 @@ services:
     image: mysql:8.0
     container_name: omok_db
     restart: unless-stopped
+    mem_limit: 768m            # 4GB 서버: DB 메모리 상한(호스트 전체 OOM 방지)
+    # 4GB 서버에 맞춘 MySQL 메모리 절감 튜닝
+    command:
+      - --innodb-buffer-pool-size=256M      # 읽기 캐시(작게 유지 — 컨테이너 한도 내)
+      - --max-connections=60                # 백엔드 풀(10)에 충분 — 연결당 메모리 절약
+      - --performance-schema=OFF            # 미사용 모니터링 스키마 끔(~150MB 절약)
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
       MYSQL_DATABASE: dopamin_omok
@@ -49,6 +57,7 @@ services:
     image: ${IMAGE_BACKEND:?IMAGE_BACKEND is required}   # 예) ghcr.io/owner/repo/backend:latest
     container_name: omok_backend
     restart: unless-stopped
+    mem_limit: 1g             # 4GB 서버: 백엔드(JVM) 메모리 상한
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: ${DB_URL}
@@ -67,8 +76,9 @@ services:
       MAIL_USERNAME: ${MAIL_USERNAME:?MAIL_USERNAME is required}
       MAIL_PASSWORD: ${MAIL_PASSWORD:?MAIL_PASSWORD is required}
       MAIL_FROM: ${MAIL_FROM:?MAIL_FROM is required}
-      # 소형 VM 메모리 보호 (1GB VM이면 -Xmx256m 권장)
-      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--Xmx512m}
+      # 4GB 서버 메모리 보호: 힙 512m + 다이렉트버퍼 상한128m → 컨테이너 한도(1g) 안에서 안전.
+      # (기본값은 다이렉트버퍼 상한이 힙과 같아 힙512+다이렉트512로 한도를 넘길 수 있어 명시)
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--Xmx512m -XX:MaxDirectMemorySize=128m}
     depends_on:
       db:
         condition: service_healthy
@@ -87,6 +97,7 @@ services:
     image: ${IMAGE_FRONTEND:?IMAGE_FRONTEND is required}  # 예) ghcr.io/owner/repo/frontend:latest
     container_name: omok_frontend
     restart: unless-stopped
+    mem_limit: 64m            # 정적 파일 서빙 nginx — 메모리 거의 안 씀
     depends_on:
       - backend
     networks:
@@ -98,6 +109,7 @@ services:
     image: caddy:2-alpine
     container_name: omok_caddy
     restart: unless-stopped
+    mem_limit: 128m
     ports:
       - "80:80"
       - "443:443"
@@ -123,6 +135,7 @@ services:
     image: prom/prometheus:latest        # 운영 안정화 시 특정 버전 핀 권장(예: prom/prometheus:v3.1.0)
     container_name: omok_prometheus
     restart: unless-stopped
+    mem_limit: 350m
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=15d   # 15일치만 보관(디스크 보호)
@@ -142,6 +155,7 @@ services:
     image: grafana/loki:latest          # 운영 안정화 시 특정 버전 핀 권장(예: grafana/loki:3.3.0)
     container_name: omok_loki
     restart: unless-stopped
+    mem_limit: 256m
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
       - ./deploy/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
@@ -157,6 +171,7 @@ services:
     image: grafana/promtail:latest      # 운영 안정화 시 특정 버전 핀 권장(예: grafana/promtail:3.3.0)
     container_name: omok_promtail
     restart: unless-stopped
+    mem_limit: 100m
     command: -config.file=/etc/promtail/promtail-config.yml
     volumes:
       - ./deploy/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
@@ -173,6 +188,7 @@ services:
     image: grafana/grafana:latest        # 운영 안정화 시 특정 버전 핀 권장(예: grafana/grafana:11.4.0)
     container_name: omok_grafana
     restart: unless-stopped
+    mem_limit: 300m
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
