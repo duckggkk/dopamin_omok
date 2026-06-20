@@ -1,6 +1,7 @@
 package com.dopamin.omok.user.adapter.out.persistence;
 
 import com.dopamin.omok.user.application.port.out.CheckUserExistsPort;
+import com.dopamin.omok.user.application.port.out.DeleteUserPort;
 import com.dopamin.omok.user.application.port.out.LoadUserPort;
 import com.dopamin.omok.user.application.port.out.SaveUserPort;
 import com.dopamin.omok.user.domain.User;
@@ -14,7 +15,7 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
-public class UserPersistenceAdapter implements LoadUserPort, SaveUserPort, CheckUserExistsPort {
+public class UserPersistenceAdapter implements LoadUserPort, SaveUserPort, CheckUserExistsPort, DeleteUserPort {
 
     private final UserJpaRepository userJpaRepository;
 
@@ -26,6 +27,11 @@ public class UserPersistenceAdapter implements LoadUserPort, SaveUserPort, Check
     @Override
     public Optional<User> findByEmail(String email) {
         return userJpaRepository.findByEmail(email);
+    }
+
+    @Override
+    public Optional<User> findByNickname(String nickname) {
+        return userJpaRepository.findByNickname(nickname);
     }
 
     @Override
@@ -46,6 +52,11 @@ public class UserPersistenceAdapter implements LoadUserPort, SaveUserPort, Check
     @Override
     public int deductCurrency(Long userId, int amount) {
         return userJpaRepository.deductCurrency(userId, amount);
+    }
+
+    @Override
+    public void deleteById(Long userId) {
+        userJpaRepository.deleteByIdImmediately(userId);
     }
 
     @Override

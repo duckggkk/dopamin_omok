@@ -32,6 +32,16 @@ public class EmailVerificationService {
         emailService.sendVerificationEmail(user.getEmail(), token.getToken());
     }
 
+    /**
+     * 인증 유효기간(3분)이 아직 남은 미만료 토큰이 있으면 true.
+     * 토큰이 만료됐거나 없으면 false → 해당 미인증 계정의 이메일/닉네임 점유를 풀 수 있다.
+     */
+    public boolean hasPendingVerification(Long userId) {
+        return loadEmailVerificationTokenPort.findLatestByUserId(userId)
+                .filter(token -> !token.isExpired())
+                .isPresent();
+    }
+
     public void verifyEmail(String email, String code) {
         User user = loadUserPort.findByEmail(email)
                 .orElseThrow(() -> new OmokException(ErrorCode.USER_NOT_FOUND));

@@ -16,7 +16,7 @@ import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.common.exception.OmokException;
 import com.dopamin.omok.global.event.UserRegisteredEvent;
 import com.dopamin.omok.global.security.jwt.JwtProvider;
-import com.dopamin.omok.user.application.port.out.CheckUserExistsPort;
+import com.dopamin.omok.user.application.port.out.DeleteUserPort;
 import com.dopamin.omok.user.application.port.out.LoadUserPort;
 import com.dopamin.omok.user.application.port.out.SaveUserPort;
 import com.dopamin.omok.user.domain.User;
@@ -36,7 +36,7 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
 
     private final LoadUserPort loadUserPort;
     private final SaveUserPort saveUserPort;
-    private final CheckUserExistsPort checkUserExistsPort;
+    private final DeleteUserPort deleteUserPort;
     private final LoadRefreshTokenPort loadRefreshTokenPort;
     private final SaveRefreshTokenPort saveRefreshTokenPort;
     private final DeleteRefreshTokenPort deleteRefreshTokenPort;
@@ -48,11 +48,25 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
     @Override
     @Transactional
     public void register(String email, String password, String nickname) {
-        if (checkUserExistsPort.existsByEmail(email)) {
+        User emailOwner = loadUserPort.findByEmail(email).orElse(null);
+        User nicknameOwner = loadUserPort.findByNickname(nickname).orElse(null);
+
+        // 인증을 마쳤거나(정상 계정) 인증 유효기간(3분)이 아직 남은 미인증 계정이
+        // 점유 중이면 가입을 막는다.
+        if (isStillOccupied(emailOwner)) {
             throw new OmokException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
-        if (checkUserExistsPort.existsByNickname(nickname)) {
+        if (isStillOccupied(nicknameOwner)) {
             throw new OmokException(ErrorCode.NICKNAME_ALREADY_EXISTS);
+        }
+
+        // 여기까지 왔다면 충돌 계정은 '미인증 + 인증 만료' 상태뿐이다.
+        // 이메일/닉네임 점유를 풀기 위해 해당 유령 계정을 회수(삭제)한다.
+        // (이메일·닉네임이 같은 계정을 가리키면 한 번만 삭제)
+        reclaimExpiredUnverified(emailOwner);
+        if (nicknameOwner != null
+                && (emailOwner == null || !nicknameOwner.getId().equals(emailOwner.getId()))) {
+            reclaimExpiredUnverified(nicknameOwner);
         }
 
         User user = User.createLocalUser(email, passwordEncoder.encode(password), nickname);
@@ -62,6 +76,24 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
         eventPublisher.publishEvent(new UserRegisteredEvent(user.getId()));
 
         emailVerificationService.sendCode(user);
+    }
+
+    /** 인증 완료 계정이거나 인증 유효기간이 아직 남은 미인증 계정이면 이메일/닉네임이 점유 중이다. */
+    private boolean isStillOccupied(User existing) {
+        if (existing == null) {
+            return false;
+        }
+        if (existing.isEmailVerified()) {
+            return true;
+        }
+        return emailVerificationService.hasPendingVerification(existing.getId());
+    }
+
+    /** 미인증·인증 만료 계정을 삭제한다. 연관 데이터는 DB의 ON DELETE CASCADE 로 함께 정리된다. */
+    private void reclaimExpiredUnverified(User existing) {
+        if (existing != null) {
+            deleteUserPort.deleteById(existing.getId());
+        }
     }
 
     @Override

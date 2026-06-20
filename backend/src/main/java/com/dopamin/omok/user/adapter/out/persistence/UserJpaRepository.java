@@ -18,6 +18,8 @@ public interface UserJpaRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
+    Optional<User> findByNickname(String nickname);
+
     Optional<User> findByProviderAndProviderId(AuthProvider provider, String providerId);
 
     boolean existsByEmail(String email);
@@ -37,4 +39,14 @@ public interface UserJpaRepository extends JpaRepository<User, Long> {
     @Query("UPDATE User u SET u.currency = u.currency - :amount "
             + "WHERE u.id = :id AND u.currency >= :amount")
     int deductCurrency(@Param("id") Long id, @Param("amount") int amount);
+
+    /**
+     * 사용자를 즉시 삭제한다. 벌크 DELETE 라 호출 시점에 SQL이 바로 실행되어
+     * 이후의 신규 가입 INSERT보다 먼저 처리된다(같은 이메일/닉네임 유니크 충돌 방지).
+     * 연관 행(user_items·user_active_items·email_verification_tokens)은
+     * DB의 ON DELETE CASCADE 로 함께 삭제된다.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM User u WHERE u.id = :id")
+    void deleteByIdImmediately(@Param("id") Long id);
 }
