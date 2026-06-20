@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useSettingsStore } from '@/store/settingsStore';
 import styles from './SettingsModal.module.css';
 
@@ -25,7 +26,9 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
     { label: '바둑알 착수음', value: stoneVolume, set: setStoneVolume },
   ];
 
-  return (
+  // 네비바에 걸린 backdrop-filter가 position:fixed의 기준 박스가 되어 모달이 위로 딸려
+  // 올라가는 문제가 있어, 포털로 body 직하위에 렌더해 뷰포트 기준 중앙 정렬을 보장한다.
+  return createPortal(
     <div className={styles.backdrop} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <button className={styles.close} onClick={onClose} aria-label="닫기">
@@ -66,7 +69,8 @@ const SettingsModal = ({ onClose }: SettingsModalProps) => {
           기본 착수음을 켜면 스킨이 없어도 합성음이 나며 일반전·AI전이 동일하게 들립니다.
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 
