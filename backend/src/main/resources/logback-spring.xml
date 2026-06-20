@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  로그 출력 형식 정의. (로그 "레벨"은 application*.yml 의 logging.level 이 계속 관리)
+
+  핵심 두 가지:
+   1) [%X{traceId:-}] — 요청마다 부여한 추적 ID(TraceIdFilter)를 모든 줄에 찍는다.
+      → Grafana/Loki 에서 ID 하나로 한 요청의 로그를 전부 모아 볼 수 있다.
+   2) %maskedMsg — 메시지를 PiiMasker 로 한 번 걸러 이메일/토큰을 가린 뒤 출력한다.
+      → 콘솔 → docker logs → Loki 어디로 가든 동일하게 마스킹된다.
+
+  파일명이 logback.xml 이 아니라 logback-spring.xml 인 이유: 스프링이 클래스 로딩을
+  마친 뒤 읽어 주어야 우리 커스텀 클래스(MaskingMessageConverter)와 <springProfile> 을 쓸 수 있다.
+-->
+<configuration>
+    <!-- 스프링 부트 기본값(%clr 컬러, %wEx 예외 출력 등) 가져오기 -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- 메시지 마스킹 변환어 등록: 패턴에서 %maskedMsg 로 사용 -->
+    <conversionRule conversionWord="maskedMsg"
+                    converterClass="com.dopamin.omok.global.logging.MaskingMessageConverter"/>
+
+    <!-- 로컬: 사람이 읽기 쉬운 컬러 로그 -->
+    <springProfile name="local">
+        <property name="LOG_PATTERN"
+                  value="%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%X{traceId:-}]){magenta} %clr(%logger{36}){cyan} %clr(:){faint} %maskedMsg%n%wEx"/>
+    </springProfile>
+
+    <!-- 운영/도커/테스트: 컬러 없이 (docker logs → Promtail → Loki 수집에 적합) -->
+    <springProfile name="!local">
+        <property name="LOG_PATTERN"
+                  value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId:-}] [%thread] %logger{36} - %maskedMsg%n%wEx"/>
+    </springProfile>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

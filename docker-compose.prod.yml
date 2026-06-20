@@ -26,7 +26,11 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
-    # DB 포트는 호스트/외부에 노출하지 않음 (내부망만 접근)
+    # DB 포트는 서버 내부(loopback)에만 노출 — 인터넷엔 비공개.
+    # 관리자가 SSH 터널을 통해서만 접근(예: DBeaver / VSCode DB 클라이언트).
+    # 절대 "3306:3306" 또는 "0.0.0.0:..." 로 바꾸지 말 것(전 세계에 DB가 열림).
+    ports:
+      - "127.0.0.1:3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -131,6 +135,39 @@ services:
       - omok_net
     logging: *default-logging
 
+  # ── Loki (로그 저장소, 내부 전용) ─────────────────────────────────────────
+  # Promtail 이 보내온 컨테이너 로그를 모아 저장하고, Grafana 가 검색하게 한다.
+  # 외부 포트를 열지 않으므로 omok_net 안에서만 접근 가능.
+  loki:
+    image: grafana/loki:latest          # 운영 안정화 시 특정 버전 핀 권장(예: grafana/loki:3.3.0)
+    container_name: omok_loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./deploy/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    networks:
+      - omok_net
+    logging: *default-logging
+
+  # ── Promtail (로그 수집 에이전트, 내부 전용) ──────────────────────────────
+  # 도커 API 로 실행 중인 컨테이너들을 발견해 로그를 Loki 로 전송한다.
+  # docker.sock 은 읽기로만 마운트하고 외부 포트는 열지 않는다(보안).
+  promtail:
+    image: grafana/promtail:latest      # 운영 안정화 시 특정 버전 핀 권장(예: grafana/promtail:3.3.0)
+    container_name: omok_promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./deploy/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail_data:/tmp
+    depends_on:
+      - loki
+    networks:
+      - omok_net
+    logging: *default-logging
+
   # ── Grafana (대시보드, Caddy 통해 /grafana 로 노출) ────────────────────────
   grafana:
     image: grafana/grafana:latest        # 운영 안정화 시 특정 버전 핀 권장(예: grafana/grafana:11.4.0)
@@ -150,6 +187,7 @@ services:
       - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
+      - loki
     networks:
       - omok_net
     logging: *default-logging
@@ -160,6 +198,8 @@ volumes:
   caddy_config:
   prometheus_data:
   grafana_data:
+  loki_data:
+  promtail_data:
 
 networks:
   omok_net:

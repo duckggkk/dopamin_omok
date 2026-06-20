@@ -1,6 +1,7 @@
 package com.dopamin.omok.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.aop.interceptor.SimpleAsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +11,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.Executor;
 
 /**
@@ -30,8 +32,26 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setMaxPoolSize(5);
         executor.setQueueCapacity(100);
         executor.setThreadNamePrefix("omok-async-");
+        // 요청 스레드의 로그 문맥(traceId 등)을 비동기 스레드로 복사 →
+        // 비동기 이메일 발송 로그도 원래 요청과 같은 traceId 로 묶여 추적된다.
+        executor.setTaskDecorator(AsyncConfig::wrapWithMdc);
         executor.initialize();
         return executor;
+    }
+
+    /** 제출 시점의 MDC(로그 문맥)를 실행 스레드에 입혔다가 끝나면 비워, 스레드 재사용 시 오염을 막는다. */
+    private static Runnable wrapWithMdc(Runnable task) {
+        Map<String, String> context = MDC.getCopyOfContextMap();
+        return () -> {
+            if (context != null) {
+                MDC.setContextMap(context);
+            }
+            try {
+                task.run();
+            } finally {
+                MDC.clear();
+            }
+        };
     }
 
     @Override

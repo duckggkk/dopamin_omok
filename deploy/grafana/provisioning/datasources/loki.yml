@@ -1,0 +1,10 @@
+# Grafana 가 부팅할 때 Loki(로그 저장소)를 데이터소스로 자동 등록한다.
+# (Prometheus 와 마찬가지로 UI 에서 수동 추가할 필요 없음)
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100      # docker 내부망의 Loki
+    editable: false

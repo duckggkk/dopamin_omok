@@ -1,0 +1,45 @@
+# Loki — 로그 저장소(컨테이너 stdout 로그를 모아 Grafana 에서 검색).
+#   - 단일 바이너리 + 로컬 파일시스템 모드(소규모 단일 서버에 적합).
+#   - 외부 포트를 열지 않으며, 도커 내부망(omok_net)에서 Promtail/Grafana 만 접근.
+#   - retention(보관 기간) 14일 — 디스크 보호(Prometheus 15일과 비슷하게 맞춤).
+
+auth_enabled: false        # 내부망 전용이라 멀티테넌트 인증 불필요
+
+server:
+  http_listen_port: 3100
+  log_level: warn          # Loki 자체 로그는 조용히(경고 이상만)
+
+common:
+  instance_addr: 127.0.0.1
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  retention_period: 336h           # 14일 (24h * 14)
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h # 7일보다 오래된 로그는 거부
+
+compactor:
+  working_directory: /loki/compactor
+  retention_enabled: true          # 보관기간 지난 로그 실제 삭제(이게 없으면 무한 증가)
+  delete_request_store: filesystem
+
+analytics:
+  reporting_enabled: false         # 사용 통계 외부 전송 끔

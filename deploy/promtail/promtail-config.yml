@@ -1,0 +1,33 @@
+# Promtail — 각 컨테이너의 로그를 수집해 Loki 로 전송하는 에이전트.
+#   - 도커 API(docker.sock)로 실행 중인 컨테이너를 자동 발견하고 로그를 따라간다(tail).
+#   - 컨테이너 이름·compose 서비스명을 라벨로 붙여, Grafana 에서 서비스별로 골라 볼 수 있게 한다.
+#
+# 보안 메모: docker.sock 을 읽기로 마운트한다. :ro 라도 도커 API 접근 자체는 강력하므로,
+#           Promtail 은 외부 포트를 절대 열지 않고 내부망에서만 동작시킨다.
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml   # 어디까지 읽었는지 기록(재시작해도 중복 전송 방지)
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+    relabel_configs:
+      # 컨테이너 이름(앞의 / 제거) → container 라벨
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: container
+      # compose 서비스명(backend/frontend/db ...) → service 라벨
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
+      # stdout/stderr 구분 → stream 라벨
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: stream
