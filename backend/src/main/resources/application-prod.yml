@@ -38,8 +38,9 @@ spring:
 
 app:
   shop:
-    # 운영에서는 PG 결제 검증 전까지 직접 충전을 비활성화(무한 충전 악용 차단)
-    direct-charge-enabled: false
+    # 오픈베타: PG 결제 연동 전까지 무료(검증 없는) 직접 충전을 한시적으로 허용한다.
+    # ⚠️ 실결제 도입 시 반드시 false 로 되돌리고 PG 영수증 검증 경로로 전환할 것.
+    direct-charge-enabled: true
 
   jwt:
     secret: ${JWT_SECRET}
