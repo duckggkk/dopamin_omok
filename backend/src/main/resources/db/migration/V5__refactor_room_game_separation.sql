@@ -17,7 +17,7 @@ CREATE TABLE rooms (
     INDEX idx_rooms_status (status),
     INDEX idx_rooms_host (host_id),
     FOREIGN KEY (host_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 2. 기존 games 데이터를 rooms로 마이그레이션
 INSERT INTO rooms (room_code, host_id, status, game_type, time_limit, byoyomi_option, max_spectators, current_game_number, created_at)
@@ -53,7 +53,7 @@ CREATE TABLE game_players (
     UNIQUE KEY uk_game_players_room_user (room_id, user_id),
     FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4. black_player → HOST로 마이그레이션
 INSERT INTO game_players (room_id, user_id, role, color, remaining_seconds, in_byoyomi, joined_at)
