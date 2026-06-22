@@ -14,6 +14,7 @@ const LoginPage = () => {
   const isJustVerified = searchParams.get('verified') === '1';
   const isSessionExpired = searchParams.get('reason') === 'session_expired';
   const [form, setForm] = useState({ email: '', password: '' });
+  const [keepLogin, setKeepLogin] = useState(true); // 로그인 상태 유지(기본 ON — 기존 동작)
   const [error, setError] = useState('');
   const [isEmailNotVerified, setIsEmailNotVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +29,7 @@ const LoginPage = () => {
       const tokenRes = await authApi.login(form);
       const { accessToken, refreshToken } = tokenRes.data.data!;
 
+      tokenStorage.setRemember(keepLogin); // 저장 위치(영구/세션) 결정 — setTokens·login 보다 먼저
       tokenStorage.setTokens(accessToken, refreshToken);
 
       const userRes = await userApi.getMe();
@@ -91,6 +93,15 @@ const LoginPage = () => {
               className={styles.input}
             />
           </div>
+
+          <label className={pageStyles.rememberRow}>
+            <input
+              type="checkbox"
+              checked={keepLogin}
+              onChange={(e) => setKeepLogin(e.target.checked)}
+            />
+            로그인 상태 유지
+          </label>
 
           {error && (
             <div>

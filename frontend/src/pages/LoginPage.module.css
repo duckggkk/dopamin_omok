@@ -9,3 +9,21 @@
   color: var(--gold);
   text-decoration: underline;
 }
+
+/* 로그인 상태 유지 체크박스 행 */
+.rememberRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -2px 0 2px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.rememberRow input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
