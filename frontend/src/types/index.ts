@@ -69,6 +69,36 @@ export interface TokenResponse {
   expiresIn: number;
 }
 
+// 친구
+export interface HeadToHead {
+  wins: number;
+  losses: number;
+  draws: number;
+}
+
+export type FriendRelation = 'SELF' | 'NONE' | 'REQUEST_SENT' | 'REQUEST_RECEIVED' | 'FRIENDS';
+
+export interface FriendSummary {
+  publicId: string; // UUID
+  nickname: string;
+  profileImageUrl: string | null;
+  classicRating: number;
+  physicalRating: number;
+  headToHead: HeadToHead;
+}
+
+export interface FriendRequest {
+  publicId: string; // UUID — 요청 보낸 사람
+  nickname: string;
+  profileImageUrl: string | null;
+  requestedAt: string;
+}
+
+export interface RelationInfo {
+  relation: FriendRelation;
+  headToHead: HeadToHead;
+}
+
 export interface GamePlayer {
   userId: string; // UUID (publicId)
   nickname: string;

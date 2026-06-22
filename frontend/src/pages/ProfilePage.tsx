@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { userApi } from '@/api/auth';
 import { gameApi } from '@/api/game';
-import { GameInfo, PublicUser, User } from '@/types';
+import { friendApi } from '@/api/friend';
+import { GameInfo, PublicUser, RelationInfo, User } from '@/types';
 import GameRecordViewer from '@/components/game/GameRecordViewer';
 import styles from './ProfilePage.module.css';
 
@@ -39,12 +40,15 @@ const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [recent, setRecent] = useState<GameInfo[] | null>(null);
   const [kifuGame, setKifuGame] = useState<GameInfo | null>(null);
+  const [relation, setRelation] = useState<RelationInfo | null>(null);
+  const [relBusy, setRelBusy] = useState(false);
 
   useEffect(() => {
     if (!user) return;
 
     setRecent(null);
     setKifuGame(null);
+    setRelation(null);
     setProfileError('');
     setError('');
     setSuccess('');
@@ -76,6 +80,10 @@ const ProfilePage = () => {
       .getUserGames(userId, 0, 10)
       .then((res) => setRecent(res.data.data?.content ?? []))
       .catch(() => setRecent([]));
+    friendApi
+      .getRelation(userId)
+      .then((res) => setRelation(res.data.data ?? null))
+      .catch(() => setRelation(null));
   }, [isOwnProfile, user, userId]);
 
   if (!user) return null;
@@ -127,6 +135,23 @@ const ProfilePage = () => {
   const canEdit = isOwnProfile && isUser(profile);
   const ownProfile = canEdit ? profile : null;
   const winRate = profile.totalGames > 0 ? Math.round((profile.wins / profile.totalGames) * 100) : 0;
+
+  const doFriendAction = async (action: 'add' | 'cancel' | 'accept' | 'reject' | 'unfriend') => {
+    if (!userId || relBusy) return;
+    if (action === 'unfriend' && !window.confirm(`'${profile.nickname}'님을 친구에서 삭제할까요?`)) return;
+    setRelBusy(true);
+    try {
+      if (action === 'add') await friendApi.sendRequest(profile.nickname);
+      else if (action === 'accept') await friendApi.accept(userId);
+      else await friendApi.remove(userId); // cancel / reject / unfriend 공용
+      const res = await friendApi.getRelation(userId);
+      setRelation(res.data.data ?? null);
+    } catch {
+      /* 무시 — 관계는 다음 조회 때 반영 */
+    } finally {
+      setRelBusy(false);
+    }
+  };
 
   const resultOf = (g: GameInfo): { label: string; cls: string } => {
     if (g.status === 'IN_PROGRESS') return { label: '진행 중', cls: styles.rOngoing };
@@ -235,6 +260,44 @@ const ProfilePage = () => {
             <div className={styles.rateWin} style={{ flex: profile.wins }} />
             <div className={styles.rateDraw} style={{ flex: profile.draws }} />
             <div className={styles.rateLoss} style={{ flex: profile.losses }} />
+          </div>
+        )}
+
+        {!isOwnProfile && relation && relation.relation !== 'SELF' && (
+          <div className={styles.friendPanel}>
+            <div className={styles.h2hRow}>
+              <span className={styles.h2hLabel}>나와의 상대전적</span>
+              <span className={styles.h2hValue}>
+                {relation.headToHead.wins}승 {relation.headToHead.losses}패 {relation.headToHead.draws}무
+              </span>
+            </div>
+            <div className={styles.friendActions}>
+              {relation.relation === 'NONE' && (
+                <button className={styles.friendAddBtn} disabled={relBusy} onClick={() => doFriendAction('add')}>
+                  + 친구 추가
+                </button>
+              )}
+              {relation.relation === 'REQUEST_SENT' && (
+                <button className={styles.friendGhostBtn} disabled={relBusy} onClick={() => doFriendAction('cancel')}>
+                  요청 보냄 · 취소
+                </button>
+              )}
+              {relation.relation === 'REQUEST_RECEIVED' && (
+                <>
+                  <button className={styles.friendAddBtn} disabled={relBusy} onClick={() => doFriendAction('accept')}>
+                    요청 수락
+                  </button>
+                  <button className={styles.friendGhostBtn} disabled={relBusy} onClick={() => doFriendAction('reject')}>
+                    거절
+                  </button>
+                </>
+              )}
+              {relation.relation === 'FRIENDS' && (
+                <button className={styles.friendGhostBtn} disabled={relBusy} onClick={() => doFriendAction('unfriend')}>
+                  ✓ 친구 · 끊기
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -16,6 +16,7 @@ import EmailSentPage from '@/pages/EmailSentPage';
 import ShopPage from '@/pages/ShopPage';
 import RankingPage from '@/pages/RankingPage';
 import PlazaPage from '@/pages/PlazaPage';
+import FriendsPage from '@/pages/FriendsPage';
 import GameGuidePage from '@/pages/GameGuidePage';
 import TermsPage from '@/pages/TermsPage';
 import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage';
@@ -51,6 +52,7 @@ const router = createBrowserRouter([
           { path: '/ai', element: <AiGamePage /> },
           { path: '/lobby', element: <LobbyPage /> },
           { path: '/plaza', element: <PlazaPage /> },
+          { path: '/friends', element: <FriendsPage /> },
           { path: '/ranking', element: <RankingPage /> },
           { path: '/guide', element: <GameGuidePage /> },
           { path: '/game/:gameId', element: <GamePage /> },
