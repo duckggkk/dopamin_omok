@@ -32,7 +32,7 @@ public record PhysicalOmokProperties(
         if (winCount <= 0) winCount = 5;
         if (moveCooldownMs <= 0) moveCooldownMs = 140;
         if (placeCooldownMs <= 0) placeCooldownMs = 150;
-        if (destroyCooldownMs <= 0) destroyCooldownMs = 2000;
+        if (destroyCooldownMs < 0) destroyCooldownMs = 0;   // 0 = 파괴 쿨다운 없음(음수만 보정)
         if (winSettleMs <= 0) winSettleMs = 2000;
         if (tickIntervalMs <= 0) tickIntervalMs = 60;
         if (itemSpawnIntervalMs <= 0) itemSpawnIntervalMs = 7000;

@@ -56,7 +56,7 @@ app:
     win-count: 5              # 5목 완성 시 승리
     move-cooldown-ms: 140     # 한 칸 이동 간 최소 간격(살짝 신중한 템포)
     place-cooldown-ms: 150    # 착수 간 최소 간격(중복 착수만 방지 — 러시는 win-settle-ms가 막음)
-    destroy-cooldown-ms: 2000 # Shift 파괴 쿨다운(규칙: 2초)
+    destroy-cooldown-ms: 0    # Shift 파괴 쿨다운 없음(0 = 즉시 연속 파괴 가능)
     win-settle-ms: 2000       # 5목이 2초 유지돼야 승리 확정 — 그 사이 끊으면 무효(러시 방지 + 역전 여지)
     tick-interval-ms: 60      # 서버 틱(이동/스폰/스냅샷) 주기 ≈ 16Hz
     item-spawn-interval-ms: 7000
