@@ -174,6 +174,42 @@
 .readyOn { background: var(--surface-3); color: var(--text); border: 1px solid var(--gold-soft-border); }
 .startBtn { background: var(--gold-grad); color: var(--text-on-gold, #2a1c05); }
 .startBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 시작 카운트다운(3·2·1) — 보드/캐릭터 위에 큰 숫자가 pop 하며 표시된다. */
+.countdownOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none; /* 캔버스/입력을 가리지 않음(서버가 어차피 입력 차단) */
+  z-index: 20;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.05) 70%);
+  border-radius: var(--r-md);
+}
+.countdownNum {
+  font-size: clamp(7rem, 22vw, 13rem);
+  font-weight: 900;
+  line-height: 1;
+  color: #ffe27a;
+  text-shadow: 0 0 28px rgba(255, 200, 60, 0.85), 0 6px 18px rgba(0, 0, 0, 0.6);
+  animation: countdownPop 1s ease-out both;
+}
+.countdownHint {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75);
+}
+@keyframes countdownPop {
+  0%   { transform: scale(1.9); opacity: 0; }
+  18%  { transform: scale(1.06); opacity: 1; }
+  60%  { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0; }
+}
 .skinConflict {
   margin: 0 0 8px;
   color: var(--danger);

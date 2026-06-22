@@ -34,13 +34,13 @@ class PhysicalOmokEngineTest {
         weights.put(PhysicalItemType.SPEED_BOOST, 50);
         weights.put(PhysicalItemType.CRATER, 30);
         weights.put(PhysicalItemType.BOMB, 20);
-        // boardSize=14, winCount=5, move=100, place=300, destroy=2000, winSettle=400, tick=60,
-        // spawnInterval=1000, maxItems=3, boostDuration=5000, boostMoveCd=50
-        return new PhysicalOmokProperties(SIZE, 5, 100, 300, 2000, 400, 60, 1000, 3, 5000, 50, weights, false);
+        // boardSize=14, winCount=5, move=100, place=300, destroy=2000, winSettle=400, countdown=3000,
+        // tick=60, spawnInterval=1000, maxItems=3, boostDuration=5000, boostMoveCd=50
+        return new PhysicalOmokProperties(SIZE, 5, 100, 300, 2000, 400, 3000, 60, 1000, 3, 5000, 50, weights, false);
     }
 
     private PhysicalGame newGame() {
-        PhysicalGame game = new PhysicalGame("ROOM", 1L, SIZE, 5, 0L);
+        PhysicalGame game = new PhysicalGame("ROOM", 1L, SIZE, 5, 0L, 0L);
         game.addPlayer(new PhysicalPlayer(1L, "흑", StoneColor.BLACK, null, null, null, 5, 5));
         game.addPlayer(new PhysicalPlayer(2L, "백", StoneColor.WHITE, null, null, null, 8, 8));
         return game;

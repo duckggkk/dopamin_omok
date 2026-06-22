@@ -198,6 +198,7 @@ public class PhysicalGameSessionManager {
             if (player == null) return; // 참가자 아님 → 무시
 
             long now = System.currentTimeMillis();
+            if (game.isCountingDown(now)) return; // 시작 카운트다운 동안엔 입력 무시(서버 권위)
             int preX = player.getX(), preY = player.getY(); // 행동 직전 위치(학습 로그 상태 앵커)
             switch (type) {
                 case MOVE_START -> engine.startMove(game, player, direction, now);
@@ -280,6 +281,8 @@ public class PhysicalGameSessionManager {
             try {
                 PhysicalGame game = s.game;
                 if (!game.isInProgress()) continue;
+                // 시작 카운트다운 중엔 보드/캐릭터만 세팅된 채 동결 — 스냅샷만 갱신(클라가 카운트다운 표시)
+                if (game.isCountingDown(now)) { broadcast(game); continue; }
 
                 // 봇이 있으면 매 틱 결정 → 사람과 같은 엔진 호출로 적용. 결정은 학습 로그에 남긴다.
                 List<BotDecision> decisions = botDriver.drive(game, now);
@@ -359,7 +362,8 @@ public class PhysicalGameSessionManager {
                 winner != null ? winner.name() : null,
                 game.hasPendingWin() ? game.pendingWinColor().name() : null,
                 pendingWinLine,
-                now
+                now,
+                game.playStartAt()
         );
     }
 }

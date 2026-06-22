@@ -18,6 +18,7 @@ public record PhysicalOmokProperties(
         long placeCooldownMs,
         long destroyCooldownMs,
         long winSettleMs,        // 5목 완성 후 승리 확정까지 유지돼야 하는 시간(오프닝 직선 러시 방지 — 그 사이 끊으면 무효)
+        long countdownMs,        // 게임 시작 시 보드/캐릭터 세팅 후 플레이 개시까지의 카운트다운(3·2·1)
         long tickIntervalMs,
         long itemSpawnIntervalMs,
         int maxItemsOnField,
@@ -34,6 +35,7 @@ public record PhysicalOmokProperties(
         if (placeCooldownMs <= 0) placeCooldownMs = 150;
         if (destroyCooldownMs < 0) destroyCooldownMs = 0;   // 0 = 파괴 쿨다운 없음(음수만 보정)
         if (winSettleMs <= 0) winSettleMs = 2000;
+        if (countdownMs < 0) countdownMs = 0;   // 0 = 카운트다운 없이 즉시 시작(음수만 보정)
         if (tickIntervalMs <= 0) tickIntervalMs = 60;
         if (itemSpawnIntervalMs <= 0) itemSpawnIntervalMs = 7000;
         if (maxItemsOnField <= 0) maxItemsOnField = 3;

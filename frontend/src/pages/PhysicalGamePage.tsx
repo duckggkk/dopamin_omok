@@ -579,6 +579,14 @@ const PhysicalGamePage = () => {
   const destroyRemaining =
     me && snapshot ? Math.max(0, (me.destroyReadyAt - snapshot.serverTime) / 1000) : 0;
 
+  // 시작 카운트다운: 보드/캐릭터가 세팅된 채 serverTime < playStartAt 인 동안 큰 숫자(3·2·1)를 띄운다.
+  const inCountdown = !!(
+    snapshot && snapshot.status === 'IN_PROGRESS' && snapshot.serverTime < snapshot.playStartAt
+  );
+  const countdownNum = inCountdown
+    ? Math.max(1, Math.ceil((snapshot!.playStartAt - snapshot!.serverTime) / 1000))
+    : 0;
+
   const handleSurrender = () => {
     if (window.confirm('정말 기권하시겠습니까?')) sendPhysicalSurrender();
   };
@@ -651,6 +659,14 @@ const PhysicalGamePage = () => {
               {snapshot.pendingWinColor === myColor
                 ? '⚡ 오목 완성! 잠깐만 버티면 승리!'
                 : '⚠ 상대 오목! 끊어라 (Ctrl/Shift)!'}
+            </div>
+          )}
+
+          {inCountdown && (
+            <div className={styles.countdownOverlay}>
+              {/* key 로 매 숫자마다 리마운트 → pop 애니메이션 재생 */}
+              <div key={countdownNum} className={styles.countdownNum}>{countdownNum}</div>
+              <div className={styles.countdownHint}>곧 시작합니다!</div>
             </div>
           )}
 

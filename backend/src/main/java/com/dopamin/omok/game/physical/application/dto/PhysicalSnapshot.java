@@ -20,7 +20,8 @@ public record PhysicalSnapshot(
         String winnerColor,     // FINISHED 일 때 승자 색(BLACK/WHITE), 없으면 null
         String pendingWinColor, // 5목 완성 후 확정 대기 중인 색(이 동안 끊으면 무효), 없으면 null
         int[][] pendingWinLine, // 확정 대기 중인 5목을 이루는 칸 좌표들([[x,y],...]) — 강조 표시용, 없으면 null
-        long serverTime         // epoch ms — 클라가 쿨다운/부스트 잔여를 계산하는 기준 시각
+        long serverTime,        // epoch ms — 클라가 쿨다운/부스트 잔여를 계산하는 기준 시각
+        long playStartAt        // epoch ms — 이 시각부터 플레이 시작. serverTime < playStartAt 이면 시작 카운트다운 중
 ) {
 
     /** 한 플레이어의 가시 상태(색으로 식별 — 클라는 자기 색과 매칭해 '나'를 찾는다). */

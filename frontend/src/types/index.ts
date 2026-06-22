@@ -263,6 +263,7 @@ export interface PhysicalSnapshot {
   pendingWinColor: StoneColor | null; // 오목 확정 대기 중인 색(이 동안 끊으면 무효), 없으면 null
   pendingWinLine: number[][] | null; // 확정 대기 중인 오목을 이루는 칸 좌표들([[x,y],...]) — 강조용, 없으면 null
   serverTime: number; // epoch ms — 쿨다운 계산 기준
+  playStartAt: number; // epoch ms — serverTime < playStartAt 이면 시작 카운트다운(3·2·1) 중
 }
 
 // 랭킹

@@ -30,16 +30,20 @@ public class PhysicalGame {
     private Long winnerUserId;
     private long lastItemSpawnAt;
 
+    // 이 시각(epoch ms)부터 실제 플레이가 시작된다. 그 전까지는 카운트다운 구간(보드/캐릭터만 세팅, 입력·이동·스폰 정지).
+    private final long playStartAt;
+
     // 승리 확정 지연(settle): 5목 완성 시 즉시 끝내지 않고, lockAt 까지 유지되면 확정한다.
     private StoneColor pendingWinColor;
     private long pendingWinLockAt;
 
-    public PhysicalGame(String roomCode, Long gameId, int boardSize, int winCount, long startedAt) {
+    public PhysicalGame(String roomCode, Long gameId, int boardSize, int winCount, long startedAt, long countdownMs) {
         this.roomCode = roomCode;
         this.gameId = gameId;
         this.winCount = winCount;
         this.board = new PhysicalBoard(boardSize);
-        this.lastItemSpawnAt = startedAt;
+        this.playStartAt = startedAt + Math.max(0, countdownMs);
+        this.lastItemSpawnAt = this.playStartAt;   // 아이템 스폰 시계는 카운트다운이 끝난 뒤부터 흐른다
     }
 
     public void addPlayer(PhysicalPlayer player) {
@@ -98,6 +102,15 @@ public class PhysicalGame {
 
     public boolean isInProgress() {
         return status == GameStatus.IN_PROGRESS;
+    }
+
+    public long playStartAt() {
+        return playStartAt;
+    }
+
+    /** 시작 카운트다운(보드/캐릭터만 세팅되고 입력·이동이 멈춘) 구간인지. */
+    public boolean isCountingDown(long now) {
+        return isInProgress() && now < playStartAt;
     }
 
     public long lastItemSpawnAt() {

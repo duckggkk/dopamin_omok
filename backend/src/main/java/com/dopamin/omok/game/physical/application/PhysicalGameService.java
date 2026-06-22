@@ -39,7 +39,8 @@ public class PhysicalGameService implements PhysicalGameLifecycle {
     public void start(Room room, Game game, List<GamePlayer> participants) {
         int size = props.boardSize();
         PhysicalGame pg = new PhysicalGame(
-                room.getRoomCode(), game.getId(), size, props.winCount(), System.currentTimeMillis());
+                room.getRoomCode(), game.getId(), size, props.winCount(),
+                System.currentTimeMillis(), props.countdownMs());
 
         for (GamePlayer gp : participants) {
             StoneColor color = gp.getColor();
