@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useChat } from '@/hooks/useChat';
 import { usePlazaSocket } from '@/hooks/usePlazaSocket';
 import { plazaApi } from '@/api/plaza';
-import { Direction, PlazaAppearance, PlazaJoinResponse, PlazaPlayerView, PlazaSnapshot } from '@/types';
+import { ApiResponse, ChatMessage, Direction, PlazaAppearance, PlazaJoinResponse, PlazaPlayerView, PlazaSnapshot } from '@/types';
 import styles from './PlazaPage.module.css';
 
 // 캔버스 초기(폴백) 해상도. 실제 크기는 컨테이너에 맞춰 ResizeObserver 가 동적으로 맞춘다.
@@ -31,6 +31,9 @@ const KEY_DIR: Record<string, Direction> = {
 
 const clamp = (v: number, min: number, max: number) => (v < min ? min : v > max ? max : v);
 
+// 말풍선이 머리 위에 떠 있는 시간(ms)
+const BUBBLE_MS = 4500;
+
 const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -50,6 +53,56 @@ const shade = (hex: string, amt: number): string => {
   return `rgb(${r},${g},${b})`;
 };
 
+/** 채팅 말풍선 — 아바타 머리 위(tailTipY 가 꼬리 끝). 문자 단위 줄바꿈(한글 대응)으로 최대 2줄, 넘치면 …. */
+const drawSpeechBubble = (ctx: CanvasRenderingContext2D, cx: number, tailTipY: number, raw: string) => {
+  ctx.font = '12px sans-serif';
+  const maxW = 150, padX = 8, padY = 5, lineH = 15, maxLines = 2, tail = 6;
+  const text = raw.length > 80 ? raw.slice(0, 80) : raw;
+  const lines: string[] = [];
+  let cur = '';
+  let truncated = raw.length > 80;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ctx.measureText(cur + ch).width <= maxW) cur += ch;
+    else if (lines.length < maxLines - 1) { lines.push(cur); cur = ch; }
+    else { truncated = true; break; }
+  }
+  lines.push(cur);
+  if (truncated) {
+    let last = lines[lines.length - 1];
+    while (last && ctx.measureText(last + '…').width > maxW) last = last.slice(0, -1);
+    lines[lines.length - 1] = last + '…';
+  }
+  const textW = Math.max(1, ...lines.map((l) => ctx.measureText(l).width));
+  const boxW = Math.min(maxW, textW) + padX * 2;
+  const boxH = lines.length * lineH + padY * 2;
+  const x = cx - boxW / 2;
+  const yBottom = tailTipY - tail;
+  const y = yBottom - boxH;
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.28)';
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 2;
+  ctx.fillStyle = 'rgba(255,255,255,0.97)';
+  roundRect(ctx, x, y, boxW, boxH, 8);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.97)';
+  ctx.beginPath();
+  ctx.moveTo(cx - 5, yBottom - 0.5);
+  ctx.lineTo(cx + 5, yBottom - 0.5);
+  ctx.lineTo(cx, tailTipY);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#1f2937';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  lines.forEach((ln, i) => ctx.fillText(ln, cx, y + padY + i * lineH));
+};
+
 const PlazaPage = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -67,6 +120,8 @@ const PlazaPage = () => {
   const dimsRef = useRef({ w: INIT_W, h: INIT_H });
   const snapshotRef = useRef<PlazaSnapshot | null>(null);
   const renderPosRef = useRef<Record<string, { x: number; y: number }>>({});
+  // 채팅 말풍선: 닉네임 → { 내용, 만료시각(performance.now 기준) }. 들어온 채팅을 아바타 위에 잠깐 띄운다.
+  const bubblesRef = useRef<Record<string, { text: string; expiresAt: number }>>({});
   const appearanceRef = useRef<PlazaAppearance>(appearance);
   const pressedRef = useRef<Direction[]>([]);
   const activeDirRef = useRef<Direction | null>(null);
@@ -130,11 +185,22 @@ const PlazaPage = () => {
     setOnlineCount((c) => (c !== snap.players.length ? snap.players.length : c));
   }, []);
 
+  // 채팅 수신: 말풍선(닉네임 매칭)으로 띄우고 + 기존 채팅 로그에도 전달
+  const handlePlazaChat = useCallback((res: ApiResponse<ChatMessage>) => {
+    if (res.success && res.data) {
+      bubblesRef.current[res.data.senderNickname] = {
+        text: res.data.content,
+        expiresAt: performance.now() + BUBBLE_MS,
+      };
+    }
+    chat.onChatMessage(res);
+  }, [chat.onChatMessage]);
+
   const { sendInput, sendChat, sendAppearance } = usePlazaSocket({
     channelId: joinInfo?.channelId ?? null,
     appearanceRef,
     onSnapshot: handleSnapshot,
-    onChat: chat.onChatMessage,
+    onChat: handlePlazaChat,
   });
 
   // 입장: 채널 배정
@@ -438,6 +504,16 @@ const PlazaPage = () => {
     for (const p of sorted) {
       const rp = p.playerId === me?.playerId ? meRp : interp(p);
       drawAvatar(ctx, rp.x - camX, rp.y - camY, p, p.playerId === myId, t);
+    }
+
+    // 말풍선 — 모든 아바타 위에 그리도록 별도 패스(앞쪽 아바타에 가려지지 않게)
+    const bubbles = bubblesRef.current;
+    for (const p of sorted) {
+      const b = bubbles[p.nickname];
+      if (!b) continue;
+      if (b.expiresAt <= t) { delete bubbles[p.nickname]; continue; }
+      const rp = renderPosRef.current[p.playerId] ?? { x: p.x, y: p.y };
+      drawSpeechBubble(ctx, rp.x - camX, rp.y - camY - 42, b.text);
     }
   };
 
