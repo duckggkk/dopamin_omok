@@ -26,6 +26,18 @@ services:
     networks:
       - omok_dev_net
 
+  # ── Redis (개발) ──────────────────────────────────────────────────────────
+  # 이메일 인증코드·Refresh 토큰 저장소(TTL 자동 만료). 6379 를 호스트에 노출해
+  # 네이티브 실행(gradlew bootRun, profile=local)에서도 localhost:6379 로 접근 가능.
+  redis:
+    image: redis:7-alpine
+    container_name: omok_redis_dev
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - omok_dev_net
+
   # ── Backend (개발) ────────────────────────────────────────────────────────
   backend:
     build:
@@ -39,6 +51,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-omok_user}
       DB_PASSWORD: ${DB_PASSWORD:-omok_pass}
       JWT_SECRET: ${JWT_SECRET:-dopamin-omok-dev-secret-key-32-characters-minimum}
+      REDIS_HOST: redis
       GRADLE_OPTS: "-Dorg.gradle.daemon=false"
     ports:
       - "${BACKEND_PORT:-8080}:8080"
@@ -49,6 +62,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - omok_dev_net
 

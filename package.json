@@ -1,0 +1,18 @@
+{
+  "name": "dopamin-omok",
+  "version": "1.0.0",
+  "private": true,
+  "description": "도파민 오목 - 루트 개발 스크립트 (백엔드+프론트 동시 실행)",
+  "scripts": {
+    "dev": "concurrently -k -n BACK,FRONT -c blue,green \"npm:dev:back\" \"npm:dev:front\"",
+    "dev:all": "docker compose -f docker-compose.dev.yml up -d redis && concurrently -k -n BACK,FRONT -c blue,green \"npm:dev:back\" \"npm:dev:front\"",
+    "dev:back": "cd backend && gradlew bootRun",
+    "dev:front": "npm run dev --prefix frontend",
+    "dev:redis": "docker compose -f docker-compose.dev.yml up redis",
+    "dev:db": "docker compose -f docker-compose.dev.yml up db",
+    "dev:stop": "docker compose -f docker-compose.dev.yml stop redis db"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

@@ -1,40 +1,20 @@
 package com.dopamin.omok.auth.domain;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "refresh_tokens", indexes = {
-        @Index(name = "idx_refresh_tokens_user_id", columnList = "user_id"),
-        @Index(name = "idx_refresh_tokens_token", columnList = "token")
-})
-@EntityListeners(AuditingEntityListener.class)
+/**
+ * Refresh 토큰. Redis 에 저장되며 만료시각까지의 TTL 로 자동 소멸한다.
+ * 사용자당 1건만 유지된다(재로그인/갱신 시 이전 토큰을 지우고 새로 발급).
+ */
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RefreshToken {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private final Long userId;
+    private final String token;
+    private final LocalDateTime expiresAt;
 
-    @Column(nullable = false)
-    private Long userId;
-
-    @Column(nullable = false, unique = true, length = 500)
-    private String token;
-
-    @Column(nullable = false)
-    private LocalDateTime expiresAt;
-
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Builder
     private RefreshToken(Long userId, String token, LocalDateTime expiresAt) {
         this.userId = userId;
         this.token = token;
@@ -42,11 +22,7 @@ public class RefreshToken {
     }
 
     public static RefreshToken of(Long userId, String token, LocalDateTime expiresAt) {
-        return RefreshToken.builder()
-                .userId(userId)
-                .token(token)
-                .expiresAt(expiresAt)
-                .build();
+        return new RefreshToken(userId, token, expiresAt);
     }
 
     public boolean isExpired() {

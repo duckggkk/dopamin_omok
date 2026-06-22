@@ -52,6 +52,22 @@ services:
       - omok_net
     logging: *default-logging
 
+  # ── Redis (이메일 인증코드·Refresh 토큰 저장, 내부 전용) ───────────────────
+  # TTL 자동 만료라 청소 배치가 불필요. 데이터가 작아 메모리 상한을 작게 잡는다.
+  #   - maxmemory 64mb + noeviction: 한도 초과 시 조용히 버리지 않고 쓰기를 거부(인증 토큰 유실 방지).
+  #   - appendonly: 재시작해도 로그인 세션이 살아있도록 디스크에 영속화.
+  redis:
+    image: redis:7-alpine
+    container_name: omok_redis
+    restart: unless-stopped
+    mem_limit: 96m            # 4GB 서버: Redis 메모리 상한
+    command: redis-server --maxmemory 64mb --maxmemory-policy noeviction --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - omok_net
+    logging: *default-logging
+
   # ── Backend ──────────────────────────────────────────────────────────────
   backend:
     image: ${IMAGE_BACKEND:?IMAGE_BACKEND is required}   # 예) ghcr.io/owner/repo/backend:latest
@@ -64,6 +80,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      REDIS_HOST: redis        # 이메일 인증코드·Refresh 토큰 저장소
       FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
       # 소셜 로그인 (선택)
       KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-}
@@ -82,6 +99,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/actuator/health"]
       interval: 15s
@@ -210,6 +229,7 @@ services:
 
 volumes:
   mysql_data:
+  redis_data:
   caddy_data:
   caddy_config:
   prometheus_data:

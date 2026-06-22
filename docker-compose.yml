@@ -25,6 +25,15 @@ services:
     networks:
       - omok_net
 
+  # ── Redis ────────────────────────────────────────────────────────────────
+  # 이메일 인증코드·Refresh 토큰 저장소(TTL 자동 만료). 내부망 전용(외부 노출 없음).
+  redis:
+    image: redis:7-alpine
+    container_name: omok_redis
+    restart: unless-stopped
+    networks:
+      - omok_net
+
   # ── Backend ──────────────────────────────────────────────────────────────
   backend:
     build:
@@ -38,10 +47,13 @@ services:
       DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      REDIS_HOST: redis
     # 프로덕션에서는 backend 포트도 외부 노출 안 함 (nginx가 프록시)
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - omok_net
 

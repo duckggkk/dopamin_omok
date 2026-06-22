@@ -9,6 +9,13 @@ spring:
         format_sql: true
         default_batch_fetch_size: 100
 
+  # Redis 연결. 로컬(네이티브)은 localhost, 도커/운영은 REDIS_HOST=redis 로 주입한다.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+
   jackson:
     default-property-inclusion: non_null
     time-zone: Asia/Seoul
