@@ -4,8 +4,10 @@ import { gameApi, CreateRoomOptions, WaitingRoomFilter } from '@/api/game';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/contexts/ToastContext';
 import { getApiErrorMessage } from '@/utils/error';
-import { Room, PageResponse, GameType, TimeLimit, ByoyomiOption } from '@/types';
+import { Room, PageResponse, GameType, TimeLimit, ByoyomiOption, StatMode } from '@/types';
 import CreateRoomModal from '@/components/game/CreateRoomModal';
+import ModeTabs from '@/components/common/ModeTabs';
+import { pickStats, totalStats } from '@/utils/stats';
 import styles from './LobbyPage.module.css';
 
 const GAME_TYPE_LABELS: Record<GameType, string> = {
@@ -61,6 +63,7 @@ const LobbyPage = () => {
   const [joinCode, setJoinCode] = useState('');
   const [page, setPage] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [statMode, setStatMode] = useState<StatMode>('TOTAL');
   // 사이드바 방 현황 — 필터/탭과 무관한 전체 집계(대기 중 / 진행 중)
   const [counts, setCounts] = useState<{ waiting: number; live: number } | null>(null);
 
@@ -147,7 +150,10 @@ const LobbyPage = () => {
     }
   };
 
-  const winRate = user && user.totalGames > 0 ? Math.round((user.wins / user.totalGames) * 100) : 0;
+  // 선택한 탭(통합/일반/피지컬)의 내 전적
+  const myStats = user
+    ? pickStats(statMode, totalStats(user.wins, user.losses, user.draws), user.classic, user.physical)
+    : totalStats(0, 0, 0);
   const roomCount = rooms?.totalElements ?? 0;
 
   return (
@@ -309,11 +315,14 @@ const LobbyPage = () => {
 
           <div className={styles.sideCard}>
             <h3 className={styles.sideTitle}>내 전적</h3>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+              <ModeTabs value={statMode} onChange={setStatMode} />
+            </div>
             <div className={styles.statGrid}>
-              <div className={styles.statItem}><b className={styles.win}>{user?.wins ?? 0}</b><span>승</span></div>
-              <div className={styles.statItem}><b className={styles.loss}>{user?.losses ?? 0}</b><span>패</span></div>
-              <div className={styles.statItem}><b>{user?.draws ?? 0}</b><span>무</span></div>
-              <div className={styles.statItem}><b className={styles.rate}>{winRate}%</b><span>승률</span></div>
+              <div className={styles.statItem}><b className={styles.win}>{myStats.wins}</b><span>승</span></div>
+              <div className={styles.statItem}><b className={styles.loss}>{myStats.losses}</b><span>패</span></div>
+              <div className={styles.statItem}><b>{myStats.draws}</b><span>무</span></div>
+              <div className={styles.statItem}><b className={styles.rate}>{myStats.winRate}%</b><span>승률</span></div>
             </div>
           </div>
 

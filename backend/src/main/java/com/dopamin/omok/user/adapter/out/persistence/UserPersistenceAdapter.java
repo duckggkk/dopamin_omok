@@ -45,6 +45,16 @@ public class UserPersistenceAdapter implements LoadUserPort, SaveUserPort, Check
     }
 
     @Override
+    public List<User> findTopRankedByClassicRating(int limit) {
+        return userJpaRepository.findRankedByClassicRating(PageRequest.of(0, limit));
+    }
+
+    @Override
+    public List<User> findTopRankedByPhysicalRating(int limit) {
+        return userJpaRepository.findRankedByPhysicalRating(PageRequest.of(0, limit));
+    }
+
+    @Override
     public User save(User user) {
         return userJpaRepository.save(user);
     }

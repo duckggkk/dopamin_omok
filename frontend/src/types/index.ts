@@ -31,6 +31,18 @@ export type PlayerRole = 'HOST' | 'PLAYER' | 'SPECTATOR';
 export type TimeLimit = 'UNLIMITED' | 'ONE_MIN' | 'THREE_MIN' | 'FIVE_MIN' | 'TEN_MIN';
 export type ByoyomiOption = 'NONE' | 'TEN_SEC' | 'FIFTEEN_SEC' | 'THIRTY_SEC';
 
+// 전적 분류 탭
+export type StatMode = 'TOTAL' | 'CLASSIC' | 'PHYSICAL';
+
+// 한 모드(통합/일반/피지컬)의 전적
+export interface ModeStats {
+  wins: number;
+  losses: number;
+  draws: number;
+  totalGames: number;
+  winRate: number;
+}
+
 export interface User {
   id: string; // UUID (publicId)
   email: string;
@@ -43,6 +55,8 @@ export interface User {
   totalGames: number;
   classicRating: number;
   physicalRating: number;
+  classic: ModeStats;   // 일반 오목 전적
+  physical: ModeStats;  // 피지컬 오목 전적
   currency: number;
   profilePrivate: boolean;
   createdAt: string;
@@ -58,6 +72,8 @@ export interface PublicUser {
   totalGames: number;
   classicRating: number;
   physicalRating: number;
+  classic: ModeStats | null;   // 프로필 조회 시 채워짐(게임/방 응답에선 null)
+  physical: ModeStats | null;
   profilePrivate: boolean;
   createdAt: string;
 }

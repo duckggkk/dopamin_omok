@@ -1,5 +1,5 @@
 import apiClient from './client';
-import { ApiResponse, TokenResponse, User, PublicUser, RankingEntry } from '@/types';
+import { ApiResponse, TokenResponse, User, PublicUser, RankingEntry, StatMode } from '@/types';
 
 export const authApi = {
   register: (data: { email: string; password: string; nickname: string }) =>
@@ -31,6 +31,6 @@ export const userApi = {
   updateProfile: (data: { nickname?: string; profileImageUrl?: string; profilePrivate?: boolean }) =>
     apiClient.patch<ApiResponse<User>>('/users/me', data),
 
-  getRanking: (limit = 20) =>
-    apiClient.get<ApiResponse<RankingEntry[]>>('/users/ranking', { params: { limit } }),
+  getRanking: (limit = 20, mode: StatMode = 'TOTAL') =>
+    apiClient.get<ApiResponse<RankingEntry[]>>('/users/ranking', { params: { limit, mode } }),
 };

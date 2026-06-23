@@ -30,6 +30,14 @@ public interface UserJpaRepository extends JpaRepository<User, Long> {
             + "ORDER BY u.wins DESC, u.losses ASC, u.id ASC")
     List<User> findRanked(Pageable pageable);
 
+    @Query("SELECT u FROM User u WHERE (u.wins + u.losses + u.draws) > 0 "
+            + "ORDER BY u.classicRating DESC, u.id ASC")
+    List<User> findRankedByClassicRating(Pageable pageable);
+
+    @Query("SELECT u FROM User u WHERE (u.wins + u.losses + u.draws) > 0 "
+            + "ORDER BY u.physicalRating DESC, u.id ASC")
+    List<User> findRankedByPhysicalRating(Pageable pageable);
+
     /**
      * 잔액이 충분할 때에만 재화를 차감하는 원자적 조건부 UPDATE.
      * 동시 요청에도 DB 행 잠금으로 직렬화되어 lost-update(중복 차감)가 발생하지 않는다.

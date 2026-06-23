@@ -1,6 +1,7 @@
 package com.dopamin.omok.user.adapter.in.web;
 
 import com.dopamin.omok.user.adapter.in.web.dto.UpdateProfileRequest;
+import com.dopamin.omok.user.application.dto.RankingMode;
 import com.dopamin.omok.user.application.dto.RankingResponse;
 import com.dopamin.omok.user.application.dto.PublicUserResponse;
 import com.dopamin.omok.user.application.dto.UserResponse;
@@ -51,10 +52,11 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("프로필이 업데이트되었습니다.", response));
     }
 
-    /** 랭킹: 상위 limit명(기본 20, 최대 100). */
+    /** 랭킹: 상위 limit명(기본 20, 최대 100). mode=TOTAL(기본)/CLASSIC/PHYSICAL 로 탭 전환. */
     @GetMapping("/ranking")
     public ResponseEntity<ApiResponse<List<RankingResponse>>> getRanking(
-            @RequestParam(defaultValue = "20") int limit) {
-        return ResponseEntity.ok(ApiResponse.success(getRankingUseCase.getRanking(limit)));
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(defaultValue = "TOTAL") RankingMode mode) {
+        return ResponseEntity.ok(ApiResponse.success(getRankingUseCase.getRanking(limit, mode)));
     }
 }

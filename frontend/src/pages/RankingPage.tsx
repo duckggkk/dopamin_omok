@@ -2,19 +2,28 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { userApi } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
-import { RankingEntry } from '@/types';
+import { RankingEntry, StatMode } from '@/types';
+import ModeTabs from '@/components/common/ModeTabs';
 import styles from './RankingPage.module.css';
+
+const SUBTITLES: Record<StatMode, string> = {
+  TOTAL: '통합 승수 기준 상위 플레이어 — 한 판이라도 둔 플레이어만 집계됩니다.',
+  CLASSIC: '일반 오목 레이팅 기준 상위 플레이어',
+  PHYSICAL: '피지컬 오목 레이팅 기준 상위 플레이어',
+};
 
 const RankingPage = () => {
   const { user } = useAuthStore();
+  const [mode, setMode] = useState<StatMode>('TOTAL');
   const [ranking, setRanking] = useState<RankingEntry[] | null>(null);
 
   useEffect(() => {
+    setRanking(null);
     userApi
-      .getRanking(50)
+      .getRanking(50, mode)
       .then((res) => setRanking(res.data.data ?? []))
       .catch(() => setRanking([]));
-  }, []);
+  }, [mode]);
 
   const medalClass = (rank: number) =>
     rank === 1 ? styles.gold : rank === 2 ? styles.silver : rank === 3 ? styles.bronze : '';
@@ -23,7 +32,10 @@ const RankingPage = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>랭킹</h1>
-        <p className={styles.subtitle}>승수 기준 상위 플레이어 — 한 판이라도 둔 플레이어만 집계됩니다.</p>
+        <p className={styles.subtitle}>{SUBTITLES[mode]}</p>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+          <ModeTabs value={mode} onChange={setMode} />
+        </div>
       </div>
 
       {ranking === null ? (
@@ -61,8 +73,8 @@ const RankingPage = () => {
                 <span className={styles.cRecord}>
                   <b className={styles.w}>{r.wins}</b>승 <b className={styles.l}>{r.losses}</b>패 {r.draws}무
                 </span>
-                <span className={styles.cRating}>{r.classicRating}</span>
-                <span className={styles.cRatingP}>{r.physicalRating}</span>
+                <span className={styles.cRating} style={mode === 'CLASSIC' ? { fontWeight: 700, color: '#e0c97f' } : undefined}>{r.classicRating}</span>
+                <span className={styles.cRatingP} style={mode === 'PHYSICAL' ? { fontWeight: 700, color: '#e0c97f' } : undefined}>{r.physicalRating}</span>
                 <span className={styles.cRate}>{r.winRate}%</span>
               </div>
             );

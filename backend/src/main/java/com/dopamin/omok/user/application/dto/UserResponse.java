@@ -18,11 +18,13 @@ public record UserResponse(
         Integer totalGames,
         Integer classicRating,
         Integer physicalRating,
+        ModeStats classic,     // 일반 오목 전적(게임 기록 집계)
+        ModeStats physical,    // 피지컬 오목 전적(게임 기록 집계)
         Integer currency,
         boolean profilePrivate,
         LocalDateTime createdAt
 ) {
-    public static UserResponse from(User user) {
+    public static UserResponse from(User user, ModeStats classic, ModeStats physical) {
         return new UserResponse(
                 user.getPublicId(),
                 user.getEmail(),
@@ -35,6 +37,8 @@ public record UserResponse(
                 user.getTotalGames(),
                 user.getClassicRating(),
                 user.getPhysicalRating(),
+                classic,
+                physical,
                 user.getCurrency() != null ? user.getCurrency() : 0,
                 user.isProfilePrivate(),
                 user.getCreatedAt()

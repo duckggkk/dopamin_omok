@@ -4,8 +4,10 @@ import { useAuthStore } from '@/store/authStore';
 import { userApi } from '@/api/auth';
 import { gameApi } from '@/api/game';
 import { friendApi } from '@/api/friend';
-import { GameInfo, PublicUser, RelationInfo, User } from '@/types';
+import { GameInfo, PublicUser, RelationInfo, StatMode, User } from '@/types';
 import GameRecordViewer from '@/components/game/GameRecordViewer';
+import ModeTabs from '@/components/common/ModeTabs';
+import { pickStats, totalStats } from '@/utils/stats';
 import styles from './ProfilePage.module.css';
 
 type ProfileView = User | PublicUser;
@@ -42,6 +44,7 @@ const ProfilePage = () => {
   const [kifuGame, setKifuGame] = useState<GameInfo | null>(null);
   const [relation, setRelation] = useState<RelationInfo | null>(null);
   const [relBusy, setRelBusy] = useState(false);
+  const [statMode, setStatMode] = useState<StatMode>('TOTAL');
 
   useEffect(() => {
     if (!user) return;
@@ -134,7 +137,13 @@ const ProfilePage = () => {
 
   const canEdit = isOwnProfile && isUser(profile);
   const ownProfile = canEdit ? profile : null;
-  const winRate = profile.totalGames > 0 ? Math.round((profile.wins / profile.totalGames) * 100) : 0;
+  // 선택한 탭(통합/일반/피지컬)의 전적
+  const stats = pickStats(
+    statMode,
+    totalStats(profile.wins, profile.losses, profile.draws),
+    profile.classic,
+    profile.physical,
+  );
 
   const doFriendAction = async (action: 'add' | 'cancel' | 'accept' | 'reject' | 'unfriend') => {
     if (!userId || relBusy) return;
@@ -247,19 +256,23 @@ const ProfilePage = () => {
           </div>
         </div>
 
-        <div className={styles.stats}>
-          <div className={styles.statItem}><span className={styles.statValue}>{profile.totalGames}</span><span className={styles.statLabel}>총 대국</span></div>
-          <div className={styles.statItem}><span className={`${styles.statValue} ${styles.win}`}>{profile.wins}</span><span className={styles.statLabel}>승</span></div>
-          <div className={styles.statItem}><span className={`${styles.statValue} ${styles.loss}`}>{profile.losses}</span><span className={styles.statLabel}>패</span></div>
-          <div className={styles.statItem}><span className={styles.statValue}>{profile.draws}</span><span className={styles.statLabel}>무</span></div>
-          <div className={styles.statItem}><span className={`${styles.statValue} ${styles.rate}`}>{winRate}%</span><span className={styles.statLabel}>승률</span></div>
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 12px' }}>
+          <ModeTabs value={statMode} onChange={setStatMode} />
         </div>
 
-        {profile.totalGames > 0 && (
-          <div className={styles.rateBar} title={`${profile.wins}승 ${profile.losses}패 ${profile.draws}무`}>
-            <div className={styles.rateWin} style={{ flex: profile.wins }} />
-            <div className={styles.rateDraw} style={{ flex: profile.draws }} />
-            <div className={styles.rateLoss} style={{ flex: profile.losses }} />
+        <div className={styles.stats}>
+          <div className={styles.statItem}><span className={styles.statValue}>{stats.totalGames}</span><span className={styles.statLabel}>총 대국</span></div>
+          <div className={styles.statItem}><span className={`${styles.statValue} ${styles.win}`}>{stats.wins}</span><span className={styles.statLabel}>승</span></div>
+          <div className={styles.statItem}><span className={`${styles.statValue} ${styles.loss}`}>{stats.losses}</span><span className={styles.statLabel}>패</span></div>
+          <div className={styles.statItem}><span className={styles.statValue}>{stats.draws}</span><span className={styles.statLabel}>무</span></div>
+          <div className={styles.statItem}><span className={`${styles.statValue} ${styles.rate}`}>{stats.winRate}%</span><span className={styles.statLabel}>승률</span></div>
+        </div>
+
+        {stats.totalGames > 0 && (
+          <div className={styles.rateBar} title={`${stats.wins}승 ${stats.losses}패 ${stats.draws}무`}>
+            <div className={styles.rateWin} style={{ flex: stats.wins }} />
+            <div className={styles.rateDraw} style={{ flex: stats.draws }} />
+            <div className={styles.rateLoss} style={{ flex: stats.losses }} />
           </div>
         )}
 
