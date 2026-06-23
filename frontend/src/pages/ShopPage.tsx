@@ -240,7 +240,7 @@ const ShopPage = () => {
                                 onClick={() => handlePreviewClick(it)}
                                 title="미리보기에 적용"
                               >
-                                <ItemPreview item={it} />
+                                <ItemPreview item={it} gacha />
                                 <span className={styles.previewName}>{getItemDisplayName(it)}</span>
                               </button>
                             ))}

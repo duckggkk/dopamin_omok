@@ -79,18 +79,42 @@ const MiniBoard = ({ colors = DEFAULT_COLORS, filter = DEFAULT_FILTER, imageUrl 
   );
 };
 
+/** 바둑판 한 칸 위에 바둑알을 '크게 1개' 올려 보여주는 미리보기 (착수효과·뽑기상자용). */
+const LargeStonePreview = ({ style, pop = false }: { style: StoneStyle; pop?: boolean }) => {
+  const r = 27;
+  const cx = PX / 2;
+  return (
+    <svg width={PX} height={PX} viewBox={`0 0 ${PX} ${PX}`} className={styles.boardSvg} aria-hidden="true">
+      <rect width={PX} height={PX} rx={8} fill={DEFAULT_COLORS.bg} />
+      <line x1={cx} y1={6} x2={cx} y2={PX - 6} stroke={DEFAULT_COLORS.lines} strokeWidth={1} />
+      <line x1={6} y1={cx} x2={PX - 6} y2={cx} stroke={DEFAULT_COLORS.lines} strokeWidth={1} />
+      <g className={pop ? styles.popStone : undefined}>
+        <circle cx={cx} cy={cx} r={r} fill={style.fill} stroke={style.stroke} strokeWidth={1.5}
+          style={{ filter: 'drop-shadow(1px 2px 3px rgba(0,0,0,0.5))' }} />
+        <circle cx={cx - r * 0.32} cy={cx - r * 0.34} r={r * 0.42} fill={style.shine} opacity={0.55} />
+      </g>
+    </svg>
+  );
+};
+
 interface Props {
   item: ShopItem;
+  /** 뽑기 상자 안 미리보기 — 바둑알 스킨은 크게 1개, 바둑판 스킨은 돌 1개만 둔다. */
+  gacha?: boolean;
 }
 
 /** 상점/인벤토리에서 아이템(스킨·효과·착수음·캐릭터·문구)을 3x3 바둑판 등으로 미리 보여준다. */
-const ItemPreview = ({ item }: Props) => {
+const ItemPreview = ({ item, gacha = false }: Props) => {
   const cfg = item.itemConfig ?? null;
   const boardImg = useProtectedAsset('BOARD_SKIN', item.itemType === 'BOARD_SKIN' ? cfg?.assetKey ?? null : null);
 
   switch (item.itemType) {
     case 'STONE_SKIN': {
       const skin = cfg?.stone ?? BLACK_STONE;
+      // 뽑기 상자: 바둑알을 크게 1개만 둬 스킨 자체가 도드라지게 한다.
+      if (gacha) {
+        return <LargeStonePreview style={skin} />;
+      }
       return (
         <MiniBoard stones={[
           { r: 0, c: 0, style: skin }, { r: 1, c: 1, style: skin }, { r: 2, c: 2, style: skin },
@@ -98,32 +122,20 @@ const ItemPreview = ({ item }: Props) => {
         ]} />
       );
     }
-    case 'STONE_EFFECT': {
+    case 'STONE_EFFECT':
       // 착수 효과는 한 돌의 등장 모션 — 바둑알 1개를 크게, 반복 재생해 보여준다.
       // 효과가 없는 '일반 착수'(기본)는 모션 없이 정적으로 보여준다.
-      const hasEffect = !!cfg?.effect;
-      const r = 27;
-      const cx = PX / 2;
-      return (
-        <svg width={PX} height={PX} viewBox={`0 0 ${PX} ${PX}`} className={styles.boardSvg} aria-hidden="true">
-          <rect width={PX} height={PX} rx={8} fill={DEFAULT_COLORS.bg} />
-          <line x1={cx} y1={6} x2={cx} y2={PX - 6} stroke={DEFAULT_COLORS.lines} strokeWidth={1} />
-          <line x1={6} y1={cx} x2={PX - 6} y2={cx} stroke={DEFAULT_COLORS.lines} strokeWidth={1} />
-          <g className={hasEffect ? styles.popStone : undefined}>
-            <circle cx={cx} cy={cx} r={r} fill={BLACK_STONE.fill} stroke={BLACK_STONE.stroke} strokeWidth={1.5}
-              style={{ filter: 'drop-shadow(1px 2px 3px rgba(0,0,0,0.5))' }} />
-            <circle cx={cx - r * 0.32} cy={cx - r * 0.34} r={r * 0.42} fill={BLACK_STONE.shine} opacity={0.55} />
-          </g>
-        </svg>
-      );
-    }
+      return <LargeStonePreview style={BLACK_STONE} pop={!!cfg?.effect} />;
     case 'BOARD_SKIN':
       return (
         <MiniBoard
           colors={cfg?.colors ?? DEFAULT_COLORS}
           filter={cfg?.assetKey ? cfg?.filter ?? null : cfg?.filter ?? DEFAULT_FILTER}
           imageUrl={boardImg}
-          stones={[{ r: 0, c: 1, style: BLACK_STONE }, { r: 1, c: 1, style: WHITE_STONE }, { r: 2, c: 1, style: BLACK_STONE }]}
+          // 뽑기 상자: 바둑판 스킨이 주인공이므로 돌은 1개만(중앙) 둬 배경이 잘 보이게 한다.
+          stones={gacha
+            ? [{ r: 1, c: 1, style: BLACK_STONE }]
+            : [{ r: 0, c: 1, style: BLACK_STONE }, { r: 1, c: 1, style: WHITE_STONE }, { r: 2, c: 1, style: BLACK_STONE }]}
         />
       );
     case 'STONE_SOUND':
