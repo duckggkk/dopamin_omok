@@ -5,6 +5,7 @@ apiVersion: 1
 datasources:
   - name: Loki
     type: loki
+    uid: loki                  # 알림 규칙(alerting/rules.yaml)이 이 고정 UID로 Loki를 참조한다
     access: proxy
     url: http://loki:3100      # docker 내부망의 Loki
     editable: false

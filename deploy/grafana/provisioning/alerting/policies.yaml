@@ -1,0 +1,11 @@
+# 알림 라우팅(Notification policy) — 모든 알림을 위 ops-notify(디스코드+이메일)로 보낸다.
+# ⚠️ 이 파일은 기본 라우팅 정책을 대체한다. 같은 알림이 폭주하지 않도록 묶음/반복 간격을 둔다.
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: ops-notify
+    group_by: ['grafana_folder', 'alertname']
+    group_wait: 30s          # 처음 발화 후 30초 모았다가 한 번에 통지
+    group_interval: 5m       # 같은 그룹의 새 알림은 5분 간격으로 통지
+    repeat_interval: 4h      # 해소되지 않은 알림은 4시간마다 재통지

@@ -87,6 +87,8 @@ services:
       KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      # 구글 콘솔 '승인된 리디렉션 URI'와 동일하게. 예) https://<도메인>/api/auth/oauth2/google/callback
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
       # 이메일 인증 발송(SMTP)
       MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
       MAIL_PORT: ${MAIL_PORT:-587}
@@ -217,6 +219,17 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"          # 가입 비활성(관리자만)
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      # ── 알림(#6/#10) ──────────────────────────────────────────────────────
+      # 이메일 발송용 SMTP — 백엔드와 같은 Gmail 계정 재사용.
+      GF_SMTP_ENABLED: "true"
+      GF_SMTP_HOST: ${MAIL_HOST:-smtp.gmail.com}:${MAIL_PORT:-587}
+      GF_SMTP_USER: ${MAIL_USERNAME}
+      GF_SMTP_PASSWORD: ${MAIL_PASSWORD}
+      GF_SMTP_FROM_ADDRESS: ${MAIL_FROM}
+      GF_SMTP_FROM_NAME: "도파민오목 알림"
+      # 알림 수신처(프로비저닝 contactpoints.yaml 이 참조).
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-dopaminomok@gmail.com}
     volumes:
       - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana_data:/var/lib/grafana
