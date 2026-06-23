@@ -6,6 +6,9 @@ backend/*.log
 backend/logs/
 application-local.yml
 
+# Node (루트 dev 스크립트용 concurrently 등)
+/node_modules/
+
 # Frontend
 frontend/node_modules/
 frontend/dist/
