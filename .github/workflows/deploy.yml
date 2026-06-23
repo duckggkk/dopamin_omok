@@ -67,6 +67,10 @@ jobs:
           context: ./frontend
           platforms: linux/amd64   # 운영 서버가 x86(4 vCPU) — amd64만 빌드(QEMU 불필요, 빠름)
           push: true
+          # 구글 로그인 버튼 노출 — GitHub > Settings > Variables 에 VITE_GOOGLE_LOGIN_ENABLED=true
+          # 를 만들면 켜진다. 변수가 없으면 false(숨김)로 빌드.
+          build-args: |
+            VITE_GOOGLE_LOGIN_ENABLED=${{ vars.VITE_GOOGLE_LOGIN_ENABLED || 'false' }}
           tags: |
             ghcr.io/${{ env.OWNER_REPO }}/frontend:latest
             ghcr.io/${{ env.OWNER_REPO }}/frontend:${{ env.SHA }}

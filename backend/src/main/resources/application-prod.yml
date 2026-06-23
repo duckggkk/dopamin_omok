@@ -60,12 +60,16 @@ app:
     url: ${FRONTEND_URL}
 
   oauth2:
+    # 카카오 로그인은 아직 미구현(설정 자리만 둔다). 연동 시 google 과 동일 패턴으로
+    # OAuth2Controller/OAuth2Service/어댑터를 추가하면 된다.
     kakao:
       client-id: ${KAKAO_CLIENT_ID:}
       client-secret: ${KAKAO_CLIENT_SECRET:}
     google:
       client-id: ${GOOGLE_CLIENT_ID:}
       client-secret: ${GOOGLE_CLIENT_SECRET:}
+      # 구글 콘솔 '승인된 리디렉션 URI' 와 정확히 일치해야 함. 예) https://<도메인>/api/auth/oauth2/google/callback
+      redirect-uri: ${GOOGLE_REDIRECT_URI:}
 
 server:
   port: ${PORT:8080}

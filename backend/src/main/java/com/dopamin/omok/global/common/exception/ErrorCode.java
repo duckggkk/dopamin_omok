@@ -21,6 +21,8 @@ public enum ErrorCode {
     VERIFICATION_ATTEMPTS_EXCEEDED(HttpStatus.BAD_REQUEST, "인증 시도 횟수를 초과했습니다. 재발송을 요청해주세요."),
     EMAIL_ALREADY_VERIFIED(HttpStatus.BAD_REQUEST, "이미 인증된 이메일입니다."),
     EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "이메일 발송에 실패했습니다."),
+    OAUTH_EMAIL_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "소셜 계정의 이메일이 인증되지 않았습니다."),
+    OAUTH_LOGIN_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "소셜 로그인 처리에 실패했습니다."),
 
     // User
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),

@@ -1,0 +1,33 @@
+/* 구글 브랜드 가이드라인에 가까운 "Google로 로그인" 버튼 */
+.googleBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #3c4043;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.googleBtn:hover {
+  background: #f8faff;
+  border-color: #d2e3fc;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.3);
+}
+
+.googleBtn:active {
+  background: #f1f3f4;
+}
+
+.icon {
+  flex-shrink: 0;
+}

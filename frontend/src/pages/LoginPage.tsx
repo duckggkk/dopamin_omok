@@ -4,6 +4,7 @@ import { authApi, userApi } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
 import { tokenStorage } from '@/utils/token';
 import { getApiErrorMessage, getApiErrorStatus } from '@/utils/error';
+import GoogleLoginButton from '@/components/auth/GoogleLoginButton';
 import styles from './AuthPage.module.css';
 import pageStyles from './LoginPage.module.css';
 
@@ -13,6 +14,10 @@ const LoginPage = () => {
   const [searchParams] = useSearchParams();
   const isJustVerified = searchParams.get('verified') === '1';
   const isSessionExpired = searchParams.get('reason') === 'session_expired';
+  const isOAuthError = searchParams.get('error') === 'oauth';
+  // 구글 로그인 버튼 노출 여부 — 구글 콘솔 설정을 마친 뒤 VITE_GOOGLE_LOGIN_ENABLED=true 로 켠다.
+  // (설정 전 운영에서 깨진 버튼이 보이지 않도록 기본은 숨김)
+  const googleLoginEnabled = import.meta.env.VITE_GOOGLE_LOGIN_ENABLED === 'true';
   const [form, setForm] = useState({ email: '', password: '' });
   const [keepLogin, setKeepLogin] = useState(true); // 로그인 상태 유지(기본 ON — 기존 동작)
   const [error, setError] = useState('');
@@ -64,6 +69,11 @@ const LoginPage = () => {
         {isSessionExpired && (
           <p className={`${styles.notice} ${styles.noticeWarn}`}>
             다른 기기에서 로그인되어 자동 로그아웃되었습니다.
+          </p>
+        )}
+        {isOAuthError && (
+          <p className={`${styles.notice} ${styles.noticeWarn}`}>
+            구글 로그인에 실패했습니다. 다시 시도해주세요.
           </p>
         )}
 
@@ -120,6 +130,20 @@ const LoginPage = () => {
             {isLoading ? '로그인 중...' : '로그인'}
           </button>
         </form>
+
+        {googleLoginEnabled && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '20px 0', color: '#888', fontSize: '0.85rem' }}>
+              <span style={{ flex: 1, height: 1, background: '#333' }} />
+              또는
+              <span style={{ flex: 1, height: 1, background: '#333' }} />
+            </div>
+            <GoogleLoginButton />
+            <p style={{ marginTop: 12, fontSize: '0.78rem', color: '#888', textAlign: 'center', lineHeight: 1.5 }}>
+              계속하면 <Link to="/terms">이용약관</Link> 및 <Link to="/privacy">개인정보처리방침</Link>에<br />동의하는 것으로 간주됩니다.
+            </p>
+          </>
+        )}
 
         <p className={styles.footer}>
           계정이 없으신가요? <Link to="/register">회원가입</Link>

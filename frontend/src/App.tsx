@@ -5,6 +5,8 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import PrivateRoute from '@/components/common/PrivateRoute';
 import LoginPage from '@/pages/LoginPage';
+import OAuthCallbackPage from '@/pages/OAuthCallbackPage';
+import WelcomePage from '@/pages/WelcomePage';
 import RegisterPage from '@/pages/RegisterPage';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
 import HomePage from '@/pages/HomePage';
@@ -40,6 +42,7 @@ const router = createBrowserRouter([
     element: <Layout />,
     children: [
       { path: '/login', element: <LoginPage /> },
+      { path: '/oauth/callback', element: <OAuthCallbackPage /> },
       { path: '/register', element: <RegisterPage /> },
       { path: '/terms', element: <TermsPage /> },
       { path: '/privacy', element: <PrivacyPolicyPage /> },
@@ -49,6 +52,7 @@ const router = createBrowserRouter([
         element: <PrivateRoute />,
         children: [
           { path: '/', element: <HomePage /> },
+          { path: '/welcome', element: <WelcomePage /> },
           { path: '/ai', element: <AiGamePage /> },
           { path: '/lobby', element: <LobbyPage /> },
           { path: '/plaza', element: <PlazaPage /> },

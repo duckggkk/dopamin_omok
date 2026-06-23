@@ -9,7 +9,6 @@ import com.dopamin.omok.auth.application.port.in.ResendVerificationEmailUseCase;
 import com.dopamin.omok.auth.application.port.in.VerifyEmailUseCase;
 import com.dopamin.omok.auth.application.port.out.DeleteRefreshTokenPort;
 import com.dopamin.omok.auth.application.port.out.LoadRefreshTokenPort;
-import com.dopamin.omok.auth.application.port.out.SaveRefreshTokenPort;
 import com.dopamin.omok.auth.application.service.support.EmailVerificationService;
 import com.dopamin.omok.auth.domain.RefreshToken;
 import com.dopamin.omok.global.common.exception.ErrorCode;
@@ -26,8 +25,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -38,12 +35,12 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
     private final SaveUserPort saveUserPort;
     private final DeleteUserPort deleteUserPort;
     private final LoadRefreshTokenPort loadRefreshTokenPort;
-    private final SaveRefreshTokenPort saveRefreshTokenPort;
     private final DeleteRefreshTokenPort deleteRefreshTokenPort;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final EmailVerificationService emailVerificationService;
     private final ApplicationEventPublisher eventPublisher;
+    private final TokenIssuer tokenIssuer;
 
     @Override
     @Transactional
@@ -157,21 +154,6 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
     }
 
     private TokenResponse issueTokens(User user) {
-        String accessToken = jwtProvider.generateAccessToken(
-                user.getId(), user.getEmail(), user.getRole().name(), user.getTokenVersion()
-        );
-        String refreshTokenValue = jwtProvider.generateRefreshToken(user.getId());
-
-        deleteRefreshTokenPort.deleteByUserId(user.getId());
-
-        long expirationMillis = jwtProvider.getRefreshTokenExpirationMillis();
-        RefreshToken refreshToken = RefreshToken.of(
-                user.getId(),
-                refreshTokenValue,
-                LocalDateTime.now().plusNanos(expirationMillis * 1_000_000)
-        );
-        saveRefreshTokenPort.save(refreshToken);
-
-        return TokenResponse.of(accessToken, refreshTokenValue, expirationMillis);
+        return tokenIssuer.issue(user);
     }
 }
