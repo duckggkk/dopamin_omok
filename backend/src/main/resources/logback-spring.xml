@@ -19,16 +19,21 @@
     <conversionRule conversionWord="maskedMsg"
                     converterClass="com.dopamin.omok.global.logging.MaskingMessageConverter"/>
 
+    <!-- 예외 스택트레이스 마스킹 변환어 등록: 패턴에서 %wEx 대신 %maskedEx 로 사용.
+         (%maskedMsg 는 메시지만 가리므로, 스택트레이스 본문의 PII 는 이 컨버터가 막는다) -->
+    <conversionRule conversionWord="maskedEx"
+                    converterClass="com.dopamin.omok.global.logging.MaskingThrowableConverter"/>
+
     <!-- 로컬: 사람이 읽기 쉬운 컬러 로그 -->
     <springProfile name="local">
         <property name="LOG_PATTERN"
-                  value="%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%X{traceId:-}]){magenta} %clr(%logger{36}){cyan} %clr(:){faint} %maskedMsg%n%wEx"/>
+                  value="%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%X{traceId:-}]){magenta} %clr(%logger{36}){cyan} %clr(:){faint} %maskedMsg%n%maskedEx"/>
     </springProfile>
 
     <!-- 운영/도커/테스트: 컬러 없이 (docker logs → Promtail → Loki 수집에 적합) -->
     <springProfile name="!local">
         <property name="LOG_PATTERN"
-                  value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId:-}] [%thread] %logger{36} - %maskedMsg%n%wEx"/>
+                  value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId:-}] [%thread] %logger{36} - %maskedMsg%n%maskedEx"/>
     </springProfile>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">

@@ -2,6 +2,7 @@ package com.dopamin.omok.global.common.exception;
 
 import com.dopamin.omok.global.common.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -19,9 +20,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(OmokException.class)
     public ResponseEntity<ApiResponse<Void>> handleOmokException(OmokException e) {
-        log.warn("OmokException: {}", e.getMessage());
+        HttpStatus status = e.getErrorCode().getHttpStatus();
+        // 5xx(서버 잘못)만 ERROR 로 남겨 알림 대상으로 삼고, 4xx(정상 비즈니스 거부:
+        // 권한·중복·미존재 등)는 DEBUG 로 낮춘다. 요청 자체는 TraceIdFilter 의 접근 로그(INFO)에
+        // 'METHOD URI -> status' 로 이미 남으므로 추적엔 지장이 없다.
+        if (status.is5xxServerError()) {
+            log.error("OmokException(5xx): {}", e.getMessage(), e);
+        } else {
+            log.debug("OmokException({}): {}", status.value(), e.getMessage());
+        }
         return ResponseEntity
-                .status(e.getErrorCode().getHttpStatus())
+                .status(status)
                 .body(ApiResponse.error(e.getMessage()));
     }
 
@@ -41,7 +50,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException e) {
-        log.warn("AuthenticationException: {}", e.getMessage());
+        // 401 은 정상적인 인증 실패(만료 토큰·미로그인 등) — DEBUG. 접근 로그(INFO)에 401 이 남는다.
+        log.debug("AuthenticationException: {}", e.getMessage());
         return ResponseEntity
                 .status(ErrorCode.UNAUTHORIZED.getHttpStatus())
                 .body(ApiResponse.error(ErrorCode.UNAUTHORIZED.getMessage()));
@@ -49,7 +59,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException e) {
-        log.warn("AccessDeniedException: {}", e.getMessage());
+        // 403 은 정상적인 권한 거부 — DEBUG.
+        log.debug("AccessDeniedException: {}", e.getMessage());
         return ResponseEntity
                 .status(ErrorCode.FORBIDDEN.getHttpStatus())
                 .body(ApiResponse.error(ErrorCode.FORBIDDEN.getMessage()));

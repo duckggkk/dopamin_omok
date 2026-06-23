@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -56,6 +57,9 @@ public class SecurityConfig {
 
                 // 엔드포인트 권한
                 .authorizeHttpRequests(auth -> auth
+                        // 로그아웃은 로그인 사용자만. /auth/** permitAll 보다 먼저 두어 우선 적용한다.
+                        // (미인증 호출 시 컨트롤러에서 principal=null → NPE → 500 이 나던 것을 401 로 깔끔히 거부)
+                        .requestMatchers(HttpMethod.POST, "/auth/logout").authenticated()
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         // OpenAPI / Swagger UI (springdoc) — context-path(/api) 하위에서 노출

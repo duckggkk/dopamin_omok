@@ -13,7 +13,11 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update      # 컨테이너 초기 실행 시 스키마 자동 생성
+      # 스키마 관리 주체는 Flyway 하나로 통일. dev/docker 도 운영(prod)과 동일하게 validate 로 맞춰
+      # Flyway 마이그레이션 경로를 dev 에서 미리 검증한다(운영 validate 에서야 터지는 사고 방지).
+      # ⚠️ 기존 update 로 만들어진 dev DB 볼륨은 스키마가 어긋나 validate 가 실패할 수 있다.
+      #    그 경우 dev DB 볼륨(mysql_dev_data)을 삭제 후 재기동하면 Flyway 가 깨끗이 재구성한다.
+      ddl-auto: validate
     show-sql: false
 
 app:
@@ -30,12 +34,18 @@ app:
       - http://frontend:80
 
   oauth2:
+    # 카카오 로그인은 아직 미구현(설정 자리만 둔다).
     kakao:
       client-id: ${KAKAO_CLIENT_ID:}
       client-secret: ${KAKAO_CLIENT_SECRET:}
     google:
       client-id: ${GOOGLE_CLIENT_ID:}
       client-secret: ${GOOGLE_CLIENT_SECRET:}
+      redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/api/auth/oauth2/google/callback}
+
+  # 콜백 후 토큰을 넘겨줄 프론트 주소(소셜 로그인용). dev 컨테이너 프론트 포트.
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:3000}
 
 logging:
   level:
