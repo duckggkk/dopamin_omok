@@ -70,6 +70,82 @@
 .diffLabel { font-weight: 800; color: var(--text); font-size: 1.05rem; }
 .diffDesc { font-size: 0.78rem; color: var(--text-faint); line-height: 1.45; }
 
+/* ---------- 단계 사다리 ---------- */
+.loading { color: var(--text-muted); font-size: 0.95rem; margin: 18px 0; }
+.progressLine {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: 2px 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+.progressLine b { color: var(--gold-bright); font-size: 1.05rem; }
+
+.ladder {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column-reverse; /* 1단계가 맨 아래(사다리 느낌) */
+  gap: 9px;
+}
+.rung {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--inset);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: transform var(--t) var(--ease), border-color var(--t) var(--ease), background var(--t) var(--ease);
+}
+.rung:not(:disabled):hover {
+  transform: translateX(3px);
+  border-color: var(--gold-soft-border);
+  background: var(--surface-3);
+}
+.rungEmoji { font-size: 1.6rem; width: 34px; text-align: center; flex-shrink: 0; }
+.rungText { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.rungLabel { font-weight: 800; color: var(--text); font-size: 1rem; }
+.rungDesc { font-size: 0.76rem; color: var(--text-faint); line-height: 1.4; }
+.rungStatus {
+  flex-shrink: 0;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* 이미 깬 단계 */
+.rungCleared { border-color: var(--gold-soft-border); }
+.rungCleared .rungStatus { color: var(--success, #54d18c); }
+
+/* 지금 도전 가능한 최전선 단계 — 골드로 강조 */
+.rungCurrent {
+  border-color: var(--gold-deep, var(--gold-bright));
+  background: var(--gold-soft, var(--surface-3));
+  box-shadow: var(--ring-top);
+}
+.rungCurrent .rungStatus { color: var(--gold-bright); }
+
+/* 아직 잠긴 단계 */
+.rungLocked {
+  cursor: not-allowed;
+  opacity: 0.5;
+  filter: grayscale(0.5);
+}
+
+.handicapNote {
+  font-size: 0.82rem;
+  color: var(--gold-bright);
+  margin: -4px 0 0;
+}
+.handicapNote b { color: var(--gold-bright); }
+
 .backLink {
   margin-top: 14px;
   background: transparent;

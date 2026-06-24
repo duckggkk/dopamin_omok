@@ -39,7 +39,7 @@ public class PhysicalGameService implements PhysicalGameLifecycle {
     public void start(Room room, Game game, List<GamePlayer> participants) {
         int size = props.boardSize();
         PhysicalGame pg = new PhysicalGame(
-                room.getRoomCode(), game.getId(), size, props.winCount(),
+                room.getRoomCode(), game.getId(), size, props.winCount(), props.targetScore(),
                 System.currentTimeMillis(), props.countdownMs());
 
         for (GamePlayer gp : participants) {
@@ -52,6 +52,8 @@ public class PhysicalGameService implements PhysicalGameLifecycle {
                     resolveSkin(userId), resolveCharacter(userId),
                     loadStoneSoundPort.findEquippedStoneSoundKey(userId).orElse(null),
                     pos[0], pos[1]);
+            // AI 연습: 봇 계정 플레이어는 드라이버가 매 틱 구동하도록 표시한다.
+            if (gp.getUser().isBot()) player.markAsBot();
             // 파괴는 Ctrl 기본키 동작이므로 시작 아이템(상대 돌 제거)을 더 이상 지급하지 않는다.
             pg.addPlayer(player);
         }

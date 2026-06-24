@@ -79,7 +79,9 @@ const PhysicalReplayViewer = ({ game, replay, onClose }: Props) => {
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <div>
-            <h2 className={styles.title}>⚔️ 피지컬 리플레이</h2>
+            <h2 className={styles.title}>
+              ⚔️ 피지컬 리플레이 <span className={styles.typeBadge}>피지컬 오목</span>
+            </h2>
             <p className={styles.subtitle}>
               <span className={styles.stoneB} />{black}
               <span className={styles.vs}>vs</span>

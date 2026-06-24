@@ -34,13 +34,17 @@ class PhysicalOmokEngineTest {
         weights.put(PhysicalItemType.SPEED_BOOST, 50);
         weights.put(PhysicalItemType.CRATER, 30);
         weights.put(PhysicalItemType.BOMB, 20);
-        // boardSize=14, winCount=5, move=100, place=300, destroy=2000, winSettle=400, countdown=3000,
-        // tick=60, spawnInterval=1000, maxItems=3, boostDuration=5000, boostMoveCd=50
-        return new PhysicalOmokProperties(SIZE, 5, 100, 300, 2000, 400, 3000, 60, 1000, 3, 5000, 50, weights, false);
+        // boardSize=14, winCount=5, targetScore=3, move=100, place=300, destroy=2000, winSettle=400,
+        // countdown=3000, tick=60, spawnInterval=1000, maxItems=3, boostDuration=5000, boostMoveCd=50
+        return new PhysicalOmokProperties(SIZE, 5, 3, 100, 300, 2000, 400, 3000, 60, 1000, 3, 5000, 50, weights, false);
     }
 
     private PhysicalGame newGame() {
-        PhysicalGame game = new PhysicalGame("ROOM", 1L, SIZE, 5, 0L, 0L);
+        return newGame(3);
+    }
+
+    private PhysicalGame newGame(int targetScore) {
+        PhysicalGame game = new PhysicalGame("ROOM", 1L, SIZE, 5, targetScore, 0L, 0L);
         game.addPlayer(new PhysicalPlayer(1L, "흑", StoneColor.BLACK, null, null, null, 5, 5));
         game.addPlayer(new PhysicalPlayer(2L, "백", StoneColor.WHITE, null, null, null, 8, 8));
         return game;
@@ -81,38 +85,126 @@ class PhysicalOmokEngineTest {
     }
 
     @Test
-    @DisplayName("5목 완성 시 즉시 끝나지 않고, settle 동안 유지되면 승리 확정된다")
-    void placeStartsPendingWinThenConfirms() {
-        PhysicalGame g = newGame();
+    @DisplayName("오목 완성: 게이지가 차면 1점 + 완성 라인만 제거되고 보드는 유지된 채 게임이 계속된다")
+    void scoreRemovesLineAndGameContinues() {
+        PhysicalGame g = newGame(3);
         for (int x = 0; x < 4; x++) g.board().place(x, 0, StoneColor.BLACK);
+        g.board().place(7, 7, StoneColor.BLACK); // 라인과 무관한 돌 — 보드 유지 확인용
         PhysicalPlayer p = black(g);
         p.moveTo(4, 0, 0);
 
         boolean formed = engine.place(g, p, 1000);
         assertThat(formed).isTrue();
-        assertThat(g.status()).isEqualTo(GameStatus.IN_PROGRESS); // settle 전엔 미확정
-        assertThat(g.pendingWinColor()).isEqualTo(StoneColor.BLACK);
+        engine.tickPendingLines(g, 1000); // 틱 재수집 → 충전 시작
+        assertThat(g.status()).isEqualTo(GameStatus.IN_PROGRESS); // 충전 전엔 미확정
+        assertThat(g.pendingLines()).hasSize(1);
+        assertThat(g.pendingLines().get(0).color()).isEqualTo(StoneColor.BLACK);
 
-        engine.settlePendingWin(g, 1000 + props.winSettleMs() + 1); // 유지 → 확정
+        boolean scored = engine.tickPendingLines(g, 1000 + props.winSettleMs() + 1); // 충전 완료 → 1점
+        assertThat(scored).isTrue();
+        assertThat(g.status()).isEqualTo(GameStatus.IN_PROGRESS);      // 1/3점 → 게임 계속
+        assertThat(g.pendingLines()).isEmpty();
+        assertThat(g.scoreOf(StoneColor.BLACK)).isEqualTo(1);
+        for (int x = 0; x <= 4; x++) assertThat(g.board().stoneAt(x, 0)).isNull(); // 완성 라인만 제거
+        assertThat(g.board().stoneAt(7, 7)).isEqualTo(StoneColor.BLACK);           // 나머지 보드는 유지
+        assertThat(g.lastClearedLines()).hasSize(1);                               // 특수효과 신호
+        assertThat(g.scoreEventSeq()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("한 착수가 두 줄(십자)을 동시에 완성하면 각각 1점씩, 두 줄 모두 제거된다")
+    void forkScoresBothLines() {
+        PhysicalGame g = newGame(3);
+        // (5,5)를 지나는 가로/세로 각각 4목을 미리 깔아두고, (5,5) 착수로 동시에 완성
+        for (int x = 2; x <= 6; x++) if (x != 5) g.board().place(x, 5, StoneColor.BLACK); // 가로
+        for (int y = 2; y <= 6; y++) if (y != 5) g.board().place(5, y, StoneColor.BLACK); // 세로
+        PhysicalPlayer p = black(g);
+        p.moveTo(5, 5, 0);
+
+        engine.place(g, p, 1000);
+        engine.tickPendingLines(g, 1000); // 재수집 → 가로 + 세로 (피벗 1칸만 공유 → 별개 줄)
+        assertThat(g.pendingLines()).hasSize(2);
+
+        boolean scored = engine.tickPendingLines(g, 1000 + props.winSettleMs() + 1);
+        assertThat(scored).isTrue();
+        assertThat(g.scoreOf(StoneColor.BLACK)).isEqualTo(2);       // 두 줄 → 2점
+        assertThat(g.lastClearedLines()).hasSize(2);
+        for (int x = 2; x <= 6; x++) assertThat(g.board().stoneAt(x, 5)).isNull(); // 가로 제거
+        for (int y = 2; y <= 6; y++) assertThat(g.board().stoneAt(5, y)).isNull(); // 세로 제거
+    }
+
+    @Test
+    @DisplayName("연장(5→6목)해도 게이지가 리셋되지 않고 처음 시작한 타이머로 확정된다")
+    void extendingDoesNotResetGauge() {
+        PhysicalGame g = newGame(3);
+        for (int y = 0; y < 5; y++) g.board().place(0, y, StoneColor.BLACK); // 세로 5목
+        engine.tickPendingLines(g, 1000); // 충전 시작 → lockAt = 1000 + settle
+        assertThat(g.pendingLines()).hasSize(1);
+
+        g.board().place(0, 5, StoneColor.BLACK); // 충전 중 6목으로 연장
+        boolean mid = engine.tickPendingLines(g, 1000 + props.winSettleMs() / 2); // 같은 줄 → 타이머 유지
+        assertThat(mid).isFalse();
+        assertThat(g.pendingLines()).hasSize(1);
+
+        boolean scored = engine.tickPendingLines(g, 1000 + props.winSettleMs() + 1); // 처음 타이머 기준 확정
+        assertThat(scored).isTrue();
+        assertThat(g.scoreOf(StoneColor.BLACK)).isEqualTo(1);
+        for (int y = 0; y <= 5; y++) assertThat(g.board().stoneAt(0, y)).isNull(); // 6목 전부 제거
+    }
+
+    @Test
+    @DisplayName("6목의 끝이 끊겨 5목만 남아도 충전이 이어져 득점된다(기존 오목 이상 끊김 감지)")
+    void cutEndOfSixKeepsChargingFive() {
+        PhysicalGame g = newGame(3);
+        for (int y = 0; y < 6; y++) g.board().place(0, y, StoneColor.BLACK); // 세로 6목
+        engine.tickPendingLines(g, 1000); // 충전 시작 → lockAt = 1000 + settle
+        assertThat(g.pendingLines()).hasSize(1);
+
+        g.board().removeStone(0, 5); // 끝 1개 끊김 → (0,0)~(0,4) 5목은 여전히 온전
+        boolean mid = engine.tickPendingLines(g, 1100); // 같은 줄(축소)로 보고 타이머 유지
+        assertThat(mid).isFalse();
+        assertThat(g.pendingLines()).hasSize(1);
+
+        boolean scored = engine.tickPendingLines(g, 1000 + props.winSettleMs() + 1); // 남은 5목으로 확정
+        assertThat(scored).isTrue();
+        assertThat(g.scoreOf(StoneColor.BLACK)).isEqualTo(1);
+        for (int y = 0; y <= 4; y++) assertThat(g.board().stoneAt(0, y)).isNull();
+    }
+
+    @Test
+    @DisplayName("targetScore 도달: 마지막 오목을 완성하면 승리 확정된다")
+    void reachingTargetScoreWins() {
+        PhysicalGame g = newGame(1); // 1점이면 즉시 승리
+        for (int x = 0; x < 4; x++) g.board().place(x, 0, StoneColor.BLACK);
+        PhysicalPlayer p = black(g);
+        p.moveTo(4, 0, 0);
+        engine.place(g, p, 1000);
+        engine.tickPendingLines(g, 1000); // 충전 시작
+
+        engine.tickPendingLines(g, 1000 + props.winSettleMs() + 1); // 충전 완료 → 1점 = 목표 도달
         assertThat(g.status()).isEqualTo(GameStatus.FINISHED);
         assertThat(g.winnerColor()).isEqualTo(StoneColor.BLACK);
         assertThat(g.winnerUserId()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("settle 동안 상대가 라인을 끊으면 승리가 무효 처리된다(오프닝 러시 방지)")
-    void pendingWinCancelledIfBroken() {
+    @DisplayName("충전 동안 상대가 라인을 끊으면 게이지가 무효 처리된다(오프닝 러시 방지)")
+    void pendingLineCancelledIfBroken() {
         PhysicalGame g = newGame();
         for (int x = 0; x < 4; x++) g.board().place(x, 0, StoneColor.BLACK);
         PhysicalPlayer p = black(g);
         p.moveTo(4, 0, 0);
-        engine.place(g, p, 1000); // 5목 → 확정 대기
+        engine.place(g, p, 1000); // 5목
+        engine.tickPendingLines(g, 1000); // 충전 시작
+        assertThat(g.pendingLines()).hasSize(1);
 
-        g.board().removeStone(2, 0); // 상대가 가운데 돌 제거 → 라인 끊김
-        engine.settlePendingWin(g, 1000 + props.winSettleMs() + 1);
+        g.board().removeStone(2, 0); // 상대가 가운데 돌 제거 → 라인 끊김(5목 사라짐)
+        boolean scored = engine.tickPendingLines(g, 1000 + props.winSettleMs() + 1);
 
+        assertThat(scored).isFalse();
         assertThat(g.status()).isEqualTo(GameStatus.IN_PROGRESS);
-        assertThat(g.hasPendingWin()).isFalse();
+        assertThat(g.pendingLines()).isEmpty();
+        assertThat(g.scoreOf(StoneColor.BLACK)).isZero(); // 끊겼으면 무득점
     }
 
     @Test

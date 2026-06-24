@@ -17,7 +17,7 @@ import java.util.List;
 @Setter
 public class CorsConfig {
 
-    private List<String> allowedOrigins;
+    private List<String> allowedOrigins; //yml 파일에서 읽음
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
@@ -27,7 +27,7 @@ public class CorsConfig {
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
+        configuration.setMaxAge(3600L); // Cors 사전 요청 캐싱 시간
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

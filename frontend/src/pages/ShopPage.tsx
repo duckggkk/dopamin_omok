@@ -57,6 +57,8 @@ const ShopPage = () => {
   const [tab, setTab] = useState<'shop' | 'inventory'>('shop');
   const [gachaResult, setGachaResult] = useState<GachaResult | null>(null);
   const [isOpening, setIsOpening] = useState(false);
+  // 뽑기 연출 단계: idle=닫힘 / opening='두근두근' 상자 흔들기 / revealed=아이템 공개
+  const [gachaPhase, setGachaPhase] = useState<'idle' | 'opening' | 'revealed'>('idle');
   const [equippingId, setEquippingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   // 미리보기 모드 — 클래식 바둑판 / 피지컬 오목(캐릭터 등장) 전환
@@ -112,23 +114,40 @@ const ShopPage = () => {
   };
 
   const handleOpenGacha = async (boxType: string) => {
-    setIsOpening(true);
-    setGachaResult(null);
+    if (gachaPhase !== 'idle') return;
     setError(null);
+    setGachaResult(null);
+    setGachaPhase('opening'); // 결과가 오기 전부터 상자 흔들기 연출 시작 → 기대감
+    setIsOpening(true);
+    const startedAt = Date.now();
     try {
       const res = await shopApi.openGacha(boxType);
       if (res.data.data) {
         const result = res.data.data;
-        setGachaResult(result);
         if (user) setUser({ ...user, currency: result.remainingCurrency });
         await loadData();
+        // 네트워크가 빨라도 최소 1.1초는 '두근두근'을 보여줘 연출이 너무 휙 지나가지 않게 한다.
+        const wait = Math.max(0, 1100 - (Date.now() - startedAt));
+        window.setTimeout(() => {
+          setGachaResult(result);
+          setGachaPhase('revealed');
+          setIsOpening(false);
+        }, wait);
+        return;
       }
+      setGachaPhase('idle');
+      setIsOpening(false);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setError(msg ?? '뽑기에 실패했습니다.');
-    } finally {
+      setGachaPhase('idle');
       setIsOpening(false);
     }
+  };
+
+  const dismissGacha = () => {
+    setGachaResult(null);
+    setGachaPhase('idle');
   };
 
   const handleEquip = async (item: ShopItem) => {
@@ -262,26 +281,47 @@ const ShopPage = () => {
             </div>
           </section>
 
-          {/* 뽑기 결과 */}
-          {gachaResult && (
-            <div className={styles.resultOverlay} onClick={() => setGachaResult(null)}>
+          {/* 뽑기 연출 + 결과 */}
+          {gachaPhase !== 'idle' && (
+            <div
+              className={styles.resultOverlay}
+              onClick={gachaPhase === 'revealed' ? dismissGacha : undefined}
+            >
               <div className={styles.resultCard} onClick={(e) => e.stopPropagation()}>
-                <p className={styles.resultLabel}>뽑기 결과!</p>
-                <div className={styles.resultItem}>
-                  {ITEM_TYPE_META[gachaResult.item.itemType].icon}
-                </div>
-                <p className={styles.resultName}>
-                  {getItemDisplayName(gachaResult.item)}
-                </p>
-                {gachaResult.isDuplicate && (
-                  <p className={styles.resultDuplicate}>이미 보유한 아이템입니다.</p>
+                {gachaPhase === 'opening' || !gachaResult ? (
+                  // 1단계: 결과 공개 전 — 흔들리는 상자로 기대감을 준다.
+                  <div className={styles.gachaOpening}>
+                    <div className={styles.gachaBox} aria-hidden="true">🎁</div>
+                    <p className={styles.gachaSuspense}>두근두근…</p>
+                  </div>
+                ) : (
+                  // 2단계: 공개 — 뽑은 아이템을 '실제 이미지'로 팡 터뜨려 보여준다.
+                  <>
+                    <p className={styles.resultLabel}>
+                      {gachaResult.isDuplicate ? '뽑기 결과' : '✨ 새 아이템 획득! ✨'}
+                    </p>
+                    <div className={styles.revealStage}>
+                      <span className={styles.revealRays} aria-hidden="true" />
+                      <div className={styles.revealItem}>
+                        <ItemPreview item={gachaResult.item} gacha />
+                      </div>
+                    </div>
+                    <p className={styles.resultName}>{getItemDisplayName(gachaResult.item)}</p>
+                    <p className={styles.resultCategory}>
+                      {ITEM_TYPE_META[gachaResult.item.itemType].icon}{' '}
+                      {ITEM_TYPE_META[gachaResult.item.itemType].label}
+                    </p>
+                    {gachaResult.isDuplicate && (
+                      <p className={styles.resultDuplicate}>이미 보유한 아이템입니다.</p>
+                    )}
+                    <p className={styles.resultBalance}>
+                      잔여 돌: 🪨 {gachaResult.remainingCurrency.toLocaleString()}
+                    </p>
+                    <button className={styles.resultClose} onClick={dismissGacha}>
+                      확인
+                    </button>
+                  </>
                 )}
-                <p className={styles.resultBalance}>
-                  잔여 돌: 🪨 {gachaResult.remainingCurrency.toLocaleString()}
-                </p>
-                <button className={styles.resultClose} onClick={() => setGachaResult(null)}>
-                  확인
-                </button>
               </div>
             </div>
           )}

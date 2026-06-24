@@ -18,11 +18,20 @@ public record PhysicalSnapshot(
         List<PhysicalPlayerView> players,
         List<ItemDropView> items,
         String winnerColor,     // FINISHED 일 때 승자 색(BLACK/WHITE), 없으면 null
-        String pendingWinColor, // 5목 완성 후 확정 대기 중인 색(이 동안 끊으면 무효), 없으면 null
-        int[][] pendingWinLine, // 확정 대기 중인 5목을 이루는 칸 좌표들([[x,y],...]) — 강조 표시용, 없으면 null
-        long serverTime,        // epoch ms — 클라가 쿨다운/부스트 잔여를 계산하는 기준 시각
-        long playStartAt        // epoch ms — 이 시각부터 플레이 시작. serverTime < playStartAt 이면 시작 카운트다운 중
+        List<PendingLineView> pendingLines, // 충전 중인 완성 라인들(각자 게이지) — 빈 리스트면 없음
+        long settleMs,          // 게이지 총 충전 시간(ms) — 클라가 lockAt 과 함께 충전 비율을 계산
+        long serverTime,        // epoch ms — 클라가 쿨다운/부스트/게이지 잔여를 계산하는 기준 시각
+        long playStartAt,       // epoch ms — 이 시각부터 플레이 시작. serverTime < playStartAt 이면 시작 카운트다운 중
+        int targetScore,        // 먼저 이 점수에 도달하면 승리(오목 1개 = 1점)
+        int scoreEventId,       // 득점(라인 파괴) 1회성 신호 — 클라가 증가를 감지해 특수효과 재생
+        List<ClearedLineView> lastClearedLines // 직전 틱에 파괴+득점된 라인들 — 줄별 파괴 연출용(빈 리스트면 없음)
 ) {
+
+    /** 충전 중인 완성 라인 한 줄(게이지). lockAt 까지 채워지면 파괴+득점. */
+    public record PendingLineView(String color, int[][] cells, long lockAt) {}
+
+    /** 직전 틱에 파괴+득점된 라인 한 줄(파괴 연출용). */
+    public record ClearedLineView(String color, int[][] cells) {}
 
     /** 한 플레이어의 가시 상태(색으로 식별 — 클라는 자기 색과 매칭해 '나'를 찾는다). */
     public record PhysicalPlayerView(
@@ -35,7 +44,8 @@ public record PhysicalSnapshot(
             boolean speedBoosted,
             StoneSkinResponse skin,        // 서버가 해석한 바둑알 스킨 색(미장착 null)
             CharacterSkinResponse character, // 서버가 해석한 캐릭터 스킨(미장착 null)
-            String soundAssetKey           // 장착 착수음 assetKey(미장착 null) — 착수 시 양쪽 재생
+            String soundAssetKey,          // 장착 착수음 assetKey(미장착 null) — 착수 시 양쪽 재생
+            int score                      // 이 플레이어의 누적 점수(완성한 오목 개수)
     ) {}
 
     /** 필드에 놓인 아이템 드롭. */

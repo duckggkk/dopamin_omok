@@ -6,7 +6,9 @@ import com.dopamin.omok.game.physical.domain.effect.PhysicalItemEffectRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -48,8 +50,9 @@ public class PhysicalOmokEngine {
     }
 
     /**
-     * 착수: 쿨다운 경과 + 현재 칸이 착수 가능일 때만. 5목 완성 시 즉시 끝내지 않고
-     * '승리 확정 대기'를 시작한다(settle) — winSettleMs 동안 유지돼야 확정. @return 5목을 새로 완성했는지.
+     * 착수: 쿨다운 경과 + 현재 칸이 착수 가능일 때만. 완성된 오목은 즉시 점수가 되지 않고
+     * winSettleMs 동안 '게이지'가 차야 확정된다(충전 관리는 매 틱 {@link #tickPendingLines} 가 보드를 보고 처리).
+     * @return 이번 착수로 오목이 완성됐는지(사운드/판정 보조용).
      */
     public boolean place(PhysicalGame game, PhysicalPlayer player, long now) {
         if (now - player.getLastPlaceAt() < props.placeCooldownMs()) return false;
@@ -57,25 +60,52 @@ public class PhysicalOmokEngine {
         if (!game.board().isPlaceable(x, y)) return false;
         game.board().place(x, y, player.getColor());
         player.markPlaced(now);
-        if (game.board().checkWin(x, y, game.winCount())) {
-            game.startPendingWin(player.getColor(), now + props.winSettleMs());
-            return true;
-        }
-        return false;
+        return game.board().checkWin(x, y, game.winCount());
     }
 
     /**
-     * 승리 확정 대기를 처리한다(매 틱). lockAt 경과 시 해당 색의 5목이 '여전히' 존재하면 승리 확정,
-     * 그 사이 상대가 끊었으면(라인 소멸) 무효 처리한다. 이게 오프닝 직선 러시를 막는 핵심 반격창이다.
+     * 충전 중인 완성 라인들을 매 틱 갱신·정산한다.
+     * 1) 현재 보드의 완성 라인 전체를 색별로 다시 수집해 충전 상태와 대조한다
+     *    — 5목을 6·7목으로 늘려도, 6목의 끝이 끊겨 5목만 남아도 같은 줄로 보고 게이지를 이어 충전한다
+     *    (이게 "기존 오목 이상에서 끊기면 감지 못함" 문제를 없앤다). 완전히 끊겨 사라진 줄은 자동으로 빠진다.
+     * 2) 충전이 끝난(lockAt 경과) 줄의 돌만 제거하며 1점씩 득점한다(보드는 유지 — 누적 점수전).
+     *    같은 틱에 여러 줄이 동시에 완충될 수 있어 '선별 → 제거'를 2단계로 분리한다. targetScore 도달 시 승리.
+     * @return 이번 틱에 득점(라인 제거)이 발생했는지 — 호출 측이 보드 변화를 리플레이에 기록하는 데 쓴다.
      */
-    public void settlePendingWin(PhysicalGame game, long now) {
-        if (!game.hasPendingWin() || now < game.pendingWinLockAt()) return;
-        StoneColor color = game.pendingWinColor();
-        if (game.board().hasLine(color, game.winCount())) {
-            game.finish(color);
-        } else {
-            game.clearPendingWin();
+    public boolean tickPendingLines(PhysicalGame game, long now) {
+        // 1) 현재 완성 라인 전체 재수집 → 충전 상태 갱신(연장/일부 끊김에 강함)
+        List<PendingLine> current = new ArrayList<>();
+        for (StoneColor color : StoneColor.values()) {
+            for (List<int[]> cells : game.board().findAllWinningLines(color, game.winCount())) {
+                current.add(new PendingLine(color, cells, 0L)); // lockAt 은 reconcile 이 채움
+            }
         }
+        game.reconcilePendingLines(current, now + props.winSettleMs());
+
+        // 2) 완충된 줄 선별
+        List<PendingLine> toScore = new ArrayList<>();
+        Iterator<PendingLine> it = game.pendingLines().iterator();
+        while (it.hasNext()) {
+            PendingLine pl = it.next();
+            if (now >= pl.lockAt()) { toScore.add(pl); it.remove(); }
+        }
+        if (toScore.isEmpty()) return false;
+
+        // 3) 선별된 줄의 돌 제거 + 득점(제거가 같은 틱 다른 줄 판정을 깨지 않도록 분리됨)
+        List<PendingLine> cleared = new ArrayList<>();
+        for (PendingLine pl : toScore) {
+            for (int[] cell : pl.cells()) {
+                game.board().removeStone(cell[0], cell[1]);
+            }
+            cleared.add(pl);
+            int score = game.addScore(pl.color());
+            if (score >= game.targetScore()) {
+                game.finish(pl.color()); // 승리 — 남은 충전 줄은 의미 없음(finish 가 비움)
+                break;
+            }
+        }
+        game.recordClearedLines(cleared); // 클라 특수효과(줄별 파괴 연출)용 1회성 신호
+        return true;
     }
 
     /** 파괴: 2초 쿨다운 경과 + 현재 칸에 '상대 돌'이 있을 때만 제거한다. */
@@ -86,6 +116,7 @@ public class PhysicalOmokEngine {
         if (target == null || target == player.getColor()) return; // 내 돌/빈칸은 파괴 불가
         game.board().removeStone(x, y);
         player.markDestroyed(now);
+        // 끊긴 충전 줄 정리는 매 틱 tickPendingLines 의 재수집(reconcile)이 담당한다(다음 틱 ≤tick 간격).
     }
 
     /** 보유 아이템 사용. 효과가 실제로 적용됐을 때만 슬롯을 비운다(예: 제거할 상대 돌이 없으면 유지). */

@@ -8,7 +8,8 @@ export type SfxName =
   | 'use_speed'    // 이동 부스트
   | 'use_crater'   // 바둑판 붕괴
   | 'use_bomb'     // 광역 폭탄
-  | 'use_remove';  // 상대 돌 제거
+  | 'use_remove'   // 상대 돌 제거
+  | 'score';       // 오목 완성 득점(라인 제거)
 
 type AudioCtx = AudioContext;
 
@@ -93,6 +94,13 @@ export const playSfx = (name: SfxName): void => {
       break;
     case 'use_remove':
       tone(1000, 0.18, 'square', 0.14, 220);
+      break;
+    case 'score':
+      // 상승 아르페지오 — 득점의 쾌감(완성·소멸을 알리는 팡파르)
+      tone(660, 0.12, 'triangle', 0.18);
+      window.setTimeout(() => tone(880, 0.12, 'triangle', 0.18), 90);
+      window.setTimeout(() => tone(1320, 0.2, 'triangle', 0.2), 190);
+      noiseBurst(0.22, 0.1, 2200);
       break;
   }
 };

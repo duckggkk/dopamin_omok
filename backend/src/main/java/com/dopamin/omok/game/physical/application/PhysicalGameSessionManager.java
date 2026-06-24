@@ -12,6 +12,7 @@ import com.dopamin.omok.game.physical.bot.PhysicalBotDriver;
 import com.dopamin.omok.game.physical.config.PhysicalOmokProperties;
 import com.dopamin.omok.game.physical.domain.Direction;
 import com.dopamin.omok.game.physical.domain.ItemDrop;
+import com.dopamin.omok.game.physical.domain.PendingLine;
 import com.dopamin.omok.game.physical.domain.PhysicalGame;
 import com.dopamin.omok.game.physical.domain.PhysicalOmokEngine;
 import com.dopamin.omok.game.physical.domain.PhysicalPlayer;
@@ -56,12 +57,48 @@ public class PhysicalGameSessionManager {
         final PhysicalGame game;
         final ReentrantLock lock = new ReentrantLock();
         final Recorder recorder;
+        final MotionRecorder motion;
         final TrainingRecorder training;
         Session(PhysicalGame game, boolean trainingEnabled) {
             this.game = game;
             long start = System.currentTimeMillis();
             this.recorder = new Recorder(game.board().size(), start);
+            this.motion = new MotionRecorder(start);
             this.training = new TrainingRecorder(start, trainingEnabled);
+        }
+    }
+
+    /**
+     * 영상 리플레이용 위치 기록기 — 일정 간격(SAMPLE_MS)으로 캐릭터/아이템 좌표를 스냅샷한다.
+     * 보드 변화(돌·분화구)는 {@link Recorder} 가 따로 담으므로 여기선 '움직임'만 가볍게 모은다.
+     * 세션 락 하에서만 호출되어 스레드 안전. 어뷰징/메모리 대비 상한을 둔다.
+     */
+    private static final class MotionRecorder {
+        private static final int MAX_FRAMES = 6000;   // ≈ 12분(120ms 간격) 상한
+        private static final long SAMPLE_MS = 120;    // 약 8fps — 클라가 프레임 사이를 보간해 부드럽게 재생
+        final long startMs;
+        long lastAt = Long.MIN_VALUE;
+        final List<PhysicalReplayData.MotionFrame> frames = new ArrayList<>();
+
+        MotionRecorder(long startMs) {
+            this.startMs = startMs;
+        }
+
+        void sample(PhysicalGame game, long nowMs) {
+            if (frames.size() >= MAX_FRAMES || nowMs - lastAt < SAMPLE_MS) return;
+            lastAt = nowMs;
+            List<PhysicalReplayData.PlayerMotion> ps = new ArrayList<>();
+            for (PhysicalPlayer p : game.players()) {
+                ps.add(new PhysicalReplayData.PlayerMotion(
+                        p.getColor().name(), p.getX(), p.getY(),
+                        p.getHeldItem() != null ? p.getHeldItem().name() : null,
+                        p.isSpeedBoosted(nowMs)));
+            }
+            List<PhysicalReplayData.ItemMotion> items = new ArrayList<>();
+            for (ItemDrop d : game.drops()) {
+                items.add(new PhysicalReplayData.ItemMotion(d.x(), d.y(), d.type().name()));
+            }
+            frames.add(new PhysicalReplayData.MotionFrame(nowMs - startMs, ps, items));
         }
     }
 
@@ -162,6 +199,7 @@ public class PhysicalGameSessionManager {
     public void register(PhysicalGame game) {
         Session session = new Session(game, props.trainingLogEnabled());
         session.training.recordStarts(game.players());
+        session.motion.sample(game, System.currentTimeMillis()); // 시작 위치를 영상 트랙 첫 프레임으로
         sessions.put(game.roomCode(), session);
         broadcast(game);
         log.debug("피지컬 세션 등록: room={}", game.roomCode());
@@ -257,7 +295,7 @@ public class PhysicalGameSessionManager {
         long durationMs = System.currentTimeMillis() - s.recorder.startMs;
         return new PhysicalReplayData(
                 g.gameId(), g.board().size(), g.winCount(), durationMs, winner,
-                players, List.copyOf(s.recorder.events), s.training.build());
+                players, List.copyOf(s.recorder.events), List.copyOf(s.motion.frames), s.training.build());
     }
 
     /** 봇 결정 종류를 학습 로그용 입력 타입 문자열로 매핑(사람 입력과 어휘 통일). IDLE 은 기록 안 함. */
@@ -299,10 +337,12 @@ public class PhysicalGameSessionManager {
                 if (game.drops().size() > dropsBefore) { // 이번 틱에 스폰된 아이템(랜덤) 기록
                     s.training.recordSpawn(now, game.drops().get(game.drops().size() - 1));
                 }
-                engine.settlePendingWin(game, now); // 5목이 settle 동안 유지됐으면 여기서 승리 확정
+                boolean scored = engine.tickPendingLines(game, now); // 충전 라인 갱신+완충 줄마다 1점(파괴), targetScore 도달 시 승리
 
-                // 봇 행동으로 보드가 바뀌었을 수 있으니 틱에서도 칸 변화를 기록한다(사람 게임은 변화 없어 비용 0).
-                if (!decisions.isEmpty()) s.recorder.capture(game.board().encode(), now);
+                // 봇 행동/득점(라인 제거)으로 보드가 바뀌었을 수 있으니 틱에서도 칸 변화를 기록한다(변화 없으면 비용 0).
+                if (!decisions.isEmpty() || scored) s.recorder.capture(game.board().encode(), now);
+
+                s.motion.sample(game, now); // 영상 리플레이용 위치 트랙(SAMPLE_MS 간격으로만 실제 기록)
 
                 broadcast(game);
                 if (!game.isInProgress()) winnerUserId = game.winnerUserId();
@@ -336,7 +376,8 @@ public class PhysicalGameSessionManager {
                     p.isSpeedBoosted(now),
                     p.getSkin(),
                     p.getCharacter(),
-                    p.getSoundAssetKey()
+                    p.getSoundAssetKey(),
+                    game.scoreOf(p.getColor())
             ));
         }
 
@@ -346,11 +387,19 @@ public class PhysicalGameSessionManager {
         }
 
         StoneColor winner = game.winnerColor();
-        int[][] pendingWinLine = null;
-        if (game.hasPendingWin()) {
-            List<int[]> line = game.board().findWinningLine(game.pendingWinColor(), game.winCount());
-            if (!line.isEmpty()) pendingWinLine = line.toArray(new int[0][]);
+
+        List<PhysicalSnapshot.PendingLineView> pendingViews = new ArrayList<>();
+        for (PendingLine pl : game.pendingLines()) {
+            pendingViews.add(new PhysicalSnapshot.PendingLineView(
+                    pl.color().name(), pl.cells().toArray(new int[0][]), pl.lockAt()));
         }
+
+        List<PhysicalSnapshot.ClearedLineView> clearedViews = new ArrayList<>();
+        for (PendingLine pl : game.lastClearedLines()) {
+            clearedViews.add(new PhysicalSnapshot.ClearedLineView(
+                    pl.color().name(), pl.cells().toArray(new int[0][])));
+        }
+
         return new PhysicalSnapshot(
                 game.roomCode(),
                 game.status().name(),
@@ -360,10 +409,13 @@ public class PhysicalGameSessionManager {
                 playerViews,
                 itemViews,
                 winner != null ? winner.name() : null,
-                game.hasPendingWin() ? game.pendingWinColor().name() : null,
-                pendingWinLine,
+                pendingViews,
+                props.winSettleMs(),
                 now,
-                game.playStartAt()
+                game.playStartAt(),
+                game.targetScore(),
+                game.scoreEventSeq(),
+                clearedViews
         );
     }
 }

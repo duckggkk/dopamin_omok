@@ -4,6 +4,7 @@ import { ApiResponse, GameInfo, GameMove, PhysicalReplay } from '@/types';
 import { AxiosResponse } from 'axios';
 import KifuViewer from './KifuViewer';
 import PhysicalReplayViewer from './PhysicalReplayViewer';
+import PhysicalVideoReplayViewer from './PhysicalVideoReplayViewer';
 import styles from './PhysicalReplayViewer.module.css';
 
 interface Props {
@@ -37,7 +38,12 @@ const GameRecordViewer = ({ game, onClose, loadReplay, loadMoves }: Props) => {
       </div>
     );
   }
-  if (replay) return <PhysicalReplayViewer game={game} replay={replay} onClose={onClose} />;
+  // 위치 트랙이 있으면 '영상 리플레이'(연속 재생), 없으면(구버전) 단계별 뷰어로 폴백.
+  if (replay) {
+    return replay.motionFrames && replay.motionFrames.length > 0
+      ? <PhysicalVideoReplayViewer game={game} replay={replay} onClose={onClose} />
+      : <PhysicalReplayViewer game={game} replay={replay} onClose={onClose} />;
+  }
   return <KifuViewer game={game} onClose={onClose} loadMoves={loadMoves} />;
 };
 

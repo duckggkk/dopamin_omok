@@ -80,7 +80,9 @@ const KifuViewer = ({ game, onClose, loadMoves }: Props) => {
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <div>
-            <h2 className={styles.title}>기보 다시보기</h2>
+            <h2 className={styles.title}>
+              기보 다시보기 <span className={styles.typeBadge}>일반 오목</span>
+            </h2>
             <p className={styles.subtitle}>
               <span className={styles.stoneB} />{black}
               <span className={styles.vs}>vs</span>

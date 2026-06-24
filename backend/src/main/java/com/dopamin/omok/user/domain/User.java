@@ -71,6 +71,10 @@ public class User {
     @Column(nullable = false)
     private Integer physicalRating = 1000;
 
+    /** 싱글플레이 AI 사다리에서 클리어한 최고 단계(0 = 미클리어). 다음 단계 해제 기준이 된다. */
+    @Column(nullable = false)
+    private Integer aiClearedLevel = 0;
+
     @Column(nullable = false)
     private boolean emailVerified = false;
 
@@ -108,6 +112,7 @@ public class User {
         this.currency = 0;
         this.classicRating = 1000;
         this.physicalRating = 1000;
+        this.aiClearedLevel = 0;
         this.tokenVersion = 0L;
     }
 
@@ -173,6 +178,27 @@ public class User {
 
     public int getTotalGames() {
         return wins + losses + draws;
+    }
+
+    /** 시스템 봇 계정 여부(피지컬 AI 연습 상대). 봇과의 대국은 레이팅·전적을 집계하지 않는다. */
+    public boolean isBot() {
+        return this.role == UserRole.BOT;
+    }
+
+    /** null-safe 싱글플레이 AI 클리어 단계 조회(과거 데이터/직렬화 경로에서도 항상 0 이상). */
+    public int getAiClearedLevel() {
+        return this.aiClearedLevel == null ? 0 : this.aiClearedLevel;
+    }
+
+    /**
+     * 싱글플레이 AI 사다리에서 한 단계를 클리어했음을 기록한다.
+     * 무결성: 정확히 "다음 단계"(현재+1)일 때만 전진한다 — 클라이언트가 단계를 건너뛰어
+     * 보고해도 한 칸씩만 올라가므로 사다리 순서가 보장된다. 이미 깬 단계 재클리어는 무시.
+     */
+    public void recordAiClear(int level) {
+        if (level == getAiClearedLevel() + 1) {
+            this.aiClearedLevel = level;
+        }
     }
 
     /** null-safe 일반 레이팅 조회 — 과거 데이터/직렬화 경로에서도 항상 유효한 점수를 보장한다. */

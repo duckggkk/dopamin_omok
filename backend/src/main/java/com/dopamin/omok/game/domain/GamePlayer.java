@@ -147,6 +147,11 @@ public class GamePlayer {
         this.ready = !this.ready;
     }
 
+    /** 항상 준비 상태로 둔다(봇 — 방장이 '게임 시작'만 누르면 되도록). */
+    public void markReady() {
+        this.ready = true;
+    }
+
     public void resetReady() {
         this.ready = false;
     }

@@ -97,38 +97,101 @@ const drawStone = (
   ctx.stroke();
 };
 
-// 오목 확정 대기(settle) 동안 '연결된 오목'을 강조 — 돌들을 잇는 맥동 글로우 빔 + 각 돌 맥동 링.
-// 내 라인은 초록(승리 임박), 상대 라인은 빨강(끊어야 함)으로 배너 색과 일치시킨다.
-const drawWinHighlight = (
+// 충전 중인 완성 오목 '게이지' — 줄의 '모든 돌'이 아래에서 위로 색이 차오르며(액체 채움) + 전체 링/연결 글로우.
+// progress(0..1)만큼 돌 전부가 함께 채워지고, 다 차면(서버가 파괴) drawClearFx 로 넘어간다.
+// 내 라인은 초록(곧 득점), 상대 라인은 빨강(끊어야 함)으로 색을 구분한다.
+const drawGauge = (
   ctx: CanvasRenderingContext2D,
   pts: { x: number; y: number }[],
   stoneR: number,
+  progress: number,
   mine: boolean,
 ) => {
   if (pts.length < 2) return;
-  const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 170); // 0..1 맥동
+  const p = Math.max(0, Math.min(1, progress));
   const rgb = mine ? '110,224,160' : '255,122,146';
   const a = pts[0];
   const b = pts[pts.length - 1];
+  const near = p > 0.82; // 임박 — 깜빡여 긴장감
+  const pulse = near ? 0.65 + 0.35 * Math.abs(Math.sin(performance.now() / 90)) : 1;
   ctx.save();
-  // 잇는 빔(글로우) — 돌 뒤로 깔리는 듯한 빛줄기
-  ctx.shadowColor = `rgba(${rgb},0.9)`;
-  ctx.shadowBlur = 14 + pulse * 14;
-  ctx.strokeStyle = `rgba(${rgb},${0.5 + 0.35 * pulse})`;
-  ctx.lineWidth = stoneR * (0.66 + 0.22 * pulse);
   ctx.lineCap = 'round';
+  // 연결 글로우 — 어떤 돌들이 한 줄인지 한눈에
+  ctx.shadowColor = `rgba(${rgb},0.85)`;
+  ctx.shadowBlur = (near ? 14 : 9) * pulse;
+  ctx.strokeStyle = `rgba(${rgb},${0.4 * pulse})`;
+  ctx.lineWidth = stoneR * 0.55;
   ctx.beginPath();
   ctx.moveTo(a.x, a.y);
   ctx.lineTo(b.x, b.y);
   ctx.stroke();
-  // 각 돌 맥동 링 — 어떤 칸이 연결됐는지 또렷하게
   ctx.shadowBlur = 0;
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = `rgba(${rgb},${0.75 + 0.25 * pulse})`;
-  for (const p of pts) {
+
+  // 돌마다: 아래→위로 차오르는 색 채움(클립) + 전체 외곽 링(항상 보여 완성 라인 강조)
+  for (const q of pts) {
+    const r = stoneR + 1;
+    // 채움(원으로 클립한 뒤 아래에서 progress 높이만큼 사각형)
+    ctx.save();
     ctx.beginPath();
-    ctx.arc(p.x, p.y, stoneR + 3 + pulse * 5, 0, Math.PI * 2);
+    ctx.arc(q.x, q.y, r, 0, Math.PI * 2);
+    ctx.clip();
+    const fillTop = q.y + r - 2 * r * p;
+    ctx.fillStyle = `rgba(${rgb},${0.45 + 0.4 * p})`; // 찰수록 진하게
+    ctx.fillRect(q.x - r, fillTop, 2 * r, q.y + r - fillTop);
+    ctx.restore();
+    // 외곽 링
+    ctx.strokeStyle = `rgba(${rgb},${0.9 * pulse})`;
+    ctx.lineWidth = near ? 3.5 : 2.5;
+    ctx.beginPath();
+    ctx.arc(q.x, q.y, r + 1.5, 0, Math.PI * 2);
     ctx.stroke();
+  }
+  ctx.restore();
+};
+
+// 게이지가 다 차서 라인이 파괴되는 순간의 특수효과 — 작은 플래시 + 스파클(글자 없음, 보드를 가리지 않게 절제).
+// t(0..1) 진행도에 따라 그려지며, 호출 측이 만료된 효과를 제거한다(상태 없음, 매 프레임 t로만 결정).
+const CLEAR_FX_DUR = 600;
+const drawClearFx = (
+  ctx: CanvasRenderingContext2D,
+  pts: { x: number; y: number }[],
+  stoneR: number,
+  t: number,
+  mine: boolean,
+) => {
+  if (pts.length === 0) return;
+  const ease = 1 - Math.pow(1 - t, 3); // ease-out
+  const alpha = 1 - t;
+  const tint = mine ? '110,224,160' : '255,176,80'; // 내 득점은 초록빛, 상대 득점은 주황빛
+  ctx.save();
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
+    // 칸별 작은 팽창 링(돌 한 칸 범위 — 이웃을 덮지 않게 제한)
+    ctx.strokeStyle = `rgba(${tint},${0.8 * alpha})`;
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = `rgba(${tint},${alpha})`;
+    ctx.shadowBlur = 12 * alpha;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, stoneR * (0.5 + ease * 0.9), 0, Math.PI * 2);
+    ctx.stroke();
+    // 중심 플래시(초반만 — 돌이 '터지는' 느낌)
+    if (t < 0.5) {
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = `rgba(255,255,255,${(0.5 - t) * 1.3})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, stoneR * 0.7 * (1 - t), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 스파클 파티클(6방향으로 짧게 흩어짐)
+    ctx.shadowBlur = 0;
+    for (let k = 0; k < 6; k++) {
+      const ang = (k / 6) * Math.PI * 2 + i * 0.7;
+      const dist = stoneR * (0.4 + ease * 1.6);
+      ctx.fillStyle = `rgba(${tint},${alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x + Math.cos(ang) * dist, p.y + Math.sin(ang) * dist, Math.max(1, stoneR * 0.16 * (1 - t)), 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 };
@@ -242,6 +305,8 @@ const PhysicalGamePage = () => {
   const prevSnapRef = useRef<PhysicalSnapshot | null>(null);
   const myColorRef = useRef<StoneColor | null>(null);
   const renderPosRef = useRef<Record<string, { x: number; y: number }>>({});
+  // 진행 중인 라인 제거(득점) 특수효과들 — scoreEventId 증가 시 추가되고, 렌더 루프가 만료된 것을 제거한다.
+  const clearFxRef = useRef<{ cells: number[][]; color: StoneColor | null; start: number }[]>([]);
   const pressedRef = useRef<Direction[]>([]);
   const activeDirRef = useRef<Direction | null>(null);
   const prevGameIdRef = useRef<number | undefined>(undefined);
@@ -320,6 +385,14 @@ const PhysicalGamePage = () => {
         }
       }
     }
+    // 득점(게이지 완충 → 라인 파괴): scoreEventId 증가를 감지해 파괴된 줄마다 특수효과 재생(승리 점수 포함).
+    if (prev && snap.scoreEventId > prev.scoreEventId && snap.lastClearedLines?.length) {
+      const startedAt = performance.now();
+      for (const line of snap.lastClearedLines) {
+        clearFxRef.current.push({ cells: line.cells, color: line.color, start: startedAt });
+      }
+      playSfx('score');
+    }
     prevSnapRef.current = snap;
     snapshotRef.current = snap;
     setSnapshot(snap);
@@ -359,6 +432,7 @@ const PhysicalGamePage = () => {
     if (currentGame?.id !== undefined) {
       if (prevGameIdRef.current !== undefined && currentGame.id !== prevGameIdRef.current) {
         renderPosRef.current = {};
+        clearFxRef.current = [];
         setGameResult(null);
         if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
       }
@@ -536,10 +610,24 @@ const PhysicalGamePage = () => {
       }
     }
 
-    // 오목 확정 대기 중이면 연결된 라인을 강조(맥동)
-    if (snap.pendingWinLine && snap.pendingWinLine.length > 1) {
-      const pts = snap.pendingWinLine.map(([px, py]) => ({ x: at(px), y: at(py) }));
-      drawWinHighlight(ctx, pts, stoneR, snap.pendingWinColor === mine);
+    // 충전 중인 완성 라인들을 게이지로 표시(여러 줄 동시 가능) — settleMs 기준 충전 비율로 채워짐
+    for (const line of snap.pendingLines) {
+      if (line.cells.length < 2) continue;
+      const remaining = line.lockAt - snap.serverTime;
+      const progress = snap.settleMs > 0 ? 1 - remaining / snap.settleMs : 1;
+      const pts = line.cells.map(([px, py]) => ({ x: at(px), y: at(py) }));
+      drawGauge(ctx, pts, stoneR, progress, line.color === mine);
+    }
+
+    // 득점(라인 제거) 특수효과 — 만료된 것은 걸러내고 진행 중인 것만 그린다.
+    if (clearFxRef.current.length > 0) {
+      const fxNow = performance.now();
+      clearFxRef.current = clearFxRef.current.filter((fx) => fxNow - fx.start < CLEAR_FX_DUR);
+      for (const fx of clearFxRef.current) {
+        const t = (fxNow - fx.start) / CLEAR_FX_DUR;
+        const pts = fx.cells.map(([px, py]) => ({ x: at(px), y: at(py) }));
+        drawClearFx(ctx, pts, stoneR, t, fx.color === mine);
+      }
     }
 
     // 아이템 드롭
@@ -574,6 +662,13 @@ const PhysicalGamePage = () => {
 
   const me = myColor ? snapshot?.players.find((p) => p.color === myColor) ?? null : null;
   const opp = snapshot?.players.find((p) => p.color !== myColor) ?? null;
+  const targetScore = snapshot?.targetScore ?? 3;
+  // 충전 중인 라인을 내 줄 / 상대 줄로 분류해 배너에 쓴다(여러 줄 동시 가능).
+  const myPendingCount = snapshot?.pendingLines.filter((l) => l.color === myColor).length ?? 0;
+  const foePendingCount = snapshot?.pendingLines.filter((l) => l.color !== myColor).length ?? 0;
+  // 상대의 충전 줄이 '승리 점수'면 매치포인트(끊지 못하면 짐).
+  const foeIsMatchPoint = !!(opp && foePendingCount > 0 && opp.score + 1 >= targetScore);
+  const myIsMatchPoint = !!(me && myPendingCount > 0 && me.score + 1 >= targetScore);
   const myHudSkin = myPlayer?.stoneSkin ?? me?.skin ?? null;
   const opponentHudSkin = opponentRoomPlayer?.stoneSkin ?? opp?.skin ?? null;
   const destroyRemaining =
@@ -650,17 +745,47 @@ const PhysicalGamePage = () => {
           </div>
         </div>
 
+        {isInProgress && (
+          <div className={styles.scoreBoard}>
+            <div className={styles.scoreSide}>
+              <span className={`${styles.scoreName} ${styles.scoreNameMine}`}>{myPlayer?.nickname ?? '나'}</span>
+              {/* key 로 점수가 오를 때마다 리마운트 → pop 애니메이션 재생 */}
+              <div className={styles.pips} key={`me-${me?.score ?? 0}`}>
+                {Array.from({ length: targetScore }).map((_, i) => (
+                  <span key={i} className={`${styles.pip} ${i < (me?.score ?? 0) ? styles.pipMine : ''}`} />
+                ))}
+              </div>
+            </div>
+            <span className={styles.scoreVs}>VS</span>
+            <div className={`${styles.scoreSide} ${styles.scoreSideRight}`}>
+              <div className={styles.pips} key={`op-${opp?.score ?? 0}`}>
+                {Array.from({ length: targetScore }).map((_, i) => (
+                  <span key={i} className={`${styles.pip} ${i < (opp?.score ?? 0) ? styles.pipFoe : ''}`} />
+                ))}
+              </div>
+              <span className={styles.scoreName}>{opp?.nickname ?? opponentRoomPlayer?.nickname ?? '상대'}</span>
+            </div>
+          </div>
+        )}
+
         <div className={styles.canvasWrap}>
           <canvas ref={canvasRef} width={CANVAS_PX} height={CANVAS_PX} className={styles.canvas} />
           {graceNotice && <p className={styles.graceNotice}>{graceNotice}</p>}
 
-          {snapshot?.pendingWinColor && (
-            <div className={snapshot.pendingWinColor === myColor ? styles.pendingMine : styles.pendingFoe}>
-              {snapshot.pendingWinColor === myColor
-                ? '⚡ 오목 완성! 잠깐만 버티면 승리!'
-                : '⚠ 상대 오목! 끊어라 (Ctrl/Shift)!'}
+          {/* 충전 중 라인 안내(슬림 배너) — 상대 줄(끊어야 함)을 우선 표시, 없으면 내 줄 */}
+          {foePendingCount > 0 ? (
+            <div className={styles.pendingFoe}>
+              {foeIsMatchPoint
+                ? `⚠ 상대 매치포인트! 끊어라 (Ctrl/Shift)!`
+                : `⚠ 상대 오목 충전 중${foePendingCount > 1 ? ` ×${foePendingCount}` : ''}! 끊어라 (Ctrl/Shift)!`}
             </div>
-          )}
+          ) : myPendingCount > 0 ? (
+            <div className={styles.pendingMine}>
+              {myIsMatchPoint
+                ? '⚡ 오목 완성! 버티면 승리!'
+                : `⚡ 오목 완성${myPendingCount > 1 ? ` ×${myPendingCount}` : ''}! 게이지 지키면 득점!`}
+            </div>
+          ) : null}
 
           {inCountdown && (
             <div className={styles.countdownOverlay}>
@@ -676,7 +801,8 @@ const PhysicalGamePage = () => {
                 <h2 className={styles.waitTitle}>⚔️ 피지컬 오목</h2>
                 <p className={styles.waitDesc}>
                   방향키로 캐릭터를 움직여 <b>Space</b>로 착수! <b>Ctrl</b>로 상대 돌을 부수고,
-                  필드의 아이템을 주워 <b>Shift</b>로 사용하세요. 먼저 <b>오목</b>을 완성하면 승리!
+                  필드의 아이템을 주워 <b>Shift</b>로 사용하세요. <b>오목</b>을 완성할 때마다 1점
+                  (완성한 줄만 사라져요)! 먼저 <b>{snapshot?.targetScore ?? 3}점</b>이면 승리!
                 </p>
                 {!playerRolePlayer && (
                   <>

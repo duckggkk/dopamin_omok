@@ -268,6 +268,13 @@
 }
 .quickBtn:hover:not(:disabled) { filter: brightness(1.07); transform: translateY(-1px); }
 .quickBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+.quickBtnHint {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
 
 .divider {
   display: flex;

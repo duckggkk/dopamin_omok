@@ -25,6 +25,10 @@ export const gameApi = {
   createRoom: (options: CreateRoomOptions = DEFAULT_ROOM_OPTIONS) =>
     apiClient.post<ApiResponse<Room>>('/rooms', options),
 
+  // 피지컬 오목 AI 연습 — 봇과 즉시 한 판(레이팅 미반영). 생성된 방으로 입장한다.
+  startAiPractice: () =>
+    apiClient.post<ApiResponse<Room>>('/rooms/ai-practice'),
+
   joinRoom: (roomCode: string) =>
     apiClient.post<ApiResponse<Room>>(`/rooms/${roomCode}/join`),
 

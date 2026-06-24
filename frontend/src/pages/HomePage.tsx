@@ -83,6 +83,18 @@ const HomePage = () => {
     }
   };
 
+  const startPhysicalPractice = async () => {
+    setBusy(true);
+    try {
+      const res = await gameApi.startAiPractice();
+      if (res.data.data) navigate(`/game/${res.data.data.roomCode}`);
+    } catch (err) {
+      showToast(getApiErrorMessage(err, 'AI 연습을 시작하지 못했습니다.'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const joinByCode = async (e: FormEvent) => {
     e.preventDefault();
     if (!joinCode) return;
@@ -153,13 +165,18 @@ const HomePage = () => {
               혼자 연습 <span className={styles.aiTag}>AI 대국</span>
             </span>
             <span className={styles.aiDesc}>
-              상대가 없어도 바로 한 판. 쉬움·보통·어려움 3단계 · <b>레이팅 미반영</b>
+              상대가 없어도 바로 한 판 · <b>레이팅 미반영</b>
             </span>
           </div>
         </div>
-        <button className={styles.aiBtn} onClick={() => navigate('/ai')}>
-          연습 시작 →
-        </button>
+        <div className={styles.aiBtns}>
+          <button className={styles.aiBtn} onClick={() => navigate('/ai')}>
+            🪵 클래식 7단계 →
+          </button>
+          <button className={styles.aiBtn} onClick={startPhysicalPractice} disabled={busy}>
+            ⚔️ 피지컬 AI →
+          </button>
+        </div>
       </section>
 
       {/* ---- 내 현황 ---- */}

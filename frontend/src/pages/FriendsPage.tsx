@@ -64,7 +64,7 @@ const FriendsPage = () => {
   };
 
   const handleUnfriend = async (publicId: string, name: string) => {
-    if (!window.confirm(`'${name}'님을 친구에서 삭제할까요?`)) return;
+    if (!window.confirm(`⚠️ '${name}'님과 친구를 끊을까요?\n상대의 친구 목록에서도 사라지며, 되돌리려면 다시 친구 요청을 보내야 합니다.`)) return;
     try {
       await friendApi.remove(publicId);
       setMsg({ text: `'${name}'님을 친구에서 삭제했습니다.`, ok: true });
@@ -134,7 +134,7 @@ const FriendsPage = () => {
                   </span>
                 </button>
                 <div className={styles.actions}>
-                  <button className={styles.rejectBtn} onClick={() => handleUnfriend(f.publicId, f.nickname)}>친구 끊기</button>
+                  <button className={styles.rejectBtn} onClick={() => handleUnfriend(f.publicId, f.nickname)}>친구끊기</button>
                 </div>
               </div>
             ))

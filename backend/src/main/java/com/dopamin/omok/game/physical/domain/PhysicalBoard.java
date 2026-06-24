@@ -100,6 +100,33 @@ public class PhysicalBoard {
         return List.of();
     }
 
+    /**
+     * 보드 전체에서 {@code color} 의 winCount 이상 '최대 연속 라인'을 모두 찾아 각 칸 좌표 묶음으로 반환한다.
+     * 각 최대 연속 구간은 시작 칸(역방향 이웃이 같은 색이 아닌 칸)에서만 한 번 수집되어 중복이 없다.
+     * 6목 이상은 양 끝까지 한 줄로 포함하고, 십자/포크는 방향이 달라 별개 줄로 함께 반환된다.
+     * 매 틱 현재 보드의 완성 라인 전체를 재수집해 충전 상태와 대조하는 데 쓴다(연장/일부 끊김에 강함).
+     */
+    public List<List<int[]>> findAllWinningLines(StoneColor color, int winCount) {
+        List<List<int[]>> result = new ArrayList<>();
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                if (stones[y][x] != color) continue;
+                for (int[] d : DIRS) {
+                    int px = x - d[0], py = y - d[1];
+                    if (inBounds(px, py) && stones[py][px] == color) continue; // 구간의 시작 칸에서만 수집
+                    int len = 1 + run(x, y, d[0], d[1], color);
+                    if (len < winCount) continue;
+                    List<int[]> line = new ArrayList<>(len);
+                    for (int i = 0; i < len; i++) {
+                        line.add(new int[]{x + d[0] * i, y + d[1] * i});
+                    }
+                    result.add(line);
+                }
+            }
+        }
+        return result;
+    }
+
     /** (x,y)에 놓인 돌 기준 4방향 연속 길이가 winCount 이상이면 승리. */
     public boolean checkWin(int x, int y, int winCount) {
         StoneColor color = stoneAt(x, y);

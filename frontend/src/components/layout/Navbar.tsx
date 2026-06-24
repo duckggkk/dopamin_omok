@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { authApi } from '@/api/auth';
 import SettingsModal from './SettingsModal';
+import NotificationBell from './NotificationBell';
 import styles from './Navbar.module.css';
 
 const IconHome = () => (
@@ -113,6 +114,8 @@ const Navbar = () => {
               <Link to="/shop" className={styles.currencyBadge} title="보유 재화">
                 🪙 {user?.currency?.toLocaleString() ?? 0}
               </Link>
+
+              <NotificationBell />
 
               <div className={styles.userMenu} ref={menuRef}>
                 <button

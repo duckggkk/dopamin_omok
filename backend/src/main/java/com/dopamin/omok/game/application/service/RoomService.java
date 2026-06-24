@@ -45,7 +45,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Transactional(readOnly = true)
 public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, SpectateRoomUseCase,
         LeaveRoomUseCase, RequestRematchUseCase, GetRoomUseCase, ReadyGameUseCase, StartGameUseCase,
-        ChangeStoneSkinUseCase {
+        ChangeStoneSkinUseCase, StartAiPracticeUseCase {
+
+    /** 피지컬 AI 연습 상대 봇 계정 식별용 이메일(V33 마이그레이션으로 시드). */
+    private static final String AI_BOT_EMAIL = "ai-practice-bot@dopamin.local";
 
     private final com.dopamin.omok.global.websocket.DisconnectGraceManager disconnectGraceManager;
     private final LoadRoomPort loadRoomPort;
@@ -223,8 +226,11 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
 
         ensureDifferentStoneSkins(host, player);
 
-        player.resetReady();
-        saveGamePlayerPort.save(player);
+        // 봇은 항상 준비 상태 유지(연속 AI 연습 가능). 사람은 매 판 준비를 다시 눌러야 한다.
+        if (!player.getUser().isBot()) {
+            player.resetReady();
+            saveGamePlayerPort.save(player);
+        }
 
         room.startGame();
         saveRoomPort.save(room);
@@ -240,6 +246,30 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         RoomResponse response = buildRoomResponse(room, game);
         roomEventPublisherPort.publishStatus(roomCode, response);
         return response;
+    }
+
+    @Override
+    @Transactional
+    public RoomResponse startAiPractice(Long userId) {
+        User user = findUserById(userId);
+        User bot = loadUserPort.findByEmail(AI_BOT_EMAIL)
+                .orElseThrow(() -> new OmokException(ErrorCode.USER_NOT_FOUND));
+
+        // 피지컬 방을 만들고 빈자리를 '준비된' 봇으로 채운다. 게임은 자동 시작하지 않는다 —
+        // 방장이 직접 '게임 시작'을 눌러야 시작하며, 그때 사람이 이미 접속해 있어 카운트다운(3·2·1)을 온전히 본다.
+        // (이전엔 HTTP 응답 시점에 바로 시작해, 클라가 뒤늦게 접속하며 카운트다운이 들쭉날쭉했음.)
+        String roomCode = generateUniqueRoomCode();
+        Room room = Room.create(user, roomCode, GameType.PHYSICAL,
+                OmokRule.FREESTYLE, TimeLimit.UNLIMITED, ByoyomiOption.NONE);
+        saveRoomPort.save(room);
+
+        GamePlayer host = GamePlayer.createHost(room, user);       // 흑(선) = 사람
+        saveGamePlayerPort.save(host);
+        GamePlayer botPlayer = GamePlayer.createPlayer(room, bot);  // 백 = 봇
+        botPlayer.markReady();                                      // 봇은 항상 준비 완료
+        saveGamePlayerPort.save(botPlayer);
+
+        return buildRoomResponse(room, null); // WAITING 방 반환 → 방장이 '게임 시작'으로 개시
     }
 
     @Override
@@ -283,10 +313,12 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         User loser = game.getOpponent(winnerId);
 
         game.finish(winner);
-        winner.recordWin();
-        if (loser != null) {
-            loser.recordLoss();
-            EloRating.applyResult(winner, loser, true); // 피지컬 종료 이벤트 → 피지컬 레이팅
+        if (!isBotGame(game)) { // AI 연습(봇 대국)은 레이팅·전적 미집계
+            winner.recordWin();
+            if (loser != null) {
+                loser.recordLoss();
+                EloRating.applyResult(winner, loser, true); // 피지컬 종료 이벤트 → 피지컬 레이팅
+            }
         }
         saveGamePort.save(game);
         if (event.replay() != null) savePhysicalReplayPort.save(event.replay()); // 리플레이 영속(게임당 1회)
@@ -415,9 +447,11 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
                 User loser = game.getBlackPlayer().getId().equals(hostId)
                         ? game.getBlackPlayer() : game.getWhitePlayer();
                 game.finish(winner);
-                winner.recordWin();
-                loser.recordLoss();
-                EloRating.applyResult(winner, loser, room.getGameType() == GameType.PHYSICAL);
+                if (!isBotGame(game)) { // AI 연습(봇 대국)은 집계 제외
+                    winner.recordWin();
+                    loser.recordLoss();
+                    EloRating.applyResult(winner, loser, room.getGameType() == GameType.PHYSICAL);
+                }
             } else {
                 game.abandon();
             }
@@ -440,9 +474,11 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             User winner = game.getOpponent(loser.getId());
 
             game.finish(winner);
-            winner.recordWin();
-            loser.recordLoss();
-            EloRating.applyResult(winner, loser, room.getGameType() == GameType.PHYSICAL);
+            if (!isBotGame(game)) { // AI 연습(봇 대국)은 집계 제외
+                winner.recordWin();
+                loser.recordLoss();
+                EloRating.applyResult(winner, loser, room.getGameType() == GameType.PHYSICAL);
+            }
             saveGamePort.save(game);
 
             // 패배한 플레이어를 방에서 제거
@@ -546,6 +582,12 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     private User findUserById(Long userId) {
         return loadUserPort.findById(userId)
                 .orElseThrow(() -> new OmokException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    /** 한쪽이 봇이면 'AI 연습' 대국 → 레이팅·전적을 집계하지 않는다(결과 표시·리플레이는 정상). */
+    private boolean isBotGame(Game game) {
+        return (game.getBlackPlayer() != null && game.getBlackPlayer().isBot())
+                || (game.getWhitePlayer() != null && game.getWhitePlayer().isBot());
     }
 
     private String generateUniqueRoomCode() {

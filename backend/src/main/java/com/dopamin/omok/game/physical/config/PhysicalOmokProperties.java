@@ -14,6 +14,7 @@ import java.util.Map;
 public record PhysicalOmokProperties(
         int boardSize,
         int winCount,
+        int targetScore,         // 오목 완성 1점, 먼저 이 점수에 도달하면 승리(보드 유지·완성 라인만 제거)
         long moveCooldownMs,
         long placeCooldownMs,
         long destroyCooldownMs,
@@ -31,6 +32,7 @@ public record PhysicalOmokProperties(
         // 설정 누락 시(예: 테스트 프로파일) 안전한 기본값으로 보정 — 게임이 0ms 쿨다운/0 크기로 깨지지 않게 함.
         if (boardSize <= 0) boardSize = 14;
         if (winCount <= 0) winCount = 5;
+        if (targetScore <= 0) targetScore = 3;
         if (moveCooldownMs <= 0) moveCooldownMs = 140;
         if (placeCooldownMs <= 0) placeCooldownMs = 150;
         if (destroyCooldownMs < 0) destroyCooldownMs = 0;   // 0 = 파괴 쿨다운 없음(음수만 보정)

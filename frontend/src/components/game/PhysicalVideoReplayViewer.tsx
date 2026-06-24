@@ -1,0 +1,267 @@
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { GameInfo, PhysicalReplay, PhysicalMotionFrame, StoneColor } from '@/types';
+import styles from './PhysicalVideoReplayViewer.module.css';
+
+interface Props {
+  game: GameInfo;
+  replay: PhysicalReplay;
+  onClose: () => void;
+}
+
+const CANVAS_PX = 520;
+const ITEM_EMOJI: Record<string, string> = { SPEED_BOOST: '⚡', CRATER: '🕳️', BOMB: '💣' };
+const SPEEDS = [0.5, 1, 2] as const;
+
+const fmtTime = (ms: number) => {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+};
+
+/**
+ * 피지컬 오목 '영상 리플레이' — 스타크래프트 리플레이처럼 캐릭터가 실제로 움직이는 연속 재생.
+ * 보드(돌·분화구)는 칸 변화 이벤트로 시점별 재구성하고, 캐릭터/아이템은 위치 트랙(motionFrames)을
+ * 프레임 사이 보간해 부드럽게 그린다. 재생/일시정지/구간이동/배속 지원.
+ */
+const PhysicalVideoReplayViewer = ({ replay, onClose }: Props) => {
+  const N = replay.boardSize;
+  const frames: PhysicalMotionFrame[] = replay.motionFrames ?? [];
+  const duration = Math.max(replay.durationMs, frames.length ? frames[frames.length - 1].t : 0, 1);
+
+  const [playT, setPlayT] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const [speed, setSpeed] = useState(1);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const playTRef = useRef(0);
+  const playingRef = useRef(true);
+  const speedRef = useRef(1);
+  const lastTsRef = useRef<number | null>(null);
+
+  useEffect(() => { playingRef.current = playing; }, [playing]);
+  useEffect(() => { speedRef.current = speed; }, [speed]);
+
+  const nameOf = useCallback(
+    (color: StoneColor) =>
+      replay.players.find((p) => p.color === color)?.nickname ?? (color === 'BLACK' ? '흑' : '백'),
+    [replay.players],
+  );
+
+  // 시점 playT 의 보드 칸 상태 — 이벤트(시간순)를 t<=playT 까지 누적 적용.
+  const cellsAt = useCallback(
+    (t: number): number[][] => {
+      const grid: number[][] = Array.from({ length: N }, () => Array(N).fill(0));
+      for (const e of replay.events) {
+        if (e.t > t) break;
+        if (e.y >= 0 && e.y < N && e.x >= 0 && e.x < N) grid[e.y][e.x] = e.v;
+      }
+      return grid;
+    },
+    [replay.events, N],
+  );
+
+  const seek = useCallback((t: number) => {
+    const v = Math.max(0, Math.min(duration, t));
+    playTRef.current = v;
+    setPlayT(v);
+  }, [duration]);
+
+  // ←/→ 5초, Space 재생/정지, Esc 닫기
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); seek(playTRef.current - 5000); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); seek(playTRef.current + 5000); }
+      else if (e.code === 'Space') { e.preventDefault(); setPlaying((p) => !p); }
+      else if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [seek, onClose]);
+
+  // 렌더/재생 루프 (rAF) — 캔버스는 ref 값으로 그리고, 슬라이더용으로만 state 갱신.
+  useEffect(() => {
+    let raf = 0;
+    const tick = (ts: number) => {
+      const last = lastTsRef.current;
+      lastTsRef.current = ts;
+      if (playingRef.current && last != null) {
+        playTRef.current += (ts - last) * speedRef.current;
+        if (playTRef.current >= duration) {
+          playTRef.current = duration;
+          playingRef.current = false;
+          setPlaying(false);
+        }
+        setPlayT(playTRef.current);
+      }
+      draw(playTRef.current);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf); lastTsRef.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duration, N]);
+
+  const draw = (t: number) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!ctx) return;
+
+    const pad = CANVAS_PX / (N + 1);
+    const gap = (CANVAS_PX - pad * 2) / (N - 1);
+    const at = (i: number) => pad + i * gap;
+    const stoneR = gap * 0.46;
+
+    // 보드 + 격자
+    ctx.fillStyle = '#dcb95b';
+    ctx.fillRect(0, 0, CANVAS_PX, CANVAS_PX);
+    ctx.strokeStyle = '#8b6914';
+    ctx.lineWidth = 1;
+    const lo = at(0), hi = at(N - 1);
+    for (let i = 0; i < N; i++) {
+      const c = at(i);
+      ctx.beginPath(); ctx.moveTo(c, lo); ctx.lineTo(c, hi); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(lo, c); ctx.lineTo(hi, c); ctx.stroke();
+    }
+    ctx.fillStyle = '#8b6914';
+    for (const sx of [3, N - 4]) for (const sy of [3, N - 4]) {
+      ctx.beginPath(); ctx.arc(at(sx), at(sy), 3, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // 돌 / 분화구
+    const cells = cellsAt(t);
+    for (let y = 0; y < N; y++) {
+      for (let x = 0; x < N; x++) {
+        const v = cells[y][x];
+        const cx = at(x), cy = at(y);
+        if (v === 3) {
+          ctx.beginPath(); ctx.arc(cx, cy, gap * 0.46, 0, Math.PI * 2);
+          ctx.fillStyle = '#5a3a1c'; ctx.fill();
+          ctx.beginPath(); ctx.arc(cx, cy, gap * 0.28, 0, Math.PI * 2);
+          ctx.fillStyle = '#1c120a'; ctx.fill();
+        } else if (v === 1 || v === 2) {
+          const black = v === 1;
+          const grad = ctx.createRadialGradient(cx - stoneR * 0.32, cy - stoneR * 0.32, stoneR * 0.1, cx, cy, stoneR);
+          grad.addColorStop(0, black ? '#5a5a5a' : '#ffffff');
+          grad.addColorStop(0.55, black ? '#1b1b1b' : '#f4f1e8');
+          grad.addColorStop(1, black ? '#1b1b1b' : '#f4f1e8');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(cx, cy, stoneR, 0, Math.PI * 2); ctx.fill();
+          ctx.lineWidth = 1.4; ctx.strokeStyle = black ? '#000' : '#cfc7b4'; ctx.stroke();
+        }
+      }
+    }
+
+    // 보간 프레임 — 위치 트랙에서 t 를 감싸는 두 프레임을 lerp
+    if (frames.length > 0) {
+      let i = 0;
+      while (i < frames.length - 1 && frames[i + 1].t <= t) i++;
+      const f0 = frames[i];
+      const f1 = frames[Math.min(i + 1, frames.length - 1)];
+      const span = f1.t - f0.t;
+      const a = span > 0 ? Math.min(1, Math.max(0, (t - f0.t) / span)) : 0;
+
+      // 아이템(가장 가까운 직전 프레임 기준 — 위치 보간 불필요)
+      for (const it of f0.items) {
+        const cx = at(it.x), cy = at(it.y);
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath(); ctx.arc(cx, cy, gap * 0.4, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(224,168,63,0.95)'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.font = `${Math.floor(gap * 0.5)}px serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(ITEM_EMOJI[it.type] ?? '?', cx, cy + 1);
+      }
+
+      // 캐릭터(보간 이동)
+      for (const p0 of f0.players) {
+        const p1 = f1.players.find((q) => q.color === p0.color) ?? p0;
+        const gx = p0.x + (p1.x - p0.x) * a;
+        const gy = p0.y + (p1.y - p0.y) * a;
+        const cx = at(gx), cy = at(gy);
+        const r = gap * 0.42;
+        const black = p0.color === 'BLACK';
+        if (p0.speedBoosted) {
+          ctx.strokeStyle = 'rgba(90,200,255,0.9)'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(cx, cy, r + 6, 0, Math.PI * 2); ctx.stroke();
+        }
+        ctx.fillStyle = black ? '#3b3b40' : '#ece7da';
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+        ctx.lineWidth = 3; ctx.strokeStyle = black ? '#111114' : '#b7af9c'; ctx.stroke();
+        // 눈
+        ctx.fillStyle = black ? '#fff' : '#33312b';
+        ctx.beginPath(); ctx.arc(cx - r * 0.34, cy - r * 0.08, r * 0.16, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + r * 0.34, cy - r * 0.08, r * 0.16, 0, Math.PI * 2); ctx.fill();
+        // 닉네임
+        ctx.font = `bold ${Math.floor(gap * 0.32)}px sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+        ctx.strokeText(nameOf(p0.color), cx, cy - r - 4);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(nameOf(p0.color), cx, cy - r - 4);
+      }
+    }
+  };
+
+  const black = nameOf('BLACK');
+  const white = nameOf('WHITE');
+  const result =
+    replay.winnerColor === 'BLACK' ? `${black} 승`
+      : replay.winnerColor === 'WHITE' ? `${white} 승` : '무효·중단';
+  const ended = playT >= duration;
+
+  return (
+    <div className={styles.backdrop} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.header}>
+          <div>
+            <h2 className={styles.title}>
+              🎬 피지컬 영상 리플레이 <span className={styles.typeBadge}>피지컬 오목</span>
+            </h2>
+            <p className={styles.subtitle}>
+              <span className={styles.stoneB} />{black}
+              <span className={styles.vs}>vs</span>
+              <span className={styles.stoneW} />{white}
+              <span className={styles.resultChip}>{result}</span>
+              <span className={styles.meta}>길이 {fmtTime(duration)}</span>
+            </p>
+          </div>
+          <button className={styles.close} onClick={onClose} aria-label="닫기">✕</button>
+        </div>
+
+        <div className={styles.stage}>
+          <canvas ref={canvasRef} width={CANVAS_PX} height={CANVAS_PX} className={styles.canvas} />
+        </div>
+
+        <div className={styles.controls}>
+          <button
+            className={styles.playBtn}
+            onClick={() => { if (ended) seek(0); setPlaying((p) => !p); }}
+          >
+            {ended ? '↻ 처음부터' : playing ? '⏸ 일시정지' : '▶ 재생'}
+          </button>
+          <span className={styles.time}>{fmtTime(playT)} / {fmtTime(duration)}</span>
+          <input
+            type="range"
+            className={styles.seek}
+            min={0}
+            max={duration}
+            value={Math.min(playT, duration)}
+            onChange={(e) => seek(Number(e.target.value))}
+          />
+          <div className={styles.speeds}>
+            {SPEEDS.map((s) => (
+              <button
+                key={s}
+                className={`${styles.speedBtn} ${speed === s ? styles.speedOn : ''}`}
+                onClick={() => setSpeed(s)}
+              >
+                {s}×
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className={styles.hint}>Space 재생/정지 · ←/→ 5초 이동 · Esc 닫기</p>
+      </div>
+    </div>
+  );
+};
+
+export default PhysicalVideoReplayViewer;

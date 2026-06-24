@@ -75,6 +75,57 @@
 .cdReady { font-size: 0.8rem; font-weight: 700; color: var(--success); }
 .cdActive { font-size: 0.8rem; font-weight: 700; color: var(--gold-bright); }
 
+/* 점수판 — 점수만큼 채워지는 칩(pip). 먼저 targetScore 개를 채우면 승리(스포츠 스코어보드 느낌) */
+.scoreBoard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 22px;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill, 999px);
+  box-shadow: var(--shadow-card);
+}
+.scoreSide { display: flex; align-items: center; gap: 9px; }
+.scoreSideRight { flex-direction: row-reverse; }
+.scoreName {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scoreNameMine { color: var(--gold-bright); font-weight: 800; }
+.scoreVs { color: var(--text-faint); font-weight: 900; font-size: 0.82rem; letter-spacing: 0.06em; }
+
+/* 점수 칩 — 빈칸은 외곽선, 채워지면 색이 차며 pop 한다(점수가 오른 순간 강조) */
+.pips { display: flex; gap: 6px; animation: pipsBump 0.4s ease-out; }
+.pip {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  background: transparent;
+  transition: background 0.2s ease;
+}
+.pipMine {
+  border-color: transparent;
+  background: radial-gradient(circle at 35% 30%, #ffe9a8, var(--gold-bright));
+  box-shadow: 0 0 8px rgba(224, 168, 63, 0.7);
+}
+.pipFoe {
+  border-color: transparent;
+  background: radial-gradient(circle at 35% 30%, #ff9db0, #d8324f);
+  box-shadow: 0 0 8px rgba(216, 50, 79, 0.6);
+}
+@keyframes pipsBump {
+  0% { transform: scale(1.35); }
+  60% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
 /* 캔버스 */
 .canvasWrap {
   position: relative;
@@ -103,16 +154,18 @@
   white-space: nowrap;
 }
 
-/* 5목 확정 대기(settle) 경고 배너 — 깜빡이며 긴장감 부여 */
+/* 충전 중 안내 슬림 배너 — 깜빡이며 긴장감 부여(타이밍은 보드 위 게이지가 보여줌) */
 .pendingMine,
 .pendingFoe {
   position: absolute;
-  top: 12px;
+  top: 8px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  font-size: 0.82rem;
   font-weight: 800;
-  padding: 8px 18px;
+  padding: 5px 15px;
   border-radius: var(--r-pill, 999px);
   white-space: nowrap;
   box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.6);

@@ -28,6 +28,7 @@ public class RoomController {
     private final LeaveRoomUseCase leaveRoomUseCase;
     private final RequestRematchUseCase requestRematchUseCase;
     private final GetRoomUseCase getRoomUseCase;
+    private final StartAiPracticeUseCase startAiPracticeUseCase;
 
     @PostMapping
     public ResponseEntity<ApiResponse<RoomResponse>> createRoom(
@@ -38,6 +39,15 @@ public class RoomController {
                 request.timeLimit(), request.byoyomiOption());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("방이 생성되었습니다.", response));
+    }
+
+    /** 피지컬 오목 'AI 연습' — 봇과 즉시 한 판 시작(레이팅 미반영). 생성된 방으로 입장하면 된다. */
+    @PostMapping("/ai-practice")
+    public ResponseEntity<ApiResponse<RoomResponse>> startAiPractice(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        RoomResponse response = startAiPracticeUseCase.startAiPractice(userDetails.getId());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("AI 연습 대국을 시작합니다.", response));
     }
 
     @PostMapping("/{roomCode}/join")
