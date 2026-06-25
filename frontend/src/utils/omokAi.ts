@@ -11,11 +11,12 @@ import { checkWin, inBounds, opposite, placeStone } from '@/utils/omokEngine';
  * 두 점수를 합쳐 가장 큰 칸을 고르면, 자연스럽게 "이기는 수는 두고 / 막을 곳은 막는" 플레이가 된다.
  *
  * 난이도는 1~7 사다리. "얼마나 멀리 보고, 얼마나 실수하고, 얼마나 무작위인가"로 갈린다.
- * 곡선을 가파르게 잡아 1단계만 입문용이고 2단계부터는 빈틈 없이 막는다(예전엔 3단계까지 너무 쉬웠음).
- *  - 1 단계: 거의 아무 데나 둠(즉시 패배만 가끔 막음) — 입문용
+ *  - 1 단계: 약한 휴리스틱 — '오목 규칙은 안다'. 한 줄을 만들고 즉시 패배(상대 사)는 막지만,
+ *            수비 가중치가 낮고 무작위가 커서 상대의 열린3→열린4 전개를 놓쳐 초보도 이길 수 있다.
  *  - 2~3 단계: 한 수 앞 휴리스틱 — 즉시 위협은 모두 막고 자기 모양도 키움
- *  - 4~7 단계: 휴리스틱 + 상대 반격까지 한 겹 더 읽기(이중 위협). 무작위성 0 으로 수렴.
- *  - 6~7 단계는 사람이 후공(백)이라 선공 이점이 없다 → 7단계는 사실상 최종 보스.
+ *  - 4~5 단계: 휴리스틱 + 상대 반격까지 한 겹 더 읽기(이중 위협). 무작위성 거의 0.
+ *  - 6~7 단계: 사람이 후공(백)이라 선공 이점이 없다. 추가로 '연속 사(VCF)' 강제승 탐색을 켜서
+ *             한 번 주도권을 잡으면 사를 연속으로 던져 끝까지 몰아 이긴다(7단계는 프로급 최종 보스).
  */
 
 export interface AiMove {
@@ -37,6 +38,8 @@ export interface AiLevel {
   defenseWeight: number;  // 수비 점수 가중치(높을수록 잘 막음)
   jitter: number;         // 동점 처리용 무작위 크기(클수록 들쭉날쭉)
   topK: number;           // deep 모드에서 깊게 읽을 상위 후보 수
+  /** 연속 사(four) 강제승 탐색 깊이(0=미사용). 고단계가 주도권을 잡으면 끝까지 몰아 이기게 하는 프로급 마무리. */
+  vcfDepth: number;
 }
 
 /**
@@ -44,20 +47,20 @@ export interface AiLevel {
  * 곡선을 가파르게: 1단계만 무작위, 2단계부터 1수 휴리스틱, 4단계부터 2수 읽기, 6~7단계는 사람 후공.
  */
 export const AI_LEVELS: AiLevel[] = [
-  { level: 1, label: '1단계 · 새싹',   emoji: '🌱', desc: '오목을 막 배운 상대. 빈틈이 많아요.',
-    humanPlaysWhite: false, mode: 'random',    blockWinProb: 0.65, defenseWeight: 0.5,  jitter: 460, topK: 0 },
+  { level: 1, label: '1단계 · 새싹',   emoji: '🌱', desc: '오목 규칙은 아는 초보. 한 줄을 만들고 큰 위협만 겨우 막아요.',
+    humanPlaysWhite: false, mode: 'heuristic', blockWinProb: 1,    defenseWeight: 0.4,  jitter: 200, topK: 0,  vcfDepth: 0 },
   { level: 2, label: '2단계 · 견습',   emoji: '🪵', desc: '기본기를 갖춘 상대. 위협은 빠짐없이 막아요.',
-    humanPlaysWhite: false, mode: 'heuristic', blockWinProb: 1,    defenseWeight: 0.85, jitter: 90,  topK: 0 },
+    humanPlaysWhite: false, mode: 'heuristic', blockWinProb: 1,    defenseWeight: 0.85, jitter: 90,  topK: 0,  vcfDepth: 0 },
   { level: 3, label: '3단계 · 숙련',   emoji: '⚔️', desc: '공수 균형이 잡힌 상대. 빈틈이 거의 없어요.',
-    humanPlaysWhite: false, mode: 'heuristic', blockWinProb: 1,    defenseWeight: 1.0,  jitter: 24,  topK: 0 },
+    humanPlaysWhite: false, mode: 'heuristic', blockWinProb: 1,    defenseWeight: 1.0,  jitter: 24,  topK: 0,  vcfDepth: 0 },
   { level: 4, label: '4단계 · 고수',   emoji: '🔥', desc: '한 수 앞을 읽고 반격을 노리는 상대.',
-    humanPlaysWhite: false, mode: 'deep',      blockWinProb: 1,    defenseWeight: 1.0,  jitter: 12,  topK: 12 },
+    humanPlaysWhite: false, mode: 'deep',      blockWinProb: 1,    defenseWeight: 1.0,  jitter: 12,  topK: 12, vcfDepth: 0 },
   { level: 5, label: '5단계 · 달인',   emoji: '🧠', desc: '이중 위협을 만들고 빈틈을 파고드는 상대.',
-    humanPlaysWhite: false, mode: 'deep',      blockWinProb: 1,    defenseWeight: 1.05, jitter: 4,   topK: 16 },
-  { level: 6, label: '6단계 · 패왕',   emoji: '👑', desc: '여기부터 당신은 후공(백). 실수를 용서하지 않아요.',
-    humanPlaysWhite: true,  mode: 'deep',      blockWinProb: 1,    defenseWeight: 1.1,  jitter: 0,   topK: 20 },
-  { level: 7, label: '7단계 · 최종 보스', emoji: '🐉', desc: '당신은 후공(백). 거의 이길 수 없는 최강의 상대.',
-    humanPlaysWhite: true,  mode: 'deep',      blockWinProb: 1,    defenseWeight: 1.2,  jitter: 0,   topK: 26 },
+    humanPlaysWhite: false, mode: 'deep',      blockWinProb: 1,    defenseWeight: 1.05, jitter: 4,   topK: 16, vcfDepth: 0 },
+  { level: 6, label: '6단계 · 패왕',   emoji: '👑', desc: '여기부터 당신은 후공(백). 연속 위협으로 몰아붙여요.',
+    humanPlaysWhite: true,  mode: 'deep',      blockWinProb: 1,    defenseWeight: 1.1,  jitter: 0,   topK: 22, vcfDepth: 8 },
+  { level: 7, label: '7단계 · 최종 보스', emoji: '🐉', desc: '당신은 후공(백). 빈틈을 보이면 연속 사(四)로 끝까지 몰아 이기는 최강의 상대.',
+    humanPlaysWhite: true,  mode: 'deep',      blockWinProb: 1,    defenseWeight: 1.3,  jitter: 0,   topK: 34, vcfDepth: 16 },
 ];
 
 export const MAX_AI_LEVEL = AI_LEVELS.length;
@@ -299,6 +302,63 @@ const chooseDeep = (
   return pickBest(scored, cfg.jitter);
 };
 
+// ──────────────────────────────────────────────────────────────────────────
+// 연속 사(VCF) 강제승 탐색 — 고단계 전용
+// ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * (row,col)에 color 를 놓으면 정확히 5목이 되는가 — 보드 복사 없이 '임시 착수 후 되돌려' 검사한다.
+ * VCF 핫패스에서 isWinningCell(매번 보드 전체 복사)을 대신해 수십 배 빠르다. 동기 구간이라 즉시 복원이 안전하다.
+ */
+const completesFive = (board: Board, row: number, col: number, color: StoneColor): boolean => {
+  if (board[row][col] !== null) return false;
+  board[row][col] = color;
+  const win = checkWin(board, row, col);
+  board[row][col] = null;
+  return win;
+};
+
+/** 현재 보드에서 color 가 '한 수면 오목'이 되는 빈 칸(승리 자리)들을 모은다. */
+const collectWinningCells = (board: Board, color: StoneColor): AiMove[] => {
+  const res: AiMove[] = [];
+  for (const c of candidateCells(board)) {
+    if (completesFive(board, c.row, c.col, color)) res.push(c);
+  }
+  return res;
+};
+
+/**
+ * VCF(Victory by Continuous Fours): 연속된 '사'(다음 수에 오목이 되는 위협)로 상대를 강제 응수시키며
+ * 끝내 오목을 완성하는 수가 있으면 그 '첫 수'를 돌려준다(없으면 null). 프로급(고단계) 마무리의 핵심.
+ *  - 내가 둔 뒤 승리 자리가 2개 이상이면(열린 사·이중 사) 상대가 다 못 막으므로 즉시 강제승.
+ *  - 승리 자리가 1개면 상대는 거기를 막을 수밖에 없으니, 막은 뒤 이어서 재귀적으로 다음 사를 찾는다.
+ *  - 그 수가 사가 아니면(승리 자리 0개) 강제력이 없어 건너뛴다 → 분기가 폭발하지 않아 깊게 봐도 빠르다.
+ * budget 으로 총 노드 수를 제한해 브라우저가 멈추지 않게 한다.
+ */
+const findVcf = (
+  board: Board,
+  ai: StoneColor,
+  human: StoneColor,
+  depth: number,
+  budget: { n: number },
+): AiMove | null => {
+  if (depth <= 0 || budget.n <= 0) return null;
+  const immediate = collectWinningCells(board, ai);
+  if (immediate.length > 0) return immediate[0]; // 이미 즉승 자리가 있으면 그게 답
+
+  for (const c of candidateCells(board)) {
+    if (budget.n-- <= 0) return null;
+    const after = placeStone(board, c.row, c.col, ai);
+    const myWins = collectWinningCells(after, ai);
+    if (myWins.length === 0) continue;       // '사'가 아니면 강제력 없음 → 건너뜀
+    if (collectWinningCells(after, human).length > 0) continue; // 상대가 먼저 오목나면 강제 안 됨(이 수론 강제 불가)
+    if (myWins.length >= 2) return c;          // 열린 사/이중 사 → 한 곳만 막을 수 있어 즉시 강제승
+    const blocked = placeStone(after, myWins[0].row, myWins[0].col, human); // 단일 사: 상대는 막을 수밖에 없음
+    if (findVcf(blocked, ai, human, depth - 1, budget)) return c;
+  }
+  return null;
+};
+
 /**
  * 현재 보드에서 AI(=ai 색)가 둘 한 수를 결정한다.
  * 둘 곳이 없으면 null(보드가 꽉 찼거나 비정상 상태).
@@ -312,6 +372,13 @@ export const chooseAiMove = (
   const human = opposite(ai);
   const cells = candidateCells(board);
   if (cells.length === 0) return null;
+
+  // 고단계: 연속 사(four)로 강제승이 보이면 그 첫 수를 즉시 둔다(주도권을 잡으면 끝까지 마무리).
+  // budget 은 노드 상한 — 병리적 국면에서도 브라우저가 멈추지 않게 막고, 초과 시 휴리스틱으로 폴백한다.
+  if (cfg.vcfDepth > 0) {
+    const vcf = findVcf(board, ai, human, cfg.vcfDepth, { n: 12000 });
+    if (vcf) return vcf;
+  }
 
   switch (cfg.mode) {
     case 'random':
