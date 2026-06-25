@@ -1,11 +1,13 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { userApi } from '@/api/auth';
 import { gameApi } from '@/api/game';
 import { friendApi } from '@/api/friend';
-import { GameInfo, PublicUser, RelationInfo, StatMode, User } from '@/types';
+import { shopApi } from '@/api/shop';
+import { GameInfo, PublicUser, RelationInfo, StatMode, User, Inventory } from '@/types';
 import GameRecordViewer from '@/components/game/GameRecordViewer';
+import ItemPreview from '@/components/shop/ItemPreview';
 import ModeTabs from '@/components/common/ModeTabs';
 import { pickStats, totalStats } from '@/utils/stats';
 import styles from './ProfilePage.module.css';
@@ -41,6 +43,7 @@ const ProfilePage = () => {
   const [profileError, setProfileError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [recent, setRecent] = useState<GameInfo[] | null>(null);
+  const [inventory, setInventory] = useState<Inventory | null>(null);
   const [kifuGame, setKifuGame] = useState<GameInfo | null>(null);
   const [relation, setRelation] = useState<RelationInfo | null>(null);
   const [relBusy, setRelBusy] = useState(false);
@@ -50,6 +53,7 @@ const ProfilePage = () => {
     if (!user) return;
 
     setRecent(null);
+    setInventory(null);
     setKifuGame(null);
     setRelation(null);
     setProfileError('');
@@ -64,6 +68,11 @@ const ProfilePage = () => {
         .getMyGames(0, 10)
         .then((res) => setRecent(res.data.data?.content ?? []))
         .catch(() => setRecent([]));
+      // 내 보유 아이템(코스메틱) — 프로필에서 컬렉션을 보여준다(본인만, 인벤토리는 비공개).
+      shopApi
+        .getInventory()
+        .then((res) => setInventory(res.data.data ?? null))
+        .catch(() => setInventory(null));
       return;
     }
 
@@ -137,6 +146,9 @@ const ProfilePage = () => {
 
   const canEdit = isOwnProfile && isUser(profile);
   const ownProfile = canEdit ? profile : null;
+  // 칭호(업적 파생) — 첫 항목이 대표 칭호. 구버전 캐시 대비 ?? [] 로 방어.
+  const titles = profile.titles ?? [];
+  const mainTitle = titles[0];
   // 선택한 탭(통합/일반/피지컬)의 전적
   const stats = pickStats(
     statMode,
@@ -222,10 +234,20 @@ const ProfilePage = () => {
               <>
                 <div className={styles.nicknameRow}>
                   <h1 className={styles.nickname}>{profile.nickname}</h1>
+                  {mainTitle && (
+                    <span className={styles.titleChip} title={mainTitle.description}>🏅 {mainTitle.name}</span>
+                  )}
                   {canEdit && <button onClick={() => setIsEditing(true)} className={styles.editBtn}>수정</button>}
                 </div>
                 {ownProfile && (
                   <p className={styles.email}>{ownProfile.email}</p>
+                )}
+                {titles.length > 0 && (
+                  <div className={styles.titleRow}>
+                    {titles.map((t) => (
+                      <span key={t.key} className={styles.titleBadge} title={t.description}>🏅 {t.name}</span>
+                    ))}
+                  </div>
                 )}
                 <div className={styles.metaRow}>
                   {ownProfile && <span className={styles.provider}>{PROVIDER_LABELS[ownProfile.provider] ?? ownProfile.provider} 로그인</span>}
@@ -314,6 +336,35 @@ const ProfilePage = () => {
           </div>
         )}
       </div>
+
+      {isOwnProfile && (
+        <div className={styles.card}>
+          <div className={styles.itemsHeader}>
+            <h2 className={styles.sectionTitle}>내 아이템{inventory ? ` (${inventory.items.length})` : ''}</h2>
+            <Link to="/shop" className={styles.shopLink}>상점에서 관리 ▶</Link>
+          </div>
+          {!inventory ? (
+            <p className={styles.recentEmpty}>불러오는 중...</p>
+          ) : inventory.items.length === 0 ? (
+            <p className={styles.recentEmpty}>아직 보유한 아이템이 없습니다. 상점에서 뽑기를 해보세요!</p>
+          ) : (
+            <div className={styles.itemGrid}>
+              {[...inventory.items]
+                .sort((a, b) => a.itemType.localeCompare(b.itemType))
+                .map((item) => {
+                  const equipped = inventory.activeItems[item.itemType]?.id === item.id;
+                  return (
+                    <div key={item.id} className={`${styles.itemCard} ${equipped ? styles.itemCardEquipped : ''}`}>
+                      <div className={styles.itemThumb}><ItemPreview item={item} /></div>
+                      <p className={styles.itemName}>{item.displayName || item.name}</p>
+                      {equipped && <span className={styles.itemEquipped}>장착 중</span>}
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className={styles.card}>
         <h2 className={styles.sectionTitle}>{isOwnProfile ? '최근 10경기 다시보기' : '최근 10경기'}</h2>

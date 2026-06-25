@@ -90,6 +90,34 @@
   font-size: 0.78rem;
   font-weight: 700;
 }
+
+/* 칭호 — 업적 뱃지(닉네임 옆 대표 칭호 + 전체 목록 줄) */
+.titleChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(180deg, #5b3d8f, #3a2566);
+  color: #f0e6ff;
+  border: 1px solid #8a6fd0;
+  padding: 3px 12px;
+  border-radius: var(--r-pill);
+  font-size: 0.8rem;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(138, 111, 208, 0.45);
+}
+.titleRow { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.titleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(138, 111, 208, 0.14);
+  color: #c9b6f0;
+  border: 1px solid rgba(138, 111, 208, 0.4);
+  padding: 3px 11px;
+  border-radius: var(--r-pill);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
 .privacyToggle {
   display: inline-flex;
   align-items: center;
@@ -245,6 +273,50 @@
 .sectionTitle::before { content: ''; width: 5px; height: 18px; border-radius: 3px; background: var(--gold-grad); }
 
 .sectionHint { margin: -10px 0 14px; font-size: 0.82rem; color: var(--text-faint); }
+
+/* 내 아이템(보유 코스메틱) 컬렉션 */
+.itemsHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.itemsHeader .sectionTitle { margin-bottom: 14px; }
+.shopLink { color: var(--gold-bright); font-size: 0.82rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.shopLink:hover { text-decoration: underline; }
+.itemGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 12px;
+}
+.itemCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  background: var(--inset);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--r-sm);
+}
+.itemCardEquipped { border-color: var(--gold-soft-border); box-shadow: 0 0 0 1px var(--gold-soft-border) inset; }
+.itemThumb { width: 84px; height: 84px; display: flex; align-items: center; justify-content: center; }
+.itemName {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.itemEquipped {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--gold-bright);
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-soft-border);
+  border-radius: var(--r-pill);
+  padding: 1px 8px;
+}
+
 .recentList { display: flex; flex-direction: column; gap: 8px; }
 .recentEmpty { color: var(--text-faint); font-size: 0.9rem; padding: 20px 4px; text-align: center; }
 .recentItem {
