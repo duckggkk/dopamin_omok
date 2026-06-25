@@ -51,6 +51,13 @@ public class Room {
     @Column(nullable = false, length = 20)
     private ByoyomiOption byoyomiOption;
 
+    /**
+     * 랭크전 여부. true=랭크(회원 전용, 레이팅·전적 반영), false=캐주얼(비회원도 참가, 미반영).
+     * 기존 데이터 호환을 위해 기본 TRUE.
+     */
+    @Column(nullable = false)
+    private boolean ranked = true;
+
     @Column(nullable = false)
     private Integer maxSpectators = 3;
 
@@ -63,7 +70,7 @@ public class Room {
 
     @Builder
     private Room(User host, String roomCode, GameType gameType, OmokRule omokRule,
-                 TimeLimit timeLimit, ByoyomiOption byoyomiOption) {
+                 TimeLimit timeLimit, ByoyomiOption byoyomiOption, boolean ranked) {
         this.host = host;
         this.roomCode = roomCode;
         this.gameType = gameType;
@@ -71,13 +78,14 @@ public class Room {
         this.omokRule = (gameType == GameType.PHYSICAL || omokRule == null) ? OmokRule.FREESTYLE : omokRule;
         this.timeLimit = timeLimit;
         this.byoyomiOption = byoyomiOption;
+        this.ranked = ranked;
         this.status = RoomStatus.WAITING;
         this.maxSpectators = 3;
         this.currentGameNumber = 0;
     }
 
     public static Room create(User host, String roomCode, GameType gameType, OmokRule omokRule,
-                              TimeLimit timeLimit, ByoyomiOption byoyomiOption) {
+                              TimeLimit timeLimit, ByoyomiOption byoyomiOption, boolean ranked) {
         return Room.builder()
                 .host(host)
                 .roomCode(roomCode)
@@ -85,6 +93,7 @@ public class Room {
                 .omokRule(omokRule)
                 .timeLimit(timeLimit)
                 .byoyomiOption(byoyomiOption)
+                .ranked(ranked)
                 .build();
     }
 

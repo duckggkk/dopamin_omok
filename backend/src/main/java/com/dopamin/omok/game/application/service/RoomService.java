@@ -71,10 +71,12 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     @Override
     @Transactional
     public RoomResponse createRoom(Long userId, GameType gameType, OmokRule omokRule,
-                                   TimeLimit timeLimit, ByoyomiOption byoyomiOption) {
+                                   TimeLimit timeLimit, ByoyomiOption byoyomiOption, boolean ranked) {
         User user = findUserById(userId);
+        // 게스트(비회원)는 랭크전을 열 수 없다 — 항상 캐주얼로 강제한다(레이팅 어뷰징 방지).
+        boolean effectiveRanked = ranked && !user.isGuest();
         String roomCode = generateUniqueRoomCode();
-        Room room = Room.create(user, roomCode, gameType, omokRule, timeLimit, byoyomiOption);
+        Room room = Room.create(user, roomCode, gameType, omokRule, timeLimit, byoyomiOption, effectiveRanked);
         saveRoomPort.save(room);
 
         GamePlayer host = GamePlayer.createHost(room, user);
@@ -101,6 +103,10 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         if (!room.isWaiting()) throw new OmokException(ErrorCode.ROOM_ALREADY_FULL);
 
         User user = findUserById(userId);
+        // 랭크 방은 회원만 — 게스트는 캐주얼 방만 참가할 수 있다(랭크전=회원 vs 회원 보장).
+        if (room.isRanked() && user.isGuest()) {
+            throw new OmokException(ErrorCode.ROOM_RANKED_MEMBERS_ONLY);
+        }
 
         // 관전자로 있었다면 제거하고 재참여
         loadGamePlayerPort.findByRoomIdAndUserId(room.getId(), userId)
@@ -252,6 +258,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     @Transactional
     public RoomResponse startAiPractice(Long userId) {
         User user = findUserById(userId);
+        if (user.isGuest()) throw new OmokException(ErrorCode.GUEST_FORBIDDEN); // 피지컬 AI 연습은 회원 전용
         User bot = loadUserPort.findByEmail(AI_BOT_EMAIL)
                 .orElseThrow(() -> new OmokException(ErrorCode.USER_NOT_FOUND));
 
@@ -260,7 +267,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         // (이전엔 HTTP 응답 시점에 바로 시작해, 클라가 뒤늦게 접속하며 카운트다운이 들쭉날쭉했음.)
         String roomCode = generateUniqueRoomCode();
         Room room = Room.create(user, roomCode, GameType.PHYSICAL,
-                OmokRule.FREESTYLE, TimeLimit.UNLIMITED, ByoyomiOption.NONE);
+                OmokRule.FREESTYLE, TimeLimit.UNLIMITED, ByoyomiOption.NONE, false); // 연습=캐주얼(레이팅 미반영)
         saveRoomPort.save(room);
 
         GamePlayer host = GamePlayer.createHost(room, user);       // 흑(선) = 사람
@@ -313,7 +320,8 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         User loser = game.getOpponent(winnerId);
 
         game.finish(winner);
-        if (!isBotGame(game)) { // AI 연습(봇 대국)은 레이팅·전적 미집계
+        // 랭크 방 + 사람 대국일 때만 레이팅·전적 반영(캐주얼/봇 대국은 기록만 남기고 미집계)
+        if (game.getRoom().isRanked() && !isBotGame(game)) {
             winner.recordWin();
             if (loser != null) {
                 loser.recordLoss();
@@ -447,7 +455,8 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
                 User loser = game.getBlackPlayer().getId().equals(hostId)
                         ? game.getBlackPlayer() : game.getWhitePlayer();
                 game.finish(winner);
-                if (!isBotGame(game)) { // AI 연습(봇 대국)은 집계 제외
+                // 랭크 방 + 사람 대국만 레이팅·전적 반영(캐주얼/봇 제외)
+                if (room.isRanked() && !isBotGame(game)) {
                     winner.recordWin();
                     loser.recordLoss();
                     EloRating.applyResult(winner, loser, room.getGameType() == GameType.PHYSICAL);
@@ -474,7 +483,8 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             User winner = game.getOpponent(loser.getId());
 
             game.finish(winner);
-            if (!isBotGame(game)) { // AI 연습(봇 대국)은 집계 제외
+            // 랭크 방 + 사람 대국만 레이팅·전적 반영(캐주얼/봇 제외)
+            if (room.isRanked() && !isBotGame(game)) {
                 winner.recordWin();
                 loser.recordLoss();
                 EloRating.applyResult(winner, loser, room.getGameType() == GameType.PHYSICAL);

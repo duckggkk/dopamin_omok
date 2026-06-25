@@ -36,7 +36,7 @@ public class RoomController {
             @Valid @RequestBody CreateRoomRequest request) {
         RoomResponse response = createRoomUseCase.createRoom(
                 userDetails.getId(), request.gameType(), request.omokRule(),
-                request.timeLimit(), request.byoyomiOption());
+                request.timeLimit(), request.byoyomiOption(), request.ranked());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("방이 생성되었습니다.", response));
     }

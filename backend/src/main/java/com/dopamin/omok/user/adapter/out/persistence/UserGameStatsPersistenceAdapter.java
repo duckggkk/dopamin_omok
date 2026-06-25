@@ -28,9 +28,24 @@ public class UserGameStatsPersistenceAdapter implements LoadUserGameStatsPort {
     @Override
     public ModeStats statsByMode(Long userId, GameType mode) {
         QGame g = QGame.game;
+        // 랭크전(room.ranked=true)만 집계 — 전적/랭킹은 랭크 기록이다. 캐주얼은 casualStats 로 분리.
         BooleanExpression base = g.room.gameType.eq(mode)
+                .and(g.room.ranked.isTrue())
                 .and(g.blackPlayer.id.eq(userId).or(g.whitePlayer.id.eq(userId)));
+        return aggregate(userId, base);
+    }
 
+    @Override
+    public ModeStats casualStats(Long userId) {
+        QGame g = QGame.game;
+        // 캐주얼(room.ranked=false) 전적 — 모드(일반/피지컬) 구분 없이 합산(캐주얼은 레이팅이 없음).
+        BooleanExpression base = g.room.ranked.isFalse()
+                .and(g.blackPlayer.id.eq(userId).or(g.whitePlayer.id.eq(userId)));
+        return aggregate(userId, base);
+    }
+
+    private ModeStats aggregate(Long userId, BooleanExpression base) {
+        QGame g = QGame.game;
         int wins = count(base.and(g.winner.id.eq(userId)));
         int losses = count(base.and(g.status.eq(GameStatus.FINISHED)).and(g.winner.id.ne(userId)));
         int draws = count(base.and(g.status.eq(GameStatus.DRAW)));

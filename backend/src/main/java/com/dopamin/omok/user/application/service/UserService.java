@@ -38,7 +38,8 @@ public class UserService implements GetUserUseCase, UpdateProfileUseCase, GetRan
                 .orElseThrow(() -> new OmokException(ErrorCode.USER_NOT_FOUND));
         return UserResponse.from(user,
                 loadUserGameStatsPort.statsByMode(userId, GameType.CLASSIC),
-                loadUserGameStatsPort.statsByMode(userId, GameType.PHYSICAL));
+                loadUserGameStatsPort.statsByMode(userId, GameType.PHYSICAL),
+                loadUserGameStatsPort.casualStats(userId));
     }
 
     @Override
@@ -50,7 +51,8 @@ public class UserService implements GetUserUseCase, UpdateProfileUseCase, GetRan
         }
         return PublicUserResponse.from(user,
                 loadUserGameStatsPort.statsByMode(user.getId(), GameType.CLASSIC),
-                loadUserGameStatsPort.statsByMode(user.getId(), GameType.PHYSICAL));
+                loadUserGameStatsPort.statsByMode(user.getId(), GameType.PHYSICAL),
+                loadUserGameStatsPort.casualStats(user.getId()));
     }
 
     @Override
@@ -75,7 +77,8 @@ public class UserService implements GetUserUseCase, UpdateProfileUseCase, GetRan
 
         return UserResponse.from(user,
                 loadUserGameStatsPort.statsByMode(userId, GameType.CLASSIC),
-                loadUserGameStatsPort.statsByMode(userId, GameType.PHYSICAL));
+                loadUserGameStatsPort.statsByMode(userId, GameType.PHYSICAL),
+                loadUserGameStatsPort.casualStats(userId));
     }
 
     @Override

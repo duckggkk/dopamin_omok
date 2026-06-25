@@ -90,10 +90,10 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
 
         if (win) {
             game.finish(player);
-            updateWinLoss(game, player);
+            updateWinLoss(game, player, room.isRanked());
         } else if (gameEngine.isBoardFull(board)) {
             game.draw();
-            recordDraw(game);
+            recordDraw(game, room.isRanked());
         } else {
             game.switchTurn();
         }
@@ -122,7 +122,7 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         User winner = (loserColor == StoneColor.BLACK) ? game.getWhitePlayer() : game.getBlackPlayer();
 
         game.finish(winner);
-        updateWinLoss(game, winner);
+        updateWinLoss(game, winner, game.getRoom().isRanked());
         saveGamePort.save(game);
 
         loadRoomPort.findByRoomCode(roomCode).ifPresent(room -> {
@@ -216,7 +216,7 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         if (timedOut) {
             User winner = game.getOpponent(userId);
             game.finish(winner);
-            updateWinLoss(game, winner);
+            updateWinLoss(game, winner, room.isRanked());
             saveGamePort.save(game);
             throw new OmokException(ErrorCode.PLAYER_TIMEOUT);
         }
@@ -245,7 +245,8 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         return game;
     }
 
-    private void updateWinLoss(Game game, User winner) {
+    private void updateWinLoss(Game game, User winner, boolean ranked) {
+        if (!ranked) return; // 캐주얼: 레이팅·전적 미반영(대국 기록은 저장된다)
         User loser = winner.getId().equals(game.getBlackPlayer().getId())
                 ? game.getWhitePlayer()
                 : game.getBlackPlayer();
@@ -255,7 +256,8 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         EloRating.applyResult(winner, loser, false);
     }
 
-    private void recordDraw(Game game) {
+    private void recordDraw(Game game, boolean ranked) {
+        if (!ranked) return; // 캐주얼: 미반영
         User black = game.getBlackPlayer();
         User white = game.getWhitePlayer();
         black.recordDraw();

@@ -74,9 +74,8 @@ public class SecurityConfig {
                         // 멤버 전용 기능은 여기서 역할(USER/ADMIN)로 명시적으로 막아야 한다.
                         // (게스트 허용: 싱글 AI /ai/**, 조회성 GET 등. 게스트 차단: 아래 경로)
                         .requestMatchers("/shop/**", "/friends/**", "/plaza/**").hasAnyRole("USER", "ADMIN")
-                        // 방 생성·참가·관전 등 온라인 대국 진입(POST). 조회(GET /rooms)는 허용.
-                        // Phase 2(캐주얼 방)에서 게스트의 캐주얼 방 입장만 선별 허용하도록 완화 예정.
-                        .requestMatchers(HttpMethod.POST, "/rooms/**").hasAnyRole("USER", "ADMIN")
+                        // 방(/rooms)은 URL 일괄 차단하지 않는다 — 게스트도 '캐주얼' 방은 생성·참가할 수 있어야 하기 때문.
+                        // 랭크 방 생성/참가 차단은 RoomService 가 역할 기반으로 선별 처리한다(게스트=캐주얼 강제, 랭크 참가 거부).
                         // 프로필 수정(닉네임/이미지 등)은 멤버만.
                         .requestMatchers(HttpMethod.PATCH, "/users/me").hasAnyRole("USER", "ADMIN")
 

@@ -8,5 +8,5 @@ import com.dopamin.omok.game.domain.TimeLimit;
 
 public interface CreateRoomUseCase {
     RoomResponse createRoom(Long userId, GameType gameType, OmokRule omokRule,
-                            TimeLimit timeLimit, ByoyomiOption byoyomiOption);
+                            TimeLimit timeLimit, ByoyomiOption byoyomiOption, boolean ranked);
 }
