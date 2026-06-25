@@ -71,6 +71,41 @@
   font-size: 0.9rem;
 }
 
+/* 오류 토스트 — 화면 정중앙에 크게 띄워 '돌 부족' 등을 확실히 인지시킨다(클릭 시 닫힘, 잠시 후 자동 사라짐) */
+.errorToast {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  pointer-events: none; /* 카드만 클릭 받음 */
+}
+.errorToastCard {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(86vw, 460px);
+  padding: 18px 26px;
+  background: linear-gradient(180deg, #3a1620, #2a0f17);
+  color: #ffd9df;
+  border: 1.5px solid var(--danger-border, #ff7a92);
+  border-radius: var(--r-lg, 16px);
+  box-shadow: 0 24px 60px -16px rgba(0, 0, 0, 0.75), 0 0 22px rgba(255, 90, 120, 0.35);
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-align: center;
+  cursor: pointer;
+  animation: errorToastPop 0.28s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.errorToastIcon { font-size: 1.4rem; line-height: 1; flex-shrink: 0; }
+.errorToastMsg { line-height: 1.4; }
+@keyframes errorToastPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* 본문 + 미리보기 패널 2단 레이아웃 */
 .layout { display: flex; gap: 22px; align-items: flex-start; }
 .mainCol { flex: 1; min-width: 0; }

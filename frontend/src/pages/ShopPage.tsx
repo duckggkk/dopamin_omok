@@ -100,6 +100,13 @@ const ShopPage = () => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // 오류(돌 부족 등)는 화면 정중앙 토스트로 띄우고 잠시 후 자동으로 사라지게 한다(상단 작은 글씨는 잘 안 보였음).
+  useEffect(() => {
+    if (!error) return;
+    const id = window.setTimeout(() => setError(null), 2800);
+    return () => window.clearTimeout(id);
+  }, [error]);
+
   const handleCharge = async (packageId: string) => {
     try {
       const res = await shopApi.chargeCurrency(packageId);
@@ -199,7 +206,14 @@ const ShopPage = () => {
         </button>
       </div>
 
-      {error && <p className={styles.error}>{error}</p>}
+      {error && (
+        <div className={styles.errorToast} role="alert" onClick={() => setError(null)}>
+          <div className={styles.errorToastCard}>
+            <span className={styles.errorToastIcon}>⚠️</span>
+            <span className={styles.errorToastMsg}>{error}</span>
+          </div>
+        </div>
+      )}
 
       <div className={styles.layout}>
         <div className={styles.mainCol}>
