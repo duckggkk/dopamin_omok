@@ -4,6 +4,7 @@ import { ToastProvider } from '@/contexts/ToastContext';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import PrivateRoute from '@/components/common/PrivateRoute';
+import MemberRoute from '@/components/common/MemberRoute';
 import LoginPage from '@/pages/LoginPage';
 import OAuthCallbackPage from '@/pages/OAuthCallbackPage';
 import WelcomePage from '@/pages/WelcomePage';
@@ -51,18 +52,25 @@ const router = createBrowserRouter([
       {
         element: <PrivateRoute />,
         children: [
-          { path: '/', element: <HomePage /> },
-          { path: '/welcome', element: <WelcomePage /> },
+          // 게스트(비회원)도 허용 — 싱글 AI와 게임 방법(읽기 전용)
           { path: '/ai', element: <AiGamePage /> },
-          { path: '/lobby', element: <LobbyPage /> },
-          { path: '/plaza', element: <PlazaPage /> },
-          { path: '/friends', element: <FriendsPage /> },
-          { path: '/ranking', element: <RankingPage /> },
           { path: '/guide', element: <GameGuidePage /> },
-          { path: '/game/:gameId', element: <GamePage /> },
-          { path: '/profile', element: <ProfilePage /> },
-          { path: '/profile/:userId', element: <ProfilePage /> },
-          { path: '/shop', element: <ShopPage /> },
+          // 멤버(정식 회원) 전용 — 게스트는 MemberRoute에서 /ai 로 리다이렉트
+          {
+            element: <MemberRoute />,
+            children: [
+              { path: '/', element: <HomePage /> },
+              { path: '/welcome', element: <WelcomePage /> },
+              { path: '/lobby', element: <LobbyPage /> },
+              { path: '/plaza', element: <PlazaPage /> },
+              { path: '/friends', element: <FriendsPage /> },
+              { path: '/ranking', element: <RankingPage /> },
+              { path: '/game/:gameId', element: <GamePage /> },
+              { path: '/profile', element: <ProfilePage /> },
+              { path: '/profile/:userId', element: <ProfilePage /> },
+              { path: '/shop', element: <ShopPage /> },
+            ],
+          },
         ],
       },
       { path: '*', element: <Navigate to="/" replace /> },

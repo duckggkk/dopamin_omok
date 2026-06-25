@@ -198,6 +198,20 @@
 }
 .logoutBtn:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
 
+.guestTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 6px 13px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .registerBtn {
   background: var(--gold-grad);
   color: var(--text-on-gold);

@@ -23,6 +23,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [isEmailNotVerified, setIsEmailNotVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -55,6 +56,31 @@ const LoginPage = () => {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 비회원으로 바로 시작 — 익명 계정을 발급받아 싱글 AI 등 게스트 허용 기능만 이용한다.
+  const handleGuestStart = async () => {
+    setError('');
+    setIsEmailNotVerified(false);
+    setIsGuestLoading(true);
+
+    try {
+      const tokenRes = await authApi.guestLogin();
+      const { accessToken, refreshToken } = tokenRes.data.data!;
+
+      tokenStorage.setRemember(true); // 게스트 신원을 새로고침·재방문에도 유지(매번 새 계정 생성 방지)
+      tokenStorage.setTokens(accessToken, refreshToken);
+
+      const userRes = await userApi.getMe();
+      if (userRes.data.data) {
+        login(userRes.data.data, accessToken, refreshToken);
+        navigate('/ai'); // 게스트의 기본 진입점 = 싱글 AI
+      }
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, '게스트 시작에 실패했습니다. 잠시 후 다시 시도해주세요.'));
+    } finally {
+      setIsGuestLoading(false);
     }
   };
 
@@ -126,10 +152,23 @@ const LoginPage = () => {
             </div>
           )}
 
-          <button type="submit" disabled={isLoading} className={styles.submitBtn}>
+          <button type="submit" disabled={isLoading || isGuestLoading} className={styles.submitBtn}>
             {isLoading ? '로그인 중...' : '로그인'}
           </button>
         </form>
+
+        <div className={styles.altDivider}>또는</div>
+        <button
+          type="button"
+          onClick={handleGuestStart}
+          disabled={isLoading || isGuestLoading}
+          className={styles.guestBtn}
+        >
+          {isGuestLoading ? '시작하는 중...' : '🎮 비회원으로 바로 시작'}
+        </button>
+        <p className={styles.guestHint}>
+          가입 없이 AI 대국을 즐겨보세요. 온라인 대국·랭킹·상점은 회원만 이용할 수 있어요.
+        </p>
 
         {googleLoginEnabled && (
           <>

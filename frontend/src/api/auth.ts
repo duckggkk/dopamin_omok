@@ -14,6 +14,10 @@ export const authApi = {
   login: (data: { email: string; password: string }) =>
     apiClient.post<ApiResponse<TokenResponse>>('/auth/login', data),
 
+  // 비회원(게스트) 시작 — 회원가입 없이 익명 계정 토큰을 발급받는다.
+  guestLogin: () =>
+    apiClient.post<ApiResponse<TokenResponse>>('/auth/guest'),
+
   logout: () =>
     apiClient.post<ApiResponse<void>>('/auth/logout'),
 

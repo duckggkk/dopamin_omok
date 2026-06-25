@@ -125,6 +125,46 @@
 .submitBtn:active:not(:disabled) { transform: translateY(0); }
 .submitBtn:disabled { opacity: 0.55; cursor: not-allowed; }
 
+/* 게스트(비회원) 시작 — 로그인 폼 아래 보조 진입 */
+.altDivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--text-faint);
+  font-size: 0.85rem;
+}
+.altDivider::before,
+.altDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.guestBtn {
+  width: 100%;
+  background: var(--inset);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 13px;
+  font-size: 0.96rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), filter var(--t-fast) var(--ease);
+}
+.guestBtn:hover:not(:disabled) { border-color: var(--gold); filter: brightness(1.05); }
+.guestBtn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.guestHint {
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
 .footer {
   text-align: center;
   color: var(--text-muted);

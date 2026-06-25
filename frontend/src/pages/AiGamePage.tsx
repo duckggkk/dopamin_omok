@@ -5,6 +5,7 @@ import { createEmptyBoard } from '@/constants/board';
 import { checkWin, isBoardFull, placeStone } from '@/utils/omokEngine';
 import { AI_LEVELS, MAX_AI_LEVEL, chooseAiMove } from '@/utils/omokAi';
 import { aiGameApi } from '@/api/aiGame';
+import { useAuthStore } from '@/store/authStore';
 import { useCosmetics } from '@/hooks/useCosmetics';
 import { useStoneSoundPlayer } from '@/hooks/useStoneSoundPlayer';
 import { useToast } from '@/contexts/ToastContext';
@@ -17,6 +18,8 @@ type Result = 'WIN' | 'LOSS' | 'DRAW';
 
 const AiGamePage = () => {
   const navigate = useNavigate();
+  // 게스트(비회원)에겐 AI 사다리가 곧 홈이라, '홈으로'(=멤버 홈) 버튼은 숨긴다.
+  const isGuest = !!useAuthStore((s) => s.user?.guest);
   // 내가 장착한 코스메틱(보드/돌 스킨·착수 효과·착수음·승리 이펙트)을 일반전과 동일하게 적용.
   const { boardSkinConfig, stoneSkin, stoneEffect, stoneSoundKey, defeatEffect } = useCosmetics();
   const playStoneSound = useStoneSoundPlayer();
@@ -195,9 +198,11 @@ const AiGamePage = () => {
             </>
           )}
 
-          <button className={styles.backLink} onClick={() => navigate('/')}>
-            ← 홈으로
-          </button>
+          {!isGuest && (
+            <button className={styles.backLink} onClick={() => navigate('/')}>
+              ← 홈으로
+            </button>
+          )}
         </div>
       </div>
     );

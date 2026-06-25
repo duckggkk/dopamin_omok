@@ -127,6 +127,20 @@ public class User {
                 .build();
     }
 
+    /**
+     * 비회원(게스트) 계정을 생성한다. 회원가입 없이 익명으로 발급되며 비밀번호가 없다.
+     * email/nickname 은 호출부가 충돌하지 않게 생성해 넘긴다(예: email=guest_…, nickname=게스트####).
+     */
+    public static User createGuestUser(String email, String nickname) {
+        return User.builder()
+                .email(email)
+                .nickname(nickname)
+                .role(UserRole.GUEST)
+                .provider(AuthProvider.LOCAL)
+                .emailVerified(false)
+                .build();
+    }
+
     public static User createSocialUser(String email, String nickname, AuthProvider provider,
                                         String providerId, String profileImageUrl) {
         return User.builder()
@@ -183,6 +197,11 @@ public class User {
     /** 시스템 봇 계정 여부(피지컬 AI 연습 상대). 봇과의 대국은 레이팅·전적을 집계하지 않는다. */
     public boolean isBot() {
         return this.role == UserRole.BOT;
+    }
+
+    /** 비회원(게스트) 계정 여부. 멤버 전용 기능 차단·랭크전 제외 판단에 쓴다. */
+    public boolean isGuest() {
+        return this.role == UserRole.GUEST;
     }
 
     /** null-safe 싱글플레이 AI 클리어 단계 조회(과거 데이터/직렬화 경로에서도 항상 0 이상). */

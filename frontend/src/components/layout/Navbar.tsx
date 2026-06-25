@@ -54,6 +54,9 @@ const Navbar = () => {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const inRoom = location.pathname.startsWith('/game/');
+  // 게스트(비회원)와 정식 회원을 구분 — 게스트는 멤버 전용 메뉴를 숨기고 가입 CTA를 보여준다.
+  const isGuest = isAuthenticated && !!user?.guest;
+  const isMember = isAuthenticated && !user?.guest;
 
   // 드롭다운 바깥 클릭 시 닫기
   useEffect(() => {
@@ -96,7 +99,7 @@ const Navbar = () => {
           <span className={styles.logoText}>도파민 오목</span>
         </Link>
 
-        {isAuthenticated && (
+        {isMember && (
           <div className={styles.nav}>
             <NavLink to="/" end className={navClass}><IconHome /><span>홈</span></NavLink>
             <NavLink to="/lobby" className={navClass}><IconPlay /><span>대국</span></NavLink>
@@ -107,9 +110,15 @@ const Navbar = () => {
             <NavLink to="/guide" className={navClass}><IconGuide /><span>게임 방법</span></NavLink>
           </div>
         )}
+        {isGuest && (
+          <div className={styles.nav}>
+            <NavLink to="/ai" className={navClass}><IconPlay /><span>AI 대국</span></NavLink>
+            <NavLink to="/guide" className={navClass}><IconGuide /><span>게임 방법</span></NavLink>
+          </div>
+        )}
 
         <div className={styles.right}>
-          {isAuthenticated ? (
+          {isMember ? (
             <>
               <Link to="/shop" className={styles.currencyBadge} title="보유 재화">
                 🪙 {user?.currency?.toLocaleString() ?? 0}
@@ -163,6 +172,14 @@ const Navbar = () => {
                   <IconDoor />
                 </button>
               )}
+            </>
+          ) : isGuest ? (
+            <>
+              <span className={styles.guestTag}>🎮 게스트</span>
+              <Link to="/register" className={styles.registerBtn}>회원가입</Link>
+              <button onClick={handleLogout} className={styles.logoutBtn} title="나가기" aria-label="나가기">
+                <IconDoor />
+              </button>
             </>
           ) : (
             <>

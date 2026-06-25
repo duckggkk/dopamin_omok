@@ -73,6 +73,7 @@ export interface User {
   currency: number;
   titles: TitleInfo[];  // 획득한 칭호
   profilePrivate: boolean;
+  guest: boolean;       // 비회원(게스트) 계정 여부 — 멤버 전용 UI를 가릴 때 사용
   createdAt: string;
 }
 

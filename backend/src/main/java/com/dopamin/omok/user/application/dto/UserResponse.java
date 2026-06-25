@@ -24,6 +24,7 @@ public record UserResponse(
         Integer currency,
         List<TitleResponse> titles, // 획득한 칭호(업적 파생) — 첫 항목이 대표 칭호
         boolean profilePrivate,
+        boolean guest,             // 비회원(게스트) 계정 여부 — 프론트가 멤버 전용 UI를 가리는 데 쓴다
         LocalDateTime createdAt
 ) {
     public static UserResponse from(User user, ModeStats classic, ModeStats physical) {
@@ -44,6 +45,7 @@ public record UserResponse(
                 user.getCurrency() != null ? user.getCurrency() : 0,
                 TitleResponse.earnedBy(user),
                 user.isProfilePrivate(),
+                user.isGuest(),
                 user.getCreatedAt()
         );
     }

@@ -1,6 +1,7 @@
 package com.dopamin.omok.auth.application.service;
 
 import com.dopamin.omok.auth.application.dto.TokenResponse;
+import com.dopamin.omok.auth.application.port.in.GuestLoginUseCase;
 import com.dopamin.omok.auth.application.port.in.LoginUseCase;
 import com.dopamin.omok.auth.application.port.in.LogoutUseCase;
 import com.dopamin.omok.auth.application.port.in.RefreshTokenUseCase;
@@ -25,11 +26,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenUseCase, LogoutUseCase,
-        VerifyEmailUseCase, ResendVerificationEmailUseCase {
+        VerifyEmailUseCase, ResendVerificationEmailUseCase, GuestLoginUseCase {
 
     private final LoadUserPort loadUserPort;
     private final SaveUserPort saveUserPort;
@@ -73,6 +77,33 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
         eventPublisher.publishEvent(new UserRegisteredEvent(user.getId()));
 
         emailVerificationService.sendCode(user);
+    }
+
+    @Override
+    @Transactional
+    public TokenResponse loginAsGuest() {
+        // 회원가입 없이 익명 계정을 즉석 생성한다. 이메일은 UUID 로 충돌 없는 내부값을 쓰고,
+        // 닉네임은 "게스트####" 형태로 사람이 알아보기 쉽게 부여한다(중복 시 재시도 → UUID 폴백).
+        String email = "guest_" + UUID.randomUUID() + "@guest.local";
+        String nickname = generateUniqueGuestNickname();
+
+        User guest = User.createGuestUser(email, nickname);
+        saveUserPort.save(guest);
+        // 게스트는 가벼운 일회성 계정 — 기본 아이템 지급(UserRegisteredEvent)은 생략한다.
+        // 미장착 시 클라이언트가 기본 외형/소리로 폴백하므로 대국 표시에 문제 없다.
+
+        return issueTokens(guest);
+    }
+
+    /** "게스트####"(1000~9999) 닉네임을 생성하되 중복이면 재시도, 끝내 충돌하면 UUID 조각으로 사실상 유일화한다. */
+    private String generateUniqueGuestNickname() {
+        for (int i = 0; i < 10; i++) {
+            String candidate = "게스트" + (1000 + ThreadLocalRandom.current().nextInt(9000));
+            if (loadUserPort.findByNickname(candidate).isEmpty()) {
+                return candidate;
+            }
+        }
+        return "게스트" + UUID.randomUUID().toString().substring(0, 6);
     }
 
     /** 인증 완료 계정이거나 인증 유효기간이 아직 남은 미인증 계정이면 이메일/닉네임이 점유 중이다. */

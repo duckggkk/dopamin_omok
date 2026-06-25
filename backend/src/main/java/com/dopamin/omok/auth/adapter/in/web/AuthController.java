@@ -23,6 +23,7 @@ public class AuthController {
 
     private final RegisterUseCase registerUseCase;
     private final LoginUseCase loginUseCase;
+    private final GuestLoginUseCase guestLoginUseCase;
     private final RefreshTokenUseCase refreshTokenUseCase;
     private final LogoutUseCase logoutUseCase;
     private final VerifyEmailUseCase verifyEmailUseCase;
@@ -55,6 +56,12 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request) {
         TokenResponse token = loginUseCase.login(request.email(), request.password());
         return ResponseEntity.ok(ApiResponse.success("로그인이 완료되었습니다.", token));
+    }
+
+    @PostMapping("/guest")
+    public ResponseEntity<ApiResponse<TokenResponse>> guestLogin() {
+        TokenResponse token = guestLoginUseCase.loginAsGuest();
+        return ResponseEntity.ok(ApiResponse.success("게스트로 시작합니다.", token));
     }
 
     @PostMapping("/refresh")

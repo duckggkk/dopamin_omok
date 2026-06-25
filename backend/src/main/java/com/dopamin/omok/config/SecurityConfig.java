@@ -68,6 +68,18 @@ public class SecurityConfig {
                         // Prometheus 메트릭: 외부 접근은 Caddy에서 차단하고, 백엔드 포트(8080)는
                         // 외부에 노출되지 않으므로 내부망의 Prometheus 컨테이너만 직접 수집한다.
                         .requestMatchers("/actuator/prometheus").permitAll()
+
+                        // ── 멤버(정식 회원) 전용 ──
+                        // 게스트(GUEST)는 토큰은 있어(=인증됨) anyRequest().authenticated() 를 통과하므로,
+                        // 멤버 전용 기능은 여기서 역할(USER/ADMIN)로 명시적으로 막아야 한다.
+                        // (게스트 허용: 싱글 AI /ai/**, 조회성 GET 등. 게스트 차단: 아래 경로)
+                        .requestMatchers("/shop/**", "/friends/**", "/plaza/**").hasAnyRole("USER", "ADMIN")
+                        // 방 생성·참가·관전 등 온라인 대국 진입(POST). 조회(GET /rooms)는 허용.
+                        // Phase 2(캐주얼 방)에서 게스트의 캐주얼 방 입장만 선별 허용하도록 완화 예정.
+                        .requestMatchers(HttpMethod.POST, "/rooms/**").hasAnyRole("USER", "ADMIN")
+                        // 프로필 수정(닉네임/이미지 등)은 멤버만.
+                        .requestMatchers(HttpMethod.PATCH, "/users/me").hasAnyRole("USER", "ADMIN")
+
                         // 그 외 모든 요청은 인증 필요. 게임/방 조회도 로그인 후에만 접근(프론트 동작과 일치).
                         .anyRequest().authenticated()
                 )
