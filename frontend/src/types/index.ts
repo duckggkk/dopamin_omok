@@ -68,8 +68,9 @@ export interface User {
   totalGames: number;
   classicRating: number;
   physicalRating: number;
-  classic: ModeStats;   // 일반 오목 전적
-  physical: ModeStats;  // 피지컬 오목 전적
+  classic: ModeStats;   // 일반 오목 랭크 전적
+  physical: ModeStats;  // 피지컬 오목 랭크 전적
+  casual: ModeStats;    // 캐주얼(일반) 전적 — 랭크와 분리 집계(레이팅 무관)
   currency: number;
   titles: TitleInfo[];  // 획득한 칭호
   profilePrivate: boolean;
@@ -89,6 +90,7 @@ export interface PublicUser {
   physicalRating: number;
   classic: ModeStats | null;   // 프로필 조회 시 채워짐(게임/방 응답에선 null)
   physical: ModeStats | null;
+  casual: ModeStats | null;    // 캐주얼(일반) 전적 — 프로필 조회 시 채워짐
   titles: TitleInfo[];         // 획득한 칭호
   profilePrivate: boolean;
   createdAt: string;
@@ -167,6 +169,7 @@ export interface Room {
   status: RoomStatus;
   gameType: GameType;
   omokRule: OmokRule;
+  ranked: boolean;       // true=랭크전(회원 전용), false=캐주얼(비회원 참가 가능)
   timeLimit: TimeLimit;
   byoyomiOption: ByoyomiOption;
   maxSpectators: number;

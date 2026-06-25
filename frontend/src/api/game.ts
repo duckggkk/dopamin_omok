@@ -4,6 +4,7 @@ import { ApiResponse, Room, GameInfo, GameMove, PageResponse, ByoyomiOption, Gam
 export interface CreateRoomOptions {
   gameType: GameType;
   omokRule: OmokRule;
+  ranked: boolean;       // true=랭크전(회원 전용), false=캐주얼
   timeLimit: TimeLimit;
   byoyomiOption: ByoyomiOption;
 }
@@ -17,6 +18,7 @@ export interface WaitingRoomFilter {
 const DEFAULT_ROOM_OPTIONS: CreateRoomOptions = {
   gameType: 'CLASSIC',
   omokRule: 'FREESTYLE',
+  ranked: true,
   timeLimit: 'UNLIMITED',
   byoyomiOption: 'NONE',
 };
