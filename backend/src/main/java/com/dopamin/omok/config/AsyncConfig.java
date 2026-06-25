@@ -3,7 +3,6 @@ package com.dopamin.omok.config;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
-import org.springframework.aop.interceptor.SimpleAsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
@@ -18,12 +17,14 @@ import java.util.concurrent.Executor;
  * 비동기 작업(@Async, 예: 인증 이메일 발송)용 설정.
  * 기본 SimpleAsyncTaskExecutor(요청당 새 스레드)를 풀 기반 실행기로 교체하고,
  * void 반환 @Async 메서드에서 던져진 예외를 로깅한다.
+ * 인터페이스가 null반환 이어도 SimpleAsyncTaskExecutor로 가는이유는 아무것도 없으면 fallback으로 SimpleAsyncTaskExecutor로감
  */
 @Slf4j
 @Configuration
-@EnableAsync
+@EnableAsync // Async메서드 활성화
 public class AsyncConfig implements AsyncConfigurer {
 
+    //설정
     @Override
     @Bean(name = "taskExecutor")
     public Executor getAsyncExecutor() {
@@ -39,7 +40,8 @@ public class AsyncConfig implements AsyncConfigurer {
         return executor;
     }
 
-    /** 제출 시점의 MDC(로그 문맥)를 실행 스레드에 입혔다가 끝나면 비워, 스레드 재사용 시 오염을 막는다. */
+    /** Async메서드 호출 순간 MDC(로그 문맥)를 실행 스레드에 입혔다가 끝나면 비워, 스레드 재사용 시 오염을 막는다. */
+    // 스레드 풀은 스레드를 재사용하므로 clear를 해줘야한다
     private static Runnable wrapWithMdc(Runnable task) {
         Map<String, String> context = MDC.getCopyOfContextMap();
         return () -> {
@@ -54,12 +56,12 @@ public class AsyncConfig implements AsyncConfigurer {
         };
     }
 
+    //예외처리
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
+        //이게 람다식이구나
         return (ex, method, params) -> {
             log.error("Async 작업 예외: method={}, params={}", method.getName(), Arrays.toString(params), ex);
-            // 기본 핸들러도 호출(표준 로깅 유지)
-            new SimpleAsyncUncaughtExceptionHandler().handleUncaughtException(ex, method, params);
         };
     }
 }

@@ -22,6 +22,8 @@ import org.springframework.stereotype.Component;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+// 웹소켓 전용 인증인가 인터셉터 클래스
+// 
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -37,6 +39,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     private final LoadRoomPort loadRoomPort;
     private final LoadGamePlayerPort loadGamePlayerPort;
 
+    
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
