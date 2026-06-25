@@ -49,6 +49,13 @@ export interface ModeStats {
   winRate: number;
 }
 
+// 칭호 — 업적 달성 시 자동 부여(서버 파생). 목록 첫 항목이 대표 칭호.
+export interface TitleInfo {
+  key: string;
+  name: string;
+  description: string;
+}
+
 export interface User {
   id: string; // UUID (publicId)
   email: string;
@@ -64,6 +71,7 @@ export interface User {
   classic: ModeStats;   // 일반 오목 전적
   physical: ModeStats;  // 피지컬 오목 전적
   currency: number;
+  titles: TitleInfo[];  // 획득한 칭호
   profilePrivate: boolean;
   createdAt: string;
 }
@@ -80,6 +88,7 @@ export interface PublicUser {
   physicalRating: number;
   classic: ModeStats | null;   // 프로필 조회 시 채워짐(게임/방 응답에선 null)
   physical: ModeStats | null;
+  titles: TitleInfo[];         // 획득한 칭호
   profilePrivate: boolean;
   createdAt: string;
 }

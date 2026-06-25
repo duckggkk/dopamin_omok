@@ -4,6 +4,7 @@ import com.dopamin.omok.user.domain.AuthProvider;
 import com.dopamin.omok.user.domain.User;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record UserResponse(
@@ -21,6 +22,7 @@ public record UserResponse(
         ModeStats classic,     // 일반 오목 전적(게임 기록 집계)
         ModeStats physical,    // 피지컬 오목 전적(게임 기록 집계)
         Integer currency,
+        List<TitleResponse> titles, // 획득한 칭호(업적 파생) — 첫 항목이 대표 칭호
         boolean profilePrivate,
         LocalDateTime createdAt
 ) {
@@ -40,6 +42,7 @@ public record UserResponse(
                 classic,
                 physical,
                 user.getCurrency() != null ? user.getCurrency() : 0,
+                TitleResponse.earnedBy(user),
                 user.isProfilePrivate(),
                 user.getCreatedAt()
         );

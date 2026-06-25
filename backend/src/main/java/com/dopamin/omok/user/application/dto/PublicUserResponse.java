@@ -3,6 +3,7 @@ package com.dopamin.omok.user.application.dto;
 import com.dopamin.omok.user.domain.User;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record PublicUserResponse(
@@ -17,6 +18,7 @@ public record PublicUserResponse(
         Integer physicalRating,
         ModeStats classic,     // 일반 오목 전적(게임 기록 집계)
         ModeStats physical,    // 피지컬 오목 전적(게임 기록 집계)
+        List<TitleResponse> titles, // 획득한 칭호(업적 파생) — 첫 항목이 대표 칭호
         boolean profilePrivate,
         LocalDateTime createdAt
 ) {
@@ -41,6 +43,7 @@ public record PublicUserResponse(
                 user.getPhysicalRating(),
                 classic,
                 physical,
+                TitleResponse.earnedBy(user),
                 user.isProfilePrivate(),
                 user.getCreatedAt()
         );
