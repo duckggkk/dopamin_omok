@@ -74,6 +74,20 @@ class HeuristicPhysicalBotPolicyTest {
     }
 
     @Test
+    @DisplayName("자기 발밑이 분화구여도 갇히지 않고 길을 찾아 행동한다(분화구 끼임 회귀 방지)")
+    void escapesWhenStandingOnCrater() {
+        int[][] cells = emptyBoard();
+        // 봇(백)이 분화구 위에 서 있다(예: CRATER 아이템을 발밑에 사용한 직후) — 예전엔 BFS 가 전부 -1 이라 영영 IDLE.
+        cells[3][3] = 3;
+        // 흑 4목 → 도달 가능한 목표(막기/파괴)가 존재 → 봇은 분화구에서 나와 행동해야 한다.
+        for (int x = 5; x <= 8; x++) cells[5][x] = 1;
+
+        BotAction action = policy.decide(obs(cells, StoneColor.WHITE, 3, 3, true, true));
+
+        assertThat(action.kind()).isNotEqualTo(BotAction.Kind.IDLE);
+    }
+
+    @Test
     @DisplayName("이동 부스트를 들고 있으면 즉시 사용한다")
     void usesSpeedBoostImmediately() {
         int[][] cells = emptyBoard();

@@ -244,12 +244,18 @@ public class HeuristicPhysicalBotPolicy implements PhysicalBotPolicy {
 
     // ===================== 이동(분화구 우회 BFS) =====================
 
-    /** 출발점에서 모든 칸까지의 최단 이동 거리(분화구=벽, 돌은 통과 가능). 도달 불가 = -1. */
+    /**
+     * 출발점에서 모든 칸까지의 최단 이동 거리(분화구=벽, 돌은 통과 가능). 도달 불가 = -1.
+     *
+     * 출발 칸이 분화구여도(예: CRATER 아이템을 자기 발밑에 써서 갇힌 경우) 시작점으로 인정한다.
+     * 엔진의 이동 규칙(tryStep)은 '목적지'만 검사하므로 분화구에서 '나오는' 것은 허용되고 '들어가는' 것만 막힌다.
+     * 시드하지 않으면 거리장이 전부 -1 이 되어 봇이 목표를 못 만들고 영영 idle 로 갇힌다(과거 '분화구 끼임' 버그).
+     */
     private int[][] bfsDistances(int[][] cells, int sx, int sy) {
         int size = cells.length;
         int[][] dist = new int[size][size];
         for (int[] row : dist) java.util.Arrays.fill(row, -1);
-        if (!inBounds(cells, sx, sy) || cells[sy][sx] == CRATER) return dist;
+        if (!inBounds(cells, sx, sy)) return dist;
 
         Deque<int[]> queue = new ArrayDeque<>();
         dist[sy][sx] = 0;
