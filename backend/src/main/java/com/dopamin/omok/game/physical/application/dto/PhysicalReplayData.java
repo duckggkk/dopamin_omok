@@ -1,5 +1,8 @@
 package com.dopamin.omok.game.physical.application.dto;
 
+import com.dopamin.omok.game.application.dto.CharacterSkinResponse;
+import com.dopamin.omok.game.application.dto.StoneSkinResponse;
+
 import java.util.List;
 
 /**
@@ -27,7 +30,11 @@ public record PhysicalReplayData(
         List<MotionFrame> motionFrames,
         PhysicalTrainingLog trainingLog
 ) {
-    public record PlayerInfo(String color, String nickname) {}
+    /**
+     * 리플레이 등장 플레이어. 스킨/캐릭터는 한 판 동안 불변이라 매 프레임이 아닌 여기 1회만 담는다
+     * (영상 리플레이가 라이브와 동일한 외형 — 바둑알 스킨·캐릭터 얼굴 — 으로 보이게 함). 구버전/미장착은 null.
+     */
+    public record PlayerInfo(String color, String nickname, StoneSkinResponse skin, CharacterSkinResponse character) {}
 
     /** t: 게임 시작 기준 경과 ms, (x,y): 칸 좌표, v: 새 칸 값. */
     public record CellChange(long t, int x, int y, int v) {}

@@ -289,7 +289,8 @@ public class PhysicalGameSessionManager {
         PhysicalGame g = s.game;
         List<PhysicalReplayData.PlayerInfo> players = new ArrayList<>();
         for (PhysicalPlayer p : g.players()) {
-            players.add(new PhysicalReplayData.PlayerInfo(p.getColor().name(), p.getNickname()));
+            players.add(new PhysicalReplayData.PlayerInfo(
+                    p.getColor().name(), p.getNickname(), p.getSkin(), p.getCharacter()));
         }
         String winner = g.winnerColor() != null ? g.winnerColor().name() : null;
         long durationMs = System.currentTimeMillis() - s.recorder.startMs;

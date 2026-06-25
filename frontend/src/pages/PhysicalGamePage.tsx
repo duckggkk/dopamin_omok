@@ -16,37 +16,30 @@ import {
   ApiResponse,
   NoticePayload,
   PhysicalSnapshot,
-  PhysicalPlayerView,
   PhysicalItemType,
   StoneColor,
   Direction,
 } from '@/types';
+import {
+  ITEM_META,
+  ITEM_FX_DUR,
+  drawBoardBase,
+  drawStone,
+  drawCrater,
+  drawCharacter,
+  drawItemDrop,
+  drawItemFx,
+} from '@/utils/physicalCanvas';
 import styles from './PhysicalGamePage.module.css';
 
 const CANVAS_PX = 600;
 const PHYSICAL_BGM_SRC = '/audio/physical-omok-bgm.mp3';
-
-const ITEM_META: Record<PhysicalItemType, { emoji: string; label: string }> = {
-  SPEED_BOOST: { emoji: '⚡', label: '이동 부스트' },
-  CRATER: { emoji: '🕳️', label: '바둑판 붕괴' },
-  BOMB: { emoji: '💣', label: '광역 폭탄' },
-};
 
 // 아이템 사용 시 효과음(고유)
 const USE_SFX: Record<PhysicalItemType, SfxName> = {
   SPEED_BOOST: 'use_speed',
   CRATER: 'use_crater',
   BOMB: 'use_bomb',
-};
-
-// 캐릭터 스킨 face 키워드 → 이모지 (백엔드는 안전 키워드만 저장)
-const FACE_EMOJI: Record<string, string> = {
-  robot: '🤖',
-  rabbit: '🐰',
-  ghost: '👻',
-  cat: '🐱',
-  fox: '🦊',
-  bear: '🐻',
 };
 
 const KEY_DIR: Record<string, Direction> = {
@@ -72,30 +65,7 @@ const detectPlacedColor = (prev: PhysicalSnapshot, snap: PhysicalSnapshot): Ston
   return null;
 };
 
-// ===== 캔버스 그리기 헬퍼(순수) =====
-const drawStone = (
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  r: number,
-  black: boolean,
-  skin: PhysicalPlayerView['skin'],
-) => {
-  const fill = skin?.fill ?? (black ? '#1b1b1b' : '#f4f1e8');
-  const stroke = skin?.stroke ?? (black ? '#000000' : '#cfc7b4');
-  const shine = skin?.shine ?? (black ? '#5a5a5a' : '#ffffff');
-  const grad = ctx.createRadialGradient(cx - r * 0.32, cy - r * 0.32, r * 0.1, cx, cy, r);
-  grad.addColorStop(0, shine);
-  grad.addColorStop(0.55, fill);
-  grad.addColorStop(1, fill);
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = stroke;
-  ctx.stroke();
-};
+// ===== 캔버스 그리기 헬퍼(순수) — 돌/분화구/캐릭터/아이템은 @/utils/physicalCanvas 공용 =====
 
 // 충전 중인 완성 오목 '게이지' — 줄의 '모든 돌'이 아래에서 위로 색이 차오르며(액체 채움) + 전체 링/연결 글로우.
 // progress(0..1)만큼 돌 전부가 함께 채워지고, 다 차면(서버가 파괴) drawClearFx 로 넘어간다.
@@ -196,96 +166,6 @@ const drawClearFx = (
   ctx.restore();
 };
 
-// 분화구(바둑판 붕괴) — 들쭉날쭉한 갈색 잔해 + 어두운 구덩이 + 균열. 흑돌과 확실히 구분된다.
-const drawCrater = (ctx: CanvasRenderingContext2D, cx: number, cy: number, unit: number) => {
-  const r = unit * 0.5;
-  ctx.beginPath();
-  const spikes = 9;
-  for (let k = 0; k <= spikes; k++) {
-    const ang = (k / spikes) * Math.PI * 2;
-    const rr = r * (k % 2 === 0 ? 1 : 0.62);
-    const px = cx + Math.cos(ang) * rr;
-    const py = cy + Math.sin(ang) * rr;
-    if (k === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.closePath();
-  ctx.fillStyle = '#5a3a1c'; // 갈색 잔해 림
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(cx, cy, r * 0.62, 0, Math.PI * 2);
-  ctx.fillStyle = '#1c120a'; // 어두운 구덩이
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(20,10,4,0.85)';
-  ctx.lineWidth = 1.5;
-  for (let k = 0; k < 4; k++) {
-    const a = k * (Math.PI / 2) + 0.5;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + Math.cos(a) * r * 0.95, cy + Math.sin(a) * r * 0.95);
-    ctx.stroke();
-  }
-};
-
-const drawCharacter = (
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  unit: number,
-  p: PhysicalPlayerView,
-  isMe: boolean,
-) => {
-  const r = unit * 0.42;
-  const black = p.color === 'BLACK';
-  // 캐릭터 스킨(유료) 우선, 미장착이면 흑/백 기본 외형
-  const body = p.character?.body ?? (black ? '#3b3b40' : '#ece7da');
-  const accent = p.character?.accent ?? (black ? '#111114' : '#b7af9c');
-  const face = p.character ? FACE_EMOJI[p.character.face] ?? '🙂' : null;
-
-  if (p.speedBoosted) {
-    ctx.strokeStyle = 'rgba(90,200,255,0.9)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r + 7, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  // 몸체
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = isMe ? '#e0a83f' : accent;
-  ctx.stroke();
-
-  if (face) {
-    // 캐릭터 스킨: 이모지 얼굴
-    ctx.font = `${Math.floor(r * 1.25)}px serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(face, cx, cy + 1);
-  } else {
-    // 기본: 눈 2개
-    ctx.fillStyle = black ? '#ffffff' : '#33312b';
-    ctx.beginPath();
-    ctx.arc(cx - r * 0.34, cy - r * 0.08, r * 0.16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx + r * 0.34, cy - r * 0.08, r * 0.16, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // 닉네임
-  ctx.font = `bold ${Math.floor(unit * 0.32)}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'bottom';
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-  ctx.strokeText(p.nickname, cx, cy - r - 4);
-  ctx.fillStyle = isMe ? '#ffd86b' : '#ffffff';
-  ctx.fillText(p.nickname, cx, cy - r - 4);
-};
-
 const PhysicalGamePage = () => {
   const { gameId: roomCode } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
@@ -304,9 +184,13 @@ const PhysicalGamePage = () => {
   const snapshotRef = useRef<PhysicalSnapshot | null>(null);
   const prevSnapRef = useRef<PhysicalSnapshot | null>(null);
   const myColorRef = useRef<StoneColor | null>(null);
+  const lastBoardSizeRef = useRef(14); // 스냅샷이 없을 때(로딩/종료 후) 빈 판을 그릴 크기
+  const roomStatusRef = useRef<string | undefined>(undefined); // 렌더 게이트: IN_PROGRESS 가 아니면 빈 판
   const renderPosRef = useRef<Record<string, { x: number; y: number }>>({});
   // 진행 중인 라인 제거(득점) 특수효과들 — scoreEventId 증가 시 추가되고, 렌더 루프가 만료된 것을 제거한다.
   const clearFxRef = useRef<{ cells: number[][]; color: StoneColor | null; start: number }[]>([]);
+  // 아이템 획득/사용 순간 이펙트 — heldItem 변화 감지 시 추가, 렌더 루프가 만료된 것을 제거한다.
+  const itemFxRef = useRef<{ kind: 'pickup' | 'use'; item: PhysicalItemType; x: number; y: number; start: number }[]>([]);
   const pressedRef = useRef<Direction[]>([]);
   const activeDirRef = useRef<Direction | null>(null);
   const prevGameIdRef = useRef<number | undefined>(undefined);
@@ -374,13 +258,16 @@ const PhysicalGamePage = () => {
         if (owner?.soundAssetKey) playStoneSound(owner.soundAssetKey);
         else playSfx('place');
       }
-      // (3) 아이템 효과음: 보유 아이템 변화 감지
+      // (3) 아이템 효과음 + 화면 이펙트: 보유 아이템 변화 감지(획득/사용을 양쪽 다 시각화)
+      const fxNow = performance.now();
       for (const p of snap.players) {
         const before = prev.players.find((q) => q.color === p.color)?.heldItem ?? null;
         const after = p.heldItem ?? null;
         if (before === null && after !== null) {
-          if (p.color === myColorRef.current) playSfx('pickup'); // 내 획득만(소음 최소화)
+          itemFxRef.current.push({ kind: 'pickup', item: after, x: p.x, y: p.y, start: fxNow });
+          if (p.color === myColorRef.current) playSfx('pickup'); // 사운드는 내 획득만(소음 최소화)
         } else if (before !== null && after === null) {
+          itemFxRef.current.push({ kind: 'use', item: before, x: p.x, y: p.y, start: fxNow });
           playSfx(USE_SFX[before]); // 사용은 양쪽 다 들림(상대 폭탄 등)
         }
       }
@@ -393,6 +280,7 @@ const PhysicalGamePage = () => {
       }
       playSfx('score');
     }
+    lastBoardSizeRef.current = snap.boardSize;
     prevSnapRef.current = snap;
     snapshotRef.current = snap;
     setSnapshot(snap);
@@ -427,12 +315,19 @@ const PhysicalGamePage = () => {
     myColorRef.current = myColor;
   }, [myColor]);
 
+  // 방 상태를 ref로 동기화 — 렌더 루프가 'IN_PROGRESS 일 때만 보드 렌더'하는 게이트로 쓴다.
+  // (스냅샷/상태가 서로 다른 토픽이라 도착 순서가 엇갈려도, 대기 상태면 항상 빈 판을 보여 보드가 초기화된다.)
+  useEffect(() => {
+    roomStatusRef.current = room?.status;
+  }, [room?.status]);
+
   // 새 게임 시작 시 캐릭터 보간 위치 초기화 + 결과 리셋
   useEffect(() => {
     if (currentGame?.id !== undefined) {
       if (prevGameIdRef.current !== undefined && currentGame.id !== prevGameIdRef.current) {
         renderPosRef.current = {};
         clearFxRef.current = [];
+        itemFxRef.current = [];
         setGameResult(null);
         if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
       }
@@ -458,6 +353,14 @@ const PhysicalGamePage = () => {
         setGameResultEffect(game.winnerDefeatEffect ?? null);
       }
     }
+    // 보드 초기화: 종료된 판의 마지막 스냅샷을 버려 캔버스를 깨끗한 빈 판으로 되돌린다(준비창 복귀).
+    // 다음 판이 시작되면 register 의 첫 스냅샷이 다시 채운다.
+    snapshotRef.current = null;
+    prevSnapRef.current = null;
+    renderPosRef.current = {};
+    clearFxRef.current = [];
+    itemFxRef.current = [];
+    setSnapshot(null);
     if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
     resultTimerRef.current = setTimeout(() => {
       setGameResult(null);
@@ -536,11 +439,9 @@ const PhysicalGamePage = () => {
         const ctx = canvas.getContext('2d');
         const snap = snapshotRef.current;
         if (ctx) {
-          if (snap) drawArena(ctx, snap, myColor);
-          else {
-            ctx.fillStyle = '#dcb95b';
-            ctx.fillRect(0, 0, CANVAS_PX, CANVAS_PX);
-          }
+          // 진행 중일 때만 실제 아레나를 그린다. 대기/종료 상태면 스냅샷이 남아 있어도 깨끗한 빈 판(보드 초기화).
+          if (snap && roomStatusRef.current === 'IN_PROGRESS') drawArena(ctx, snap, myColor);
+          else drawBoardBase(ctx, lastBoardSizeRef.current, CANVAS_PX);
         }
       }
       raf = requestAnimationFrame(render);
@@ -560,40 +461,8 @@ const PhysicalGamePage = () => {
 
   const drawArena = (ctx: CanvasRenderingContext2D, snap: PhysicalSnapshot, mine: StoneColor | null) => {
     const N = snap.boardSize;
-    const pad = CANVAS_PX / (N + 1);
-    const gap = (CANVAS_PX - pad * 2) / (N - 1);
-    const at = (i: number) => pad + i * gap; // 그리드 인덱스 → 픽셀(교차점)
+    const { gap, at } = drawBoardBase(ctx, N, CANVAS_PX);
     const stoneR = gap * 0.46;
-
-    // 보드 배경
-    ctx.fillStyle = '#dcb95b';
-    ctx.fillRect(0, 0, CANVAS_PX, CANVAS_PX);
-
-    // 격자선 — 바둑판처럼 선을 긋고 돌·캐릭터는 교차점(점)에 놓는다
-    ctx.strokeStyle = '#8b6914';
-    ctx.lineWidth = 1;
-    const lo = at(0), hi = at(N - 1);
-    for (let i = 0; i < N; i++) {
-      const c = at(i);
-      ctx.beginPath();
-      ctx.moveTo(c, lo);
-      ctx.lineTo(c, hi);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(lo, c);
-      ctx.lineTo(hi, c);
-      ctx.stroke();
-    }
-    // 화점
-    ctx.fillStyle = '#8b6914';
-    const star = [3, N - 4];
-    for (const sx of star) {
-      for (const sy of star) {
-        ctx.beginPath();
-        ctx.arc(at(sx), at(sy), 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
 
     // 분화구 + 돌 (교차점 기준)
     for (let y = 0; y < N; y++) {
@@ -630,20 +499,9 @@ const PhysicalGamePage = () => {
       }
     }
 
-    // 아이템 드롭
+    // 아이템 드롭 — 종류별 모양/색으로 구분(부스트=다이아 / 붕괴=육각 / 폭탄=원)
     for (const it of snap.items) {
-      const cx = at(it.x), cy = at(it.y);
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.beginPath();
-      ctx.arc(cx, cy, gap * 0.42, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(224,168,63,0.95)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.font = `${Math.floor(gap * 0.55)}px serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(ITEM_META[it.type].emoji, cx, cy + 1);
+      drawItemDrop(ctx, at(it.x), at(it.y), gap, it.type);
     }
 
     // 캐릭터(보간 이동)
@@ -654,6 +512,16 @@ const PhysicalGamePage = () => {
       rp.y += (ty - rp.y) * 0.28;
       renderPosRef.current[p.color] = rp;
       drawCharacter(ctx, rp.x, rp.y, gap, p, p.color === mine);
+    }
+
+    // 아이템 획득/사용 이펙트 — 만료된 건 거르고 진행 중인 것만 맨 위에 덧그린다.
+    if (itemFxRef.current.length > 0) {
+      const fxNow = performance.now();
+      itemFxRef.current = itemFxRef.current.filter((fx) => fxNow - fx.start < ITEM_FX_DUR);
+      for (const fx of itemFxRef.current) {
+        const t = (fxNow - fx.start) / ITEM_FX_DUR;
+        drawItemFx(ctx, at(fx.x), at(fx.y), gap, fx.kind, fx.item, t);
+      }
     }
   };
 
@@ -692,6 +560,24 @@ const PhysicalGamePage = () => {
     chat.setInput('');
   };
 
+  // HUD 아이템 슬롯 — 보유 아이템을 종류 색 테두리/글로우로 또렷하게(없으면 빈 슬롯). 내/상대 공용.
+  const renderItemSlot = (item: PhysicalItemType | null, label: string) =>
+    item ? (
+      <span
+        className={styles.itemSlot}
+        style={{ borderColor: ITEM_META[item].ring, boxShadow: `0 0 9px ${ITEM_META[item].glow}` }}
+        title={`${label}: ${ITEM_META[item].label}`}
+      >
+        <span className={styles.itemSlotIcon}>{ITEM_META[item].emoji}</span>
+        <span className={styles.itemSlotName}>{ITEM_META[item].label}</span>
+      </span>
+    ) : (
+      <span className={`${styles.itemSlot} ${styles.itemSlotEmpty}`} title={`${label}: 없음`}>
+        <span className={styles.itemSlotIcon}>◌</span>
+        <span className={styles.itemSlotName}>비어있음</span>
+      </span>
+    );
+
   return (
     <div className={styles.container}>
       {closedMessage && (
@@ -708,40 +594,38 @@ const PhysicalGamePage = () => {
       <div className={styles.arenaArea}>
         <div className={styles.modeBadge}>⚔️ 피지컬 오목</div>
 
-        {/* HUD */}
+        {/* HUD — 양쪽 플레이어의 보유 아이템을 또렷한 슬롯으로 보여준다 */}
         <div className={styles.hud}>
           <div className={`${styles.hudPlayer} ${myColor ? styles.hudMe : ''}`}>
-            <span
-              className={`${styles.dot} ${myColor === 'WHITE' ? styles.dotW : styles.dotB}`}
-              style={stonePreviewStyle(myHudSkin)}
-              title={myHudSkin ? '내 바둑알 스킨' : '내 기본 바둑알'}
-            />
-            <span className={styles.hudName}>{myPlayer?.nickname ?? '나'}</span>
-            {myHudSkin && <span className={styles.skinTag}>스킨</span>}
-            {me?.speedBoosted && <span className={styles.boost}>⚡부스트</span>}
+            <div className={styles.hudTop}>
+              <span
+                className={`${styles.dot} ${myColor === 'WHITE' ? styles.dotW : styles.dotB}`}
+                style={stonePreviewStyle(myHudSkin)}
+                title={myHudSkin ? '내 바둑알 스킨' : '내 기본 바둑알'}
+              />
+              <span className={styles.hudName}>{myPlayer?.nickname ?? '나'}</span>
+              {myHudSkin && <span className={styles.skinTag}>스킨</span>}
+              {me?.speedBoosted && <span className={styles.boost}>⚡부스트</span>}
+            </div>
+            {renderItemSlot(me?.heldItem ?? null, '내 아이템')}
           </div>
           <div className={styles.hudCenter}>
-            <span className={styles.hudItem}>
-              아이템:{' '}
-              {me?.heldItem ? (
-                <b>{ITEM_META[me.heldItem].emoji} {ITEM_META[me.heldItem].label}</b>
-              ) : (
-                <span className={styles.muted}>없음</span>
-              )}
-            </span>
+            <span className={styles.hudVs}>VS</span>
             <span className={destroyRemaining > 0 ? styles.cdActive : styles.cdReady}>
               파괴: {destroyRemaining > 0 ? `${destroyRemaining.toFixed(1)}초` : '준비됨'}
             </span>
           </div>
-          <div className={styles.hudPlayer}>
-            <span
-              className={`${styles.dot} ${opp?.color === 'WHITE' || opponentRoomPlayer?.color === 'WHITE' ? styles.dotW : styles.dotB}`}
-              style={stonePreviewStyle(opponentHudSkin)}
-              title={opponentHudSkin ? '상대 바둑알 스킨' : '상대 기본 바둑알'}
-            />
-            <span className={styles.hudName}>{opp?.nickname ?? opponentRoomPlayer?.nickname ?? '상대'}</span>
-            {opponentHudSkin && <span className={styles.skinTag}>스킨</span>}
-            {opp?.heldItem && <span className={styles.muted}>{ITEM_META[opp.heldItem].emoji}</span>}
+          <div className={`${styles.hudPlayer} ${styles.hudPlayerFoe}`}>
+            <div className={`${styles.hudTop} ${styles.hudTopFoe}`}>
+              <span
+                className={`${styles.dot} ${opp?.color === 'WHITE' || opponentRoomPlayer?.color === 'WHITE' ? styles.dotW : styles.dotB}`}
+                style={stonePreviewStyle(opponentHudSkin)}
+                title={opponentHudSkin ? '상대 바둑알 스킨' : '상대 기본 바둑알'}
+              />
+              <span className={styles.hudName}>{opp?.nickname ?? opponentRoomPlayer?.nickname ?? '상대'}</span>
+              {opponentHudSkin && <span className={styles.skinTag}>스킨</span>}
+            </div>
+            {renderItemSlot(opp?.heldItem ?? null, '상대 아이템')}
           </div>
         </div>
 

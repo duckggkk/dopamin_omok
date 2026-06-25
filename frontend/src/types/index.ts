@@ -391,6 +391,8 @@ export interface PlazaJoinResponse {
 export interface PhysicalReplayPlayer {
   color: StoneColor;
   nickname: string;
+  skin: StoneStyle | null;          // 장착 바둑알 스킨 색(라이브와 동일 외형, 구버전/미장착 null)
+  character: CharacterStyle | null; // 장착 캐릭터 스킨 외형(미장착 null)
 }
 
 // 보드 칸 변화 한 건. v: 0=빈칸, 1=흑, 2=백, 3=분화구

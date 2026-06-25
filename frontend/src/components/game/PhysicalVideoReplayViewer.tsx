@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { GameInfo, PhysicalReplay, PhysicalMotionFrame, StoneColor } from '@/types';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { GameInfo, PhysicalReplay, PhysicalMotionFrame, StoneColor, StoneStyle, CharacterStyle } from '@/types';
+import { drawBoardBase, drawStone, drawCrater, drawCharacter, drawItemDrop } from '@/utils/physicalCanvas';
 import styles from './PhysicalVideoReplayViewer.module.css';
 
 interface Props {
@@ -9,7 +10,6 @@ interface Props {
 }
 
 const CANVAS_PX = 520;
-const ITEM_EMOJI: Record<string, string> = { SPEED_BOOST: '⚡', CRATER: '🕳️', BOMB: '💣' };
 const SPEEDS = [0.5, 1, 2] as const;
 
 const fmtTime = (ms: number) => {
@@ -45,6 +45,13 @@ const PhysicalVideoReplayViewer = ({ replay, onClose }: Props) => {
       replay.players.find((p) => p.color === color)?.nickname ?? (color === 'BLACK' ? '흑' : '백'),
     [replay.players],
   );
+
+  // 색별 외형(스킨/캐릭터) — 한 판 동안 불변. 라이브와 동일한 돌/캐릭터 외형으로 렌더한다.
+  const styleByColor = useMemo(() => {
+    const m: Record<string, { skin: StoneStyle | null; character: CharacterStyle | null }> = {};
+    for (const p of replay.players) m[p.color] = { skin: p.skin ?? null, character: p.character ?? null };
+    return m;
+  }, [replay.players]);
 
   // 시점 playT 의 보드 칸 상태 — 이벤트(시간순)를 t<=playT 까지 누적 적용.
   const cellsAt = useCallback(
@@ -105,52 +112,24 @@ const PhysicalVideoReplayViewer = ({ replay, onClose }: Props) => {
     const ctx = canvas?.getContext('2d');
     if (!ctx) return;
 
-    const pad = CANVAS_PX / (N + 1);
-    const gap = (CANVAS_PX - pad * 2) / (N - 1);
-    const at = (i: number) => pad + i * gap;
+    // 보드/돌/분화구/아이템/캐릭터 — 모두 라이브와 같은 공용 헬퍼로 그린다(외형 100% 일치).
+    const { gap, at } = drawBoardBase(ctx, N, CANVAS_PX);
     const stoneR = gap * 0.46;
 
-    // 보드 + 격자
-    ctx.fillStyle = '#dcb95b';
-    ctx.fillRect(0, 0, CANVAS_PX, CANVAS_PX);
-    ctx.strokeStyle = '#8b6914';
-    ctx.lineWidth = 1;
-    const lo = at(0), hi = at(N - 1);
-    for (let i = 0; i < N; i++) {
-      const c = at(i);
-      ctx.beginPath(); ctx.moveTo(c, lo); ctx.lineTo(c, hi); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(lo, c); ctx.lineTo(hi, c); ctx.stroke();
-    }
-    ctx.fillStyle = '#8b6914';
-    for (const sx of [3, N - 4]) for (const sy of [3, N - 4]) {
-      ctx.beginPath(); ctx.arc(at(sx), at(sy), 3, 0, Math.PI * 2); ctx.fill();
-    }
-
-    // 돌 / 분화구
     const cells = cellsAt(t);
     for (let y = 0; y < N; y++) {
       for (let x = 0; x < N; x++) {
         const v = cells[y][x];
-        const cx = at(x), cy = at(y);
         if (v === 3) {
-          ctx.beginPath(); ctx.arc(cx, cy, gap * 0.46, 0, Math.PI * 2);
-          ctx.fillStyle = '#5a3a1c'; ctx.fill();
-          ctx.beginPath(); ctx.arc(cx, cy, gap * 0.28, 0, Math.PI * 2);
-          ctx.fillStyle = '#1c120a'; ctx.fill();
+          drawCrater(ctx, at(x), at(y), gap);
         } else if (v === 1 || v === 2) {
-          const black = v === 1;
-          const grad = ctx.createRadialGradient(cx - stoneR * 0.32, cy - stoneR * 0.32, stoneR * 0.1, cx, cy, stoneR);
-          grad.addColorStop(0, black ? '#5a5a5a' : '#ffffff');
-          grad.addColorStop(0.55, black ? '#1b1b1b' : '#f4f1e8');
-          grad.addColorStop(1, black ? '#1b1b1b' : '#f4f1e8');
-          ctx.fillStyle = grad;
-          ctx.beginPath(); ctx.arc(cx, cy, stoneR, 0, Math.PI * 2); ctx.fill();
-          ctx.lineWidth = 1.4; ctx.strokeStyle = black ? '#000' : '#cfc7b4'; ctx.stroke();
+          const color: StoneColor = v === 1 ? 'BLACK' : 'WHITE';
+          drawStone(ctx, at(x), at(y), stoneR, v === 1, styleByColor[color]?.skin ?? null);
         }
       }
     }
 
-    // 보간 프레임 — 위치 트랙에서 t 를 감싸는 두 프레임을 lerp
+    // 보간 프레임 — 위치 트랙에서 t 를 감싸는 두 프레임을 lerp 해 캐릭터가 '실제로 움직이게' 한다.
     if (frames.length > 0) {
       let i = 0;
       while (i < frames.length - 1 && frames[i + 1].t <= t) i++;
@@ -159,43 +138,23 @@ const PhysicalVideoReplayViewer = ({ replay, onClose }: Props) => {
       const span = f1.t - f0.t;
       const a = span > 0 ? Math.min(1, Math.max(0, (t - f0.t) / span)) : 0;
 
-      // 아이템(가장 가까운 직전 프레임 기준 — 위치 보간 불필요)
+      // 아이템(직전 프레임 기준) — 라이브와 동일한 모양/색
       for (const it of f0.items) {
-        const cx = at(it.x), cy = at(it.y);
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
-        ctx.beginPath(); ctx.arc(cx, cy, gap * 0.4, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = 'rgba(224,168,63,0.95)'; ctx.lineWidth = 2; ctx.stroke();
-        ctx.font = `${Math.floor(gap * 0.5)}px serif`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(ITEM_EMOJI[it.type] ?? '?', cx, cy + 1);
+        drawItemDrop(ctx, at(it.x), at(it.y), gap, it.type);
       }
 
-      // 캐릭터(보간 이동)
+      // 캐릭터(보간 이동) — 스킨/얼굴/보유 아이템 배지까지 라이브와 동일
       for (const p0 of f0.players) {
         const p1 = f1.players.find((q) => q.color === p0.color) ?? p0;
         const gx = p0.x + (p1.x - p0.x) * a;
         const gy = p0.y + (p1.y - p0.y) * a;
-        const cx = at(gx), cy = at(gy);
-        const r = gap * 0.42;
-        const black = p0.color === 'BLACK';
-        if (p0.speedBoosted) {
-          ctx.strokeStyle = 'rgba(90,200,255,0.9)'; ctx.lineWidth = 2;
-          ctx.beginPath(); ctx.arc(cx, cy, r + 6, 0, Math.PI * 2); ctx.stroke();
-        }
-        ctx.fillStyle = black ? '#3b3b40' : '#ece7da';
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-        ctx.lineWidth = 3; ctx.strokeStyle = black ? '#111114' : '#b7af9c'; ctx.stroke();
-        // 눈
-        ctx.fillStyle = black ? '#fff' : '#33312b';
-        ctx.beginPath(); ctx.arc(cx - r * 0.34, cy - r * 0.08, r * 0.16, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(cx + r * 0.34, cy - r * 0.08, r * 0.16, 0, Math.PI * 2); ctx.fill();
-        // 닉네임
-        ctx.font = `bold ${Math.floor(gap * 0.32)}px sans-serif`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-        ctx.strokeText(nameOf(p0.color), cx, cy - r - 4);
-        ctx.fillStyle = '#fff';
-        ctx.fillText(nameOf(p0.color), cx, cy - r - 4);
+        drawCharacter(ctx, at(gx), at(gy), gap, {
+          color: p0.color,
+          nickname: nameOf(p0.color),
+          character: styleByColor[p0.color]?.character ?? null,
+          speedBoosted: p0.speedBoosted,
+          heldItem: p0.heldItem,
+        }, false);
       }
     }
   };

@@ -50,9 +50,30 @@
   padding: 10px 14px;
   box-shadow: var(--shadow-card);
 }
-.hudPlayer { display: flex; align-items: center; gap: 7px; font-size: 0.9rem; color: var(--text); min-width: 0; }
-.hudPlayer:last-child { justify-content: flex-end; }
+.hudPlayer { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; font-size: 0.9rem; color: var(--text); min-width: 0; }
+.hudPlayerFoe { align-items: flex-end; }
+.hudTop { display: flex; align-items: center; gap: 7px; min-width: 0; max-width: 100%; }
+.hudTopFoe { flex-direction: row-reverse; }
 .hudMe { font-weight: 800; }
+
+/* 아이템 슬롯 — 보유 아이템을 종류 색 테두리/글로우로 또렷하게(없으면 점선 빈 슬롯) */
+.itemSlot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 11px 3px 7px;
+  border-radius: var(--r-pill, 999px);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1.5px solid var(--border-strong);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.itemSlotEmpty { opacity: 0.5; font-weight: 600; border-style: dashed; box-shadow: none !important; }
+.itemSlotIcon { font-size: 1.05rem; line-height: 1; }
+.itemSlotName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hudVs { color: var(--text-faint); font-weight: 900; font-size: 0.82rem; letter-spacing: 0.06em; }
 .hudName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px; }
 .dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
 .dotB { background: radial-gradient(circle at 35% 30%, #555, #111); border: 1px solid #000; }
