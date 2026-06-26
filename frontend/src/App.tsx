@@ -57,13 +57,13 @@ const router = createBrowserRouter([
           { path: '/guide', element: <GameGuidePage /> },
           { path: '/lobby', element: <LobbyPage /> },
           { path: '/game/:gameId', element: <GamePage /> },
+          { path: '/plaza', element: <PlazaPage /> }, // 게스트도 입장 가능(꾸미기만 차단)
           // 멤버(정식 회원) 전용 — 게스트는 MemberRoute에서 /ai 로 리다이렉트
           {
             element: <MemberRoute />,
             children: [
               { path: '/', element: <HomePage /> },
               { path: '/welcome', element: <WelcomePage /> },
-              { path: '/plaza', element: <PlazaPage /> },
               { path: '/friends', element: <FriendsPage /> },
               { path: '/ranking', element: <RankingPage /> },
               { path: '/profile', element: <ProfilePage /> },

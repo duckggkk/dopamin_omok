@@ -73,7 +73,8 @@ public class SecurityConfig {
                         // 게스트(GUEST)는 토큰은 있어(=인증됨) anyRequest().authenticated() 를 통과하므로,
                         // 멤버 전용 기능은 여기서 역할(USER/ADMIN)로 명시적으로 막아야 한다.
                         // (게스트 허용: 싱글 AI /ai/**, 조회성 GET 등. 게스트 차단: 아래 경로)
-                        .requestMatchers("/shop/**", "/friends/**", "/plaza/**").hasAnyRole("USER", "ADMIN")
+                        // 상점·친구는 멤버 전용. 광장(/plaza)은 게스트도 입장 가능(아바타 꾸미기만 WS에서 차단).
+                        .requestMatchers("/shop/**", "/friends/**").hasAnyRole("USER", "ADMIN")
                         // 방(/rooms)은 URL 일괄 차단하지 않는다 — 게스트도 '캐주얼' 방은 생성·참가할 수 있어야 하기 때문.
                         // 랭크 방 생성/참가 차단은 RoomService 가 역할 기반으로 선별 처리한다(게스트=캐주얼 강제, 랭크 참가 거부).
                         // 프로필 수정(닉네임/이미지 등)은 멤버만.

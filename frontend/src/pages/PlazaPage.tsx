@@ -107,6 +107,7 @@ const PlazaPage = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const myId = user?.id ?? '';
+  const isGuest = !!user?.guest; // 게스트는 광장 입장은 되지만 아바타 꾸미기는 불가(가입 유도)
 
   const [joinInfo, setJoinInfo] = useState<PlazaJoinResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -531,6 +532,7 @@ const PlazaPage = () => {
 
   // ===== 핸들러 =====
   const changeAppearance = (patch: Partial<PlazaAppearance>) => {
+    if (isGuest) return; // 게스트는 외형 변경 불가(서버도 WS에서 차단)
     setAppearance((prev) => {
       const next = { ...prev, ...patch };
       appearanceRef.current = next;
@@ -604,10 +606,20 @@ const PlazaPage = () => {
             onClick={handleCanvasClick}
           />
 
-          {/* 아바타 꾸미기 — 광장 화면 우상단 불투명 버튼. 클릭 시 팝업으로 연다. */}
-          <button className={styles.dressBtn} onClick={() => setDressOpen(true)}>
-            🎨 아바타 꾸미기
-          </button>
+          {/* 아바타 꾸미기 — 회원 전용. 게스트는 가입 유도 버튼으로 대체한다. */}
+          {isGuest ? (
+            <button
+              className={styles.dressBtn}
+              onClick={() => navigate('/register')}
+              title="회원가입하면 아바타를 꾸밀 수 있어요"
+            >
+              🔒 회원가입하고 꾸미기
+            </button>
+          ) : (
+            <button className={styles.dressBtn} onClick={() => setDressOpen(true)}>
+              🎨 아바타 꾸미기
+            </button>
+          )}
 
           {/* 인터페이스 내장 채팅 — 캔버스 좌하단 오버레이. Enter 로 입력칸 활성화. */}
           <div className={styles.chatOverlay}>

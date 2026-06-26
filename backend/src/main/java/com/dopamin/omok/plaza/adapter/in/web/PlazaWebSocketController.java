@@ -38,9 +38,11 @@ public class PlazaWebSocketController {
             SimpMessageHeaderAccessor accessor) {
         CustomUserDetails user = extractUser(accessor);
         if (user == null) return;
+        // 게스트(비회원)는 아바타 꾸미기 불가 → 외형을 무시하고 기본 외형으로 입장시킨다.
+        boolean guest = user.getUser().isGuest();
         manager.join(channelId, accessor.getSessionId(), user.getId(),
                 user.getUser().getPublicId().toString(), user.getUser().getNickname(),
-                request != null ? request.appearance() : null);
+                guest ? null : (request != null ? request.appearance() : null));
     }
 
     @MessageMapping("/plaza/{channelId}/input")
@@ -70,6 +72,7 @@ public class PlazaWebSocketController {
             SimpMessageHeaderAccessor accessor) {
         CustomUserDetails user = extractUser(accessor);
         if (user == null || request == null) return;
+        if (user.getUser().isGuest()) return; // 게스트는 아바타 꾸미기(드레스룸) 불가
         manager.updateAppearance(channelId, user.getId(), request.appearance());
     }
 
