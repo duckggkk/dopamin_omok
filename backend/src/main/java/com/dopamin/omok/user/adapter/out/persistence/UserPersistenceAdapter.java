@@ -70,6 +70,11 @@ public class UserPersistenceAdapter implements LoadUserPort, SaveUserPort, Check
     }
 
     @Override
+    public int deleteGuestsCreatedBefore(java.time.LocalDateTime cutoff) {
+        return userJpaRepository.deleteGuestsCreatedBefore(cutoff);
+    }
+
+    @Override
     public boolean existsByEmail(String email) {
         return userJpaRepository.existsByEmail(email);
     }

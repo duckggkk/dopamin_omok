@@ -57,4 +57,13 @@ public interface UserJpaRepository extends JpaRepository<User, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM User u WHERE u.id = :id")
     void deleteByIdImmediately(@Param("id") Long id);
+
+    /**
+     * cutoff 이전에 생성된 게스트 계정을 일괄 삭제한다(쌓이는 익명 계정 청소).
+     * DB FK 동작(games SET NULL, game_moves·game_players·아이템 CASCADE)이 그대로 적용된다.
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM User u WHERE u.role = com.dopamin.omok.user.domain.UserRole.GUEST "
+            + "AND u.createdAt < :cutoff")
+    int deleteGuestsCreatedBefore(@Param("cutoff") java.time.LocalDateTime cutoff);
 }

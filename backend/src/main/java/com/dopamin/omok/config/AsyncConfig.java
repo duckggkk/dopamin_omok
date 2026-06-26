@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.Arrays;
@@ -22,6 +23,7 @@ import java.util.concurrent.Executor;
 @Slf4j
 @Configuration
 @EnableAsync // Async메서드 활성화
+@EnableScheduling // @Scheduled 작업 활성화(예: 오래된 게스트 계정 정리)
 public class AsyncConfig implements AsyncConfigurer {
 
     //설정

@@ -1,6 +1,7 @@
 package com.dopamin.omok.auth.application.service;
 
 import com.dopamin.omok.auth.application.dto.TokenResponse;
+import com.dopamin.omok.auth.application.port.in.CleanupGuestAccountsUseCase;
 import com.dopamin.omok.auth.application.port.in.GuestLoginUseCase;
 import com.dopamin.omok.auth.application.port.in.LoginUseCase;
 import com.dopamin.omok.auth.application.port.in.LogoutUseCase;
@@ -26,6 +27,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -33,7 +35,7 @@ import java.util.concurrent.ThreadLocalRandom;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenUseCase, LogoutUseCase,
-        VerifyEmailUseCase, ResendVerificationEmailUseCase, GuestLoginUseCase {
+        VerifyEmailUseCase, ResendVerificationEmailUseCase, GuestLoginUseCase, CleanupGuestAccountsUseCase {
 
     private final LoadUserPort loadUserPort;
     private final SaveUserPort saveUserPort;
@@ -93,6 +95,13 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
         // 미장착 시 클라이언트가 기본 외형/소리로 폴백하므로 대국 표시에 문제 없다.
 
         return issueTokens(guest);
+    }
+
+    @Override
+    @Transactional
+    public int cleanupStaleGuests(int retentionDays) {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
+        return deleteUserPort.deleteGuestsCreatedBefore(cutoff);
     }
 
     /** "게스트####"(1000~9999) 닉네임을 생성하되 중복이면 재시도, 끝내 충돌하면 UUID 조각으로 사실상 유일화한다. */
