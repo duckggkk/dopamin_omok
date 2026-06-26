@@ -86,11 +86,12 @@ public class RoomController {
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getWaitingRooms(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) GameType gameType,
+            @RequestParam(required = false) Boolean ranked,
             @RequestParam(required = false, defaultValue = "false") boolean recommended,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<RoomResponse> response = recommended
                 ? getRoomUseCase.getRecommendedRooms(userDetails.getId(), pageable)
-                : getRoomUseCase.getWaitingRooms(gameType, pageable);
+                : getRoomUseCase.getWaitingRooms(gameType, ranked, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

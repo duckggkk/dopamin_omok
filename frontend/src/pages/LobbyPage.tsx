@@ -33,10 +33,12 @@ const BYOYOMI_LABELS: Record<ByoyomiOption, string> = {
 type LobbyTab = 'waiting' | 'live';
 
 /** 대기 탭의 방 필터. RECOMMENDED는 내 레이팅대(±밴드) 방장 방만 서버가 골라준다. */
-type RoomFilter = 'ALL' | 'CLASSIC' | 'PHYSICAL' | 'RECOMMENDED';
+type RoomFilter = 'ALL' | 'RANKED' | 'CASUAL' | 'CLASSIC' | 'PHYSICAL' | 'RECOMMENDED';
 
 const ROOM_FILTERS: { key: RoomFilter; label: string }[] = [
   { key: 'ALL', label: '전체' },
+  { key: 'RANKED', label: '🏆 랭크' },
+  { key: 'CASUAL', label: '😌 캐주얼' },
   { key: 'CLASSIC', label: '일반' },
   { key: 'PHYSICAL', label: '피지컬' },
   { key: 'RECOMMENDED', label: '내 레이팅대 추천' },
@@ -44,6 +46,8 @@ const ROOM_FILTERS: { key: RoomFilter; label: string }[] = [
 
 const toFilterParams = (filter: RoomFilter): WaitingRoomFilter => {
   if (filter === 'RECOMMENDED') return { recommended: true };
+  if (filter === 'RANKED') return { ranked: true };
+  if (filter === 'CASUAL') return { ranked: false };
   if (filter === 'CLASSIC' || filter === 'PHYSICAL') return { gameType: filter };
   return {};
 };

@@ -351,11 +351,9 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     private static final int RATING_RECOMMEND_BAND = 150;
 
     @Override
-    public Page<RoomResponse> getWaitingRooms(GameType gameType, Pageable pageable) {
-        Page<Room> rooms = (gameType == null)
-                ? loadRoomPort.findByStatus(RoomStatus.WAITING, pageable)
-                : loadRoomPort.findByStatusAndGameType(RoomStatus.WAITING, gameType, pageable);
-        return rooms.map(room -> buildRoomResponse(room));
+    public Page<RoomResponse> getWaitingRooms(GameType gameType, Boolean ranked, Pageable pageable) {
+        return loadRoomPort.findRooms(RoomStatus.WAITING, gameType, ranked, pageable)
+                .map(room -> buildRoomResponse(room));
     }
 
     @Override

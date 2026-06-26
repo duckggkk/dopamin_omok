@@ -39,6 +39,11 @@ public class RoomPersistenceAdapter implements LoadRoomPort, SaveRoomPort {
     }
 
     @Override
+    public Page<Room> findRooms(RoomStatus status, GameType gameType, Boolean ranked, Pageable pageable) {
+        return roomJpaRepository.search(RoomSearchCondition.waiting(status, gameType, ranked), pageable);
+    }
+
+    @Override
     public Page<Room> findRecommendedRooms(RoomStatus status, int cmin, int cmax, int pmin, int pmax, Pageable pageable) {
         return roomJpaRepository.search(
                 RoomSearchCondition.recommended(status,

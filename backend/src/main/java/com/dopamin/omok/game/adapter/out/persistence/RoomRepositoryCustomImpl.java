@@ -30,6 +30,9 @@ public class RoomRepositoryCustomImpl implements RoomRepositoryCustom {
         if (condition.gameType() != null) {
             where.and(room.gameType.eq(condition.gameType()));
         }
+        if (condition.ranked() != null) {
+            where.and(room.ranked.eq(condition.ranked()));
+        }
         if (condition.ratingBand() != null) {
             RoomSearchCondition.RatingBand b = condition.ratingBand();
             // 일반 방은 방장 일반레이팅이, 피지컬 방은 방장 피지컬레이팅이 각 구간에 들면 추천

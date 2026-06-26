@@ -12,6 +12,7 @@ export interface CreateRoomOptions {
 /** 대기 중 방 목록 필터. recommended가 true면 내 레이팅대 방만(서버가 내 레이팅 기준 ±밴드로 필터). */
 export interface WaitingRoomFilter {
   gameType?: GameType;
+  ranked?: boolean;      // true=랭크만, false=캐주얼만, 미지정=전체
   recommended?: boolean;
 }
 
@@ -49,6 +50,7 @@ export const gameApi = {
         page,
         size,
         ...(filter.gameType ? { gameType: filter.gameType } : {}),
+        ...(filter.ranked !== undefined ? { ranked: filter.ranked } : {}),
         ...(filter.recommended ? { recommended: true } : {}),
       },
     }),

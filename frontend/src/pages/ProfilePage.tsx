@@ -298,6 +298,13 @@ const ProfilePage = () => {
           </div>
         )}
 
+        {/* 캐주얼(일반) 전적 — 위 탭 전적은 랭크전 기준, 캐주얼은 레이팅과 무관하게 따로 집계 */}
+        {profile.casual && profile.casual.totalGames > 0 && (
+          <p style={{ textAlign: 'center', color: 'var(--text-faint)', fontSize: '0.82rem', marginTop: 10 }}>
+            😌 캐주얼 전적 {profile.casual.wins}승 {profile.casual.losses}패 {profile.casual.draws}무
+          </p>
+        )}
+
         {!isOwnProfile && relation && relation.relation !== 'SELF' && (
           <div className={styles.friendPanel}>
             <div className={styles.h2hRow}>
