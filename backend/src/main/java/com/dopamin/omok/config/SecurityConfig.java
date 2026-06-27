@@ -51,7 +51,7 @@ public class SecurityConfig {
                                 csp.policyDirectives("default-src 'self'; frame-ancestors 'none'"))
                         .referrerPolicy(referrer ->
                                 referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
-                        .permissionsPolicy(permissions ->
+                        .permissionsPolicyHeader(permissions ->
                                 permissions.policy("camera=(), microphone=(), geolocation=()"))
                 )
 
