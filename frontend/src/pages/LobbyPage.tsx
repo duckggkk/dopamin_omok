@@ -145,18 +145,6 @@ const LobbyPage = () => {
     }
   };
 
-  const handleAiPractice = async () => {
-    setIsCreating(true);
-    try {
-      const res = await gameApi.startAiPractice();
-      if (res.data.data) navigate(`/game/${res.data.data.roomCode}`);
-    } catch (err) {
-      showToast(getApiErrorMessage(err, 'AI 연습을 시작하지 못했습니다.'), 'error');
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
   const handleSpectate = async (roomCode: string) => {
     try {
       const res = await gameApi.spectateRoom(roomCode);
@@ -312,10 +300,6 @@ const LobbyPage = () => {
                 참가
               </button>
             </div>
-            <div className={styles.divider}><span>혼자 연습</span></div>
-            <button onClick={handleAiPractice} disabled={isCreating} className={styles.quickBtn}>
-              ⚔️ 피지컬 AI와 연습 <span className={styles.quickBtnHint}>레이팅 미반영</span>
-            </button>
           </div>
 
           <div className={styles.sideCard}>
