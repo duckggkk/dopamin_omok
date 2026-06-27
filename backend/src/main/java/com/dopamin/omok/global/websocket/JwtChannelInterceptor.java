@@ -40,6 +40,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     private final LoadGamePlayerPort loadGamePlayerPort;
 
     
+    // 모든 inbound STOMP 메시지를 받음
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);

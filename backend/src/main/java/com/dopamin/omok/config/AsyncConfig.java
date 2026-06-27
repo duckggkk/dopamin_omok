@@ -61,7 +61,7 @@ public class AsyncConfig implements AsyncConfigurer {
     //예외처리
     @Override
     public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
-        //이게 람다식이구나
+        //람다식
         return (ex, method, params) -> {
             log.error("Async 작업 예외: method={}, params={}", method.getName(), Arrays.toString(params), ex);
         };
