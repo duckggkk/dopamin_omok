@@ -15,14 +15,12 @@ import com.dopamin.omok.auth.application.service.support.EmailVerificationServic
 import com.dopamin.omok.auth.domain.RefreshToken;
 import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.common.exception.OmokException;
-import com.dopamin.omok.global.event.UserRegisteredEvent;
 import com.dopamin.omok.global.security.jwt.JwtProvider;
 import com.dopamin.omok.user.application.port.out.DeleteUserPort;
 import com.dopamin.omok.user.application.port.out.LoadUserPort;
 import com.dopamin.omok.user.application.port.out.SaveUserPort;
 import com.dopamin.omok.user.domain.User;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,40 +43,13 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final EmailVerificationService emailVerificationService;
-    private final ApplicationEventPublisher eventPublisher;
     private final TokenIssuer tokenIssuer;
 
     @Override
-    @Transactional
     public void register(String email, String password, String nickname) {
-        User emailOwner = loadUserPort.findByEmail(email).orElse(null);
-        User nicknameOwner = loadUserPort.findByNickname(nickname).orElse(null);
-
-        // 인증을 마쳤거나(정상 계정) 인증 유효기간(3분)이 아직 남은 미인증 계정이
-        // 점유 중이면 가입을 막는다.
-        if (isStillOccupied(emailOwner)) {
-            throw new OmokException(ErrorCode.EMAIL_ALREADY_EXISTS);
-        }
-        if (isStillOccupied(nicknameOwner)) {
-            throw new OmokException(ErrorCode.NICKNAME_ALREADY_EXISTS);
-        }
-
-        // 여기까지 왔다면 충돌 계정은 '미인증 + 인증 만료' 상태뿐이다.
-        // 이메일/닉네임 점유를 풀기 위해 해당 유령 계정을 회수(삭제)한다.
-        // (이메일·닉네임이 같은 계정을 가리키면 한 번만 삭제)
-        reclaimExpiredUnverified(emailOwner);
-        if (nicknameOwner != null
-                && (emailOwner == null || !nicknameOwner.getId().equals(emailOwner.getId()))) {
-            reclaimExpiredUnverified(nicknameOwner);
-        }
-
-        User user = User.createLocalUser(email, passwordEncoder.encode(password), nickname);
-        saveUserPort.save(user);
-
-        // 가입 직후 기본 아이템(기본 착수음 등) 지급 — shop 모듈이 수신해 처리
-        eventPublisher.publishEvent(new UserRegisteredEvent(user.getId()));
-
-        emailVerificationService.sendCode(user);
+        // 미인증 계정은 RDS 에 만들지 않는다. 가입 입력값은 인증을 마칠 때까지 Redis 의 가입 대기로만 머물고,
+        // 인증 성공 시점에 비로소 실제 회원이 생성된다(EmailVerificationService.verifyEmail).
+        emailVerificationService.startRegistration(email, passwordEncoder.encode(password), nickname);
     }
 
     @Override
@@ -115,24 +86,6 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
         return "게스트" + UUID.randomUUID().toString().substring(0, 6);
     }
 
-    /** 인증 완료 계정이거나 인증 유효기간이 아직 남은 미인증 계정이면 이메일/닉네임이 점유 중이다. */
-    private boolean isStillOccupied(User existing) {
-        if (existing == null) {
-            return false;
-        }
-        if (existing.isEmailVerified()) {
-            return true;
-        }
-        return emailVerificationService.hasPendingVerification(existing.getId());
-    }
-
-    /** 미인증·인증 만료 계정을 삭제한다. 연관 데이터는 DB의 ON DELETE CASCADE 로 함께 정리된다. */
-    private void reclaimExpiredUnverified(User existing) {
-        if (existing != null) {
-            deleteUserPort.deleteById(existing.getId());
-        }
-    }
-
     @Override
     @Transactional
     public TokenResponse login(String email, String password) {
@@ -154,8 +107,9 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
     }
 
     @Override
-    @Transactional(noRollbackFor = OmokException.class)
+    @Transactional
     public void verifyEmail(String email, String code) {
+        // 인증 성공 시에만 User 를 INSERT 한다(트랜잭션 경계). 실패 시도 횟수는 Redis 라 롤백과 무관하게 누적된다.
         emailVerificationService.verifyEmail(email, code);
     }
 
