@@ -1,5 +1,5 @@
 .container {
-  max-width: 720px;
+  max-width: 1320px; /* 광장과 동일 폭 */
   margin: 0 auto;
   padding: 24px 16px 48px;
   display: flex;
