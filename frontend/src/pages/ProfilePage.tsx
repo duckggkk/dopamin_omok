@@ -1,16 +1,19 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, useCallback, FormEvent } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { userApi } from '@/api/auth';
 import { gameApi } from '@/api/game';
 import { friendApi } from '@/api/friend';
 import { shopApi } from '@/api/shop';
-import { GameInfo, PublicUser, RelationInfo, StatMode, User, Inventory } from '@/types';
+import { GameInfo, PublicUser, RelationInfo, StatMode, User, Inventory, ShopItem, ItemType } from '@/types';
 import GameRecordViewer from '@/components/game/GameRecordViewer';
 import ItemPreview from '@/components/shop/ItemPreview';
+import { ITEM_TYPE_META } from './ShopPage';
 import ModeTabs from '@/components/common/ModeTabs';
 import { pickStats, totalStats } from '@/utils/stats';
 import styles from './ProfilePage.module.css';
+
+const RECENT_PAGE_SIZE = 10;
 
 type ProfileView = User | PublicUser;
 
@@ -43,31 +46,57 @@ const ProfilePage = () => {
   const [profileError, setProfileError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [recent, setRecent] = useState<GameInfo[] | null>(null);
+  const [recentPage, setRecentPage] = useState(0);
+  const [recentTotalPages, setRecentTotalPages] = useState(1);
+  const [recentLast, setRecentLast] = useState(true);
   const [inventory, setInventory] = useState<Inventory | null>(null);
   const [kifuGame, setKifuGame] = useState<GameInfo | null>(null);
   const [relation, setRelation] = useState<RelationInfo | null>(null);
   const [relBusy, setRelBusy] = useState(false);
   const [statMode, setStatMode] = useState<StatMode>('TOTAL');
 
+  // 다시보기 목록 페이지 로드(본인=내 게임 / 타인=공개 게임). 페이징으로 예전 기록까지 넘겨볼 수 있다.
+  const loadRecent = useCallback((page: number) => {
+    const req = isOwnProfile
+      ? gameApi.getMyGames(page, RECENT_PAGE_SIZE)
+      : userId
+        ? gameApi.getUserGames(userId, page, RECENT_PAGE_SIZE)
+        : null;
+    if (!req) return;
+    setRecent(null);
+    req
+      .then((res) => {
+        const data = res.data.data;
+        setRecent(data?.content ?? []);
+        setRecentPage(data?.number ?? page);
+        setRecentTotalPages(Math.max(1, data?.totalPages ?? 1));
+        setRecentLast(data?.last ?? true);
+      })
+      .catch(() => {
+        setRecent([]);
+        setRecentPage(0);
+        setRecentTotalPages(1);
+        setRecentLast(true);
+      });
+  }, [isOwnProfile, userId]);
+
   useEffect(() => {
     if (!user) return;
 
     setRecent(null);
+    setRecentPage(0);
     setInventory(null);
     setKifuGame(null);
     setRelation(null);
     setProfileError('');
     setError('');
     setSuccess('');
+    loadRecent(0);
 
     if (isOwnProfile) {
       setProfile(user);
       setNickname(user.nickname);
       setProfilePrivate(user.profilePrivate);
-      gameApi
-        .getMyGames(0, 10)
-        .then((res) => setRecent(res.data.data?.content ?? []))
-        .catch(() => setRecent([]));
       // 내 보유 아이템(코스메틱) — 프로필에서 컬렉션을 보여준다(본인만, 인벤토리는 비공개).
       shopApi
         .getInventory()
@@ -88,15 +117,11 @@ const ProfilePage = () => {
         setProfile(null);
         setProfileError(axiosErr.response?.data?.message ?? '프로필을 불러오지 못했습니다.');
       });
-    gameApi
-      .getUserGames(userId, 0, 10)
-      .then((res) => setRecent(res.data.data?.content ?? []))
-      .catch(() => setRecent([]));
     friendApi
       .getRelation(userId)
       .then((res) => setRelation(res.data.data ?? null))
       .catch(() => setRelation(null));
-  }, [isOwnProfile, user, userId]);
+  }, [isOwnProfile, user, userId, loadRecent]);
 
   if (!user) return null;
 
@@ -355,27 +380,40 @@ const ProfilePage = () => {
           ) : inventory.items.length === 0 ? (
             <p className={styles.recentEmpty}>아직 보유한 아이템이 없습니다. 상점에서 뽑기를 해보세요!</p>
           ) : (
-            <div className={styles.itemGrid}>
-              {[...inventory.items]
-                .sort((a, b) => a.itemType.localeCompare(b.itemType))
-                .map((item) => {
-                  const equipped = inventory.activeItems[item.itemType]?.id === item.id;
-                  return (
-                    <div key={item.id} className={`${styles.itemCard} ${equipped ? styles.itemCardEquipped : ''}`}>
-                      <div className={styles.itemThumb}><ItemPreview item={item} /></div>
-                      <p className={styles.itemName}>{item.displayName || item.name}</p>
-                      {equipped && <span className={styles.itemEquipped}>장착 중</span>}
+            // 종류별로 한 줄씩 묶어 보여주고, 한 종류가 많으면 그 줄만 가로로 스크롤한다.
+            <div className={styles.itemTypeList}>
+              {(Object.keys(ITEM_TYPE_META) as ItemType[])
+                .map((type) => ({ type, list: inventory.items.filter((it) => it.itemType === type) }))
+                .filter(({ list }) => list.length > 0)
+                .map(({ type, list }) => (
+                  <div key={type} className={styles.itemTypeRow}>
+                    <div className={styles.itemTypeLabel}>
+                      <span className={styles.itemTypeIcon}>{ITEM_TYPE_META[type].icon}</span>
+                      <span>{ITEM_TYPE_META[type].label}</span>
+                      <span className={styles.itemTypeCount}>{list.length}</span>
                     </div>
-                  );
-                })}
+                    <div className={styles.itemTrack}>
+                      {list.map((item: ShopItem) => {
+                        const equipped = inventory.activeItems[item.itemType]?.id === item.id;
+                        return (
+                          <div key={item.id} className={`${styles.itemCard} ${equipped ? styles.itemCardEquipped : ''}`}>
+                            <div className={styles.itemThumb}><ItemPreview item={item} /></div>
+                            <p className={styles.itemName}>{item.displayName || item.name}</p>
+                            {equipped && <span className={styles.itemEquipped}>장착 중</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
             </div>
           )}
         </div>
       )}
 
       <div className={styles.card}>
-        <h2 className={styles.sectionTitle}>{isOwnProfile ? '최근 10경기 다시보기' : '최근 10경기'}</h2>
-        <p className={styles.sectionHint}>대국을 클릭하면 기보(일반)·리플레이(피지컬)를 한 수씩 다시 볼 수 있어요.</p>
+        <h2 className={styles.sectionTitle}>{isOwnProfile ? '대국 다시보기' : '대국 기록'}</h2>
+        <p className={styles.sectionHint}>대국을 클릭하면 기보(일반)·리플레이(피지컬)를 한 수씩 다시 볼 수 있어요. (AI 연습 대국 제외)</p>
         <div className={styles.recentList}>
           {recent === null ? (
             <p className={styles.recentEmpty}>불러오는 중...</p>
@@ -395,6 +433,25 @@ const ProfilePage = () => {
             })
           )}
         </div>
+        {recent !== null && recentTotalPages > 1 && (
+          <div className={styles.recentPager}>
+            <button
+              className={styles.pagerBtn}
+              disabled={recentPage <= 0}
+              onClick={() => loadRecent(recentPage - 1)}
+            >
+              ← 이전
+            </button>
+            <span className={styles.pagerInfo}>{recentPage + 1} / {recentTotalPages}</span>
+            <button
+              className={styles.pagerBtn}
+              disabled={recentLast}
+              onClick={() => loadRecent(recentPage + 1)}
+            >
+              다음 →
+            </button>
+          </div>
+        )}
       </div>
 
       {recordViewer}

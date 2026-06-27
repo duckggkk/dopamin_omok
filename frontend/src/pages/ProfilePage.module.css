@@ -1,5 +1,5 @@
 .container {
-  max-width: 760px;
+  max-width: 1320px; /* 광장과 동일 폭 */
   margin: 40px auto;
   padding: 0 24px 64px;
   display: flex;
@@ -279,12 +279,34 @@
 .itemsHeader .sectionTitle { margin-bottom: 14px; }
 .shopLink { color: var(--gold-bright); font-size: 0.82rem; font-weight: 700; text-decoration: none; white-space: nowrap; }
 .shopLink:hover { text-decoration: underline; }
-.itemGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 12px;
+/* '내 아이템' — 종류별로 한 줄씩. 한 종류가 많아 길어지면 그 줄만 가로 스크롤. */
+.itemTypeList { display: flex; flex-direction: column; gap: 16px; }
+.itemTypeRow { display: flex; flex-direction: column; gap: 8px; }
+.itemTypeLabel {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 0.84rem; font-weight: 800; color: var(--text);
 }
+.itemTypeIcon { font-size: 1rem; line-height: 1; }
+.itemTypeCount {
+  font-size: 0.72rem; font-weight: 800; color: var(--text-muted);
+  background: var(--inset); border: 1px solid var(--border-faint);
+  border-radius: var(--r-pill); padding: 0 8px;
+}
+.itemTrack {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 10px;
+  scroll-snap-type: x proximity;
+}
+.itemTrack::-webkit-scrollbar { height: 8px; }
+.itemTrack::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.itemTrack::-webkit-scrollbar-track { background: transparent; }
 .itemCard {
+  flex: 0 0 auto;
+  width: 104px;
+  scroll-snap-align: start;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -348,6 +370,23 @@
 .rOngoing { background: var(--gold-soft); color: var(--gold-bright); border: 1px solid var(--gold-soft-border); font-size: 0.6rem; }
 .recentOpp { flex: 1; min-width: 0; color: var(--text); font-size: 0.92rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recentDate { color: var(--text-faint); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+
+/* 다시보기 페이지 넘김 — 예전 대국까지 조회 */
+.recentPager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 14px; }
+.pagerBtn {
+  background: var(--inset);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease);
+}
+.pagerBtn:hover:not(:disabled) { border-color: var(--gold-soft-border); }
+.pagerBtn:disabled { opacity: 0.4; cursor: default; }
+.pagerInfo { color: var(--text-muted); font-size: 0.84rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 560px) {
   .profileTop { flex-direction: column; text-align: center; }
