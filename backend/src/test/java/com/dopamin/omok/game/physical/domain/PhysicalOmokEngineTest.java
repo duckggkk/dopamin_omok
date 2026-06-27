@@ -35,8 +35,8 @@ class PhysicalOmokEngineTest {
         weights.put(PhysicalItemType.CRATER, 30);
         weights.put(PhysicalItemType.BOMB, 20);
         // boardSize=14, winCount=5, targetScore=3, move=100, place=300, destroy=2000, winSettle=400,
-        // countdown=3000, tick=60, spawnInterval=1000, maxItems=3, boostDuration=5000, boostMoveCd=50
-        return new PhysicalOmokProperties(SIZE, 5, 3, 100, 300, 2000, 400, 3000, 60, 1000, 3, 5000, 50, weights, false);
+        // countdown=3000, tick=60, spawnInterval=1000, maxItems=3, boostDuration=5000, boostMoveCd=50, training=false, inputBuffer=130, moveQueueMax=6
+        return new PhysicalOmokProperties(SIZE, 5, 3, 100, 300, 2000, 400, 3000, 60, 1000, 3, 5000, 50, weights, false, 130, 6);
     }
 
     private PhysicalGame newGame() {
@@ -73,6 +73,28 @@ class PhysicalOmokEngineTest {
         assertThat(g.board().stoneAt(6, 5)).isNull();
         engine.place(g, p, 1400);          // 쿨다운 후 → 성공
         assertThat(g.board().stoneAt(6, 5)).isEqualTo(StoneColor.BLACK);
+    }
+
+    @Test
+    @DisplayName("이동 버퍼 큐: 방향을 빠르게 번갈아 입력해도 마지막 것만 남지 않고 순서대로 모두 소화한다")
+    void rapidAlternatingDirectionsAreQueuedInOrder() {
+        PhysicalGame g = newGame();
+        PhysicalPlayer p = black(g); // (5,5)
+        int x0 = p.getX(), y0 = p.getY();
+
+        // 위·오른쪽을 쿨다운(100ms)보다 빠르게 번갈아 탭(같은 시각) — 예전 단일 슬롯 버퍼는 마지막 방향만 남아 '오른쪽만' 갔다.
+        long t = 1000;
+        for (Direction dir : new Direction[]{Direction.UP, Direction.RIGHT, Direction.UP, Direction.RIGHT}) {
+            engine.startMove(g, p, dir, t);
+            engine.stopMove(p); // 눌렀다 바로 뗌(빠른 탭)
+        }
+
+        // 틱을 쿨다운 간격으로 진행해 큐를 소진
+        for (int i = 0; i < 6; i++) { t += 100; engine.tickMovement(g, t); }
+
+        // 4번 입력(UP·RIGHT·UP·RIGHT)이 모두 반영 → 위로 2칸, 오른쪽으로 2칸(한 방향만 가면 실패).
+        assertThat(p.getX()).isEqualTo(x0 + 2);
+        assertThat(p.getY()).isEqualTo(y0 - 2);
     }
 
     @Test

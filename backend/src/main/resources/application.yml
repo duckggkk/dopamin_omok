@@ -55,8 +55,12 @@ app:
     board-size: 14            # 보드 N×N (변경 가능)
     win-count: 5              # 5목(연속 돌 개수)로 라인 1개 완성
     target-score: 3           # 오목 완성 1점 → 완성된 라인만 사라지고 보드는 유지. 먼저 3점이면 승리
-    move-cooldown-ms: 140     # 한 칸 이동 간 최소 간격(살짝 신중한 템포)
+    move-cooldown-ms: 160     # 한 칸 이동 간 최소 간격(살짝 신중한 템포 — 140→160으로 약간 느리게)
     place-cooldown-ms: 150    # 착수 간 최소 간격(중복 착수만 방지 — 러시는 win-settle-ms가 막음)
+    input-buffer-ms: 170      # 쿨다운에 막힌 착수 입력을 이 시간 안이면 버퍼 → 쿨다운 풀리는 즉시 1회 실행(착수 씹힘 방지). 0=끔
+    move-queue-max: 6         # 이동 입력 버퍼 큐 길이 — 방향을 빠르게 번갈아 눌러도 순서대로 한 칸씩 소화(씹힘 방지). 클수록 멈춘 뒤 잔여 이동↑
+
+
     destroy-cooldown-ms: 0    # Shift 파괴 쿨다운 없음(0 = 즉시 연속 파괴 가능)
     win-settle-ms: 2000       # 5목이 2초 유지돼야 승리 확정 — 그 사이 끊으면 무효(러시 방지 + 역전 여지)
     countdown-ms: 3000        # 시작 시 보드/캐릭터 세팅 후 3·2·1 카운트다운(이 동안 입력·이동 차단)
@@ -64,7 +68,7 @@ app:
     item-spawn-interval-ms: 7000
     max-items-on-field: 3
     speed-boost-duration-ms: 5000
-    speed-boost-move-cooldown-ms: 70  # 부스트 중 이동 간격(기본의 절반)
+    speed-boost-move-cooldown-ms: 80  # 부스트 중 이동 간격(기본의 절반)
     item-weights:             # 출현 가중치(흔할수록 큼) — 약한 부스트 흔하게, 역전 폭탄 드물게
       SPEED_BOOST: 50
       CRATER: 30

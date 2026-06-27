@@ -241,7 +241,14 @@ public class PhysicalGameSessionManager {
             switch (type) {
                 case MOVE_START -> engine.startMove(game, player, direction, now);
                 case MOVE_STOP -> engine.stopMove(player);
-                case PLACE -> engine.place(game, player, now); // 승리는 settle 경과 후 tick에서 확정
+                case PLACE -> {
+                    // 쿨다운 중이면 버리지 말고 버퍼(현재 칸이 착수 가능할 때만) → 쿨다운 풀리는 즉시 tick 이 놓는다(입력 씹힘 방지).
+                    if (now - player.getLastPlaceAt() < props.placeCooldownMs()) {
+                        if (game.board().isPlaceable(player.getX(), player.getY())) player.queuePlace(now);
+                    } else {
+                        engine.place(game, player, now); // 승리는 settle 경과 후 tick에서 확정
+                    }
+                }
                 case DESTROY -> engine.destroy(game, player, now);
                 case USE_ITEM -> engine.useItem(game, player, now);
             }
@@ -334,14 +341,15 @@ public class PhysicalGameSessionManager {
 
                 int dropsBefore = game.drops().size();
                 engine.tickMovement(game, now);
+                boolean flushed = engine.flushBufferedInputs(game, now); // 쿨다운 풀린 버퍼 입력(착수/이동) 실행 — 보드 변화 시 true
                 engine.maybeSpawnItem(game, now);
                 if (game.drops().size() > dropsBefore) { // 이번 틱에 스폰된 아이템(랜덤) 기록
                     s.training.recordSpawn(now, game.drops().get(game.drops().size() - 1));
                 }
                 boolean scored = engine.tickPendingLines(game, now); // 충전 라인 갱신+완충 줄마다 1점(파괴), targetScore 도달 시 승리
 
-                // 봇 행동/득점(라인 제거)으로 보드가 바뀌었을 수 있으니 틱에서도 칸 변화를 기록한다(변화 없으면 비용 0).
-                if (!decisions.isEmpty() || scored) s.recorder.capture(game.board().encode(), now);
+                // 봇 행동/버퍼 착수/득점(라인 제거)으로 보드가 바뀌었을 수 있으니 틱에서도 칸 변화를 기록한다(변화 없으면 비용 0).
+                if (!decisions.isEmpty() || flushed || scored) s.recorder.capture(game.board().encode(), now);
 
                 s.motion.sample(game, now); // 영상 리플레이용 위치 트랙(SAMPLE_MS 간격으로만 실제 기록)
 

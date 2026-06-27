@@ -38,11 +38,16 @@ public class PhysicalOmokEngine {
 
     // ===================== 입력 적용 =====================
 
-    /** 이동 의도 설정 + 즉시 한 칸(반응성). 키를 누르고 있는 동안 틱이 이어서 진행한다. */
+    /**
+     * 이동 의도 설정 + 입력 큐에 적재 + 즉시 한 칸(반응성).
+     * 큐에 쌓아두므로 방향을 빠르게 번갈아 눌러도(위·오른쪽 반복) 마지막 것만 남지 않고 누른 순서대로 한 칸씩 소화된다.
+     * 키를 누르고 있는 동안에는 큐가 빈 뒤 intent 로 계속 전진한다.
+     */
     public void startMove(PhysicalGame game, PhysicalPlayer player, Direction dir, long now) {
         if (dir == null) return;
         player.setIntent(dir);
-        tryStep(game, player, now);
+        player.enqueueMove(dir, props.moveQueueMax());
+        advance(game, player, now); // 쿨다운이 풀려 있으면 이번 입력을 즉시 반영
     }
 
     public void stopMove(PhysicalPlayer player) {
@@ -130,27 +135,62 @@ public class PhysicalOmokEngine {
 
     // ===================== 틱 루프 =====================
 
-    /** 의도 방향이 있는 플레이어를 쿨다운에 맞춰 한 칸씩 전진시킨다. */
+    /** 큐에 쌓인 이동 입력(+누르고 있는 방향)을 쿨다운에 맞춰 한 칸씩 소화한다. */
     public void tickMovement(PhysicalGame game, long now) {
         for (PhysicalPlayer player : game.players()) {
-            if (player.getIntent() != null) {
-                tryStep(game, player, now);
-            }
+            advance(game, player, now);
         }
     }
 
-    private void tryStep(PhysicalGame game, PhysicalPlayer player, long now) {
-        Direction dir = player.getIntent();
-        if (dir == null) return;
-        long cooldown = player.isSpeedBoosted(now)
-                ? props.speedBoostMoveCooldownMs()
-                : props.moveCooldownMs();
-        if (now - player.getLastMoveAt() < cooldown) return;
+    /**
+     * 한 박자(쿨다운당) 전진을 시도한다. 버퍼 큐가 있으면 큐의 다음 방향을 먼저(순서대로), 비었으면 누르고 있는 방향(intent)으로.
+     * 큐 입력은 시도 시 1회 소비한다(벽이라 못 가도 소비 — 탭 1회 = 1박자). intent 는 소비하지 않아 누르는 동안 계속 전진한다.
+     * @return 실제로 한 칸 이동했으면 true.
+     */
+    private boolean advance(PhysicalGame game, PhysicalPlayer player, long now) {
+        boolean fromQueue = player.hasQueuedMove();
+        Direction dir = fromQueue ? player.peekMove() : player.getIntent();
+        if (dir == null) return false;
+        if (now - player.getLastMoveAt() < moveCooldown(player, now)) return false; // 아직 쿨다운
+        boolean moved = doStep(game, player, dir, now); // 벽/범위 밖이면 제자리(쿨다운 미갱신)
+        if (fromQueue) player.pollMove(); // 큐 입력은 1박자 소비
+        return moved;
+    }
+
+    /** 한 칸 실제 이동(범위 밖/분화구면 false). 쿨다운 검사는 호출 측 책임. */
+    private boolean doStep(PhysicalGame game, PhysicalPlayer player, Direction dir, long now) {
         int nx = player.getX() + dir.dx, ny = player.getY() + dir.dy;
-        // 벽(범위 밖) 또는 분화구(붕괴된 칸)는 통과 불가 — 정지(쿨다운 미갱신, 다음 틱 재시도)
-        if (!game.board().inBounds(nx, ny) || game.board().isBlocked(nx, ny)) return;
+        if (!game.board().inBounds(nx, ny) || game.board().isBlocked(nx, ny)) return false;
         player.moveTo(nx, ny, now);
         tryPickup(game, player);
+        return true;
+    }
+
+    private long moveCooldown(PhysicalPlayer player, long now) {
+        return player.isSpeedBoosted(now) ? props.speedBoostMoveCooldownMs() : props.moveCooldownMs();
+    }
+
+    /**
+     * 쿨다운에 막혀 버퍼된 착수를 매 틱 점검해 풀리는 즉시 1회 실행한다(스페이스 씹힘 방지). 놓였으면 true.
+     * (이동 버퍼는 tickMovement 의 큐가 담당한다.) inputBufferMs 가 지난 버퍼는 폐기(옛 입력이 뒤늦게 튀지 않게).
+     */
+    public boolean flushBufferedInputs(PhysicalGame game, long now) {
+        boolean boardChanged = false;
+        long window = props.inputBufferMs();
+        if (window <= 0) return false; // 버퍼링 끔
+        for (PhysicalPlayer player : game.players()) {
+            if (player.getPlaceQueuedAt() <= 0) continue;
+            if (now - player.getPlaceQueuedAt() > window) {
+                player.clearPlaceQueue(); // 만료
+            } else if (now - player.getLastPlaceAt() >= props.placeCooldownMs()) {
+                if (game.board().isPlaceable(player.getX(), player.getY())) {
+                    place(game, player, now);
+                    boardChanged = true;
+                }
+                player.clearPlaceQueue();
+            }
+        }
+        return boardChanged;
     }
 
     private void tryPickup(PhysicalGame game, PhysicalPlayer player) {
