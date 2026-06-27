@@ -51,6 +51,8 @@ public class PlazaSessionManager {
         final String id;
         final ReentrantLock lock = new ReentrantLock();
         final Map<Long, PlazaPlayer> players = new LinkedHashMap<>();
+        /** 직전 틱에 누군가 움직였는지 — 모두 멈춘 직후 '정지 프레임' 1장만 더 보내고 이후 틱은 건너뛰기 위함. */
+        boolean movedLastTick = false;
         Channel(String id) { this.id = id; }
     }
 
@@ -203,10 +205,18 @@ public class PlazaSessionManager {
             c.lock.lock();
             try {
                 if (c.players.isEmpty()) continue;
+                boolean moving = false;
                 for (PlazaPlayer p : c.players.values()) {
-                    if (p.isMoving()) p.step(props.moveStep(), props.worldWidth(), props.worldHeight());
+                    if (p.isMoving()) {
+                        p.step(props.moveStep(), props.worldWidth(), props.worldHeight());
+                        moving = true;
+                    }
                 }
-                broadcast(c); // Phase 1: 항상 전송(정지 컷/델타 압축은 최적화 시멘)
+                // 아웃바운드 절감(정지 컷): 누군가 움직이는 동안만 매 틱 전송하고,
+                // 모두 멈추면 '정지 프레임' 한 장만 더 보낸 뒤 완전 idle 인 틱은 건너뛴다.
+                // (입장/퇴장/외형 변경은 그 즉시 별도로 broadcast 하므로 정지 중에도 갱신은 보장됨)
+                if (moving || c.movedLastTick) broadcast(c);
+                c.movedLastTick = moving;
             } catch (Exception e) {
                 log.warn("광장 틱 오류 channel={}: {}", c.id, e.getMessage());
             } finally {
