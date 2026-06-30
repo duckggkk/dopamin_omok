@@ -2,7 +2,6 @@ package com.dopamin.omok.global.security.jwt;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -12,27 +11,15 @@ import java.util.Date;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class JwtProvider {
 
     private final JwtProperties jwtProperties;
+    private final SecretKey signingKey; 
 
-    // SecretKey를 한 번만 생성해 재사용 (thread-safe)
-    private volatile SecretKey cachedKey;
-
-    private SecretKey getSigningKey() {
-        if (cachedKey == null) {
-            synchronized (this) {
-                if (cachedKey == null) {
-                    // 시크릿 문자열을 UTF-8 바이트로 변환해 HMAC-SHA256 키 생성
-                    // (이중 Base64 인코딩 버그 제거)
-                    byte[] keyBytes = jwtProperties.getSecret()
-                            .getBytes(StandardCharsets.UTF_8);
-                    cachedKey = Keys.hmacShaKeyFor(keyBytes);
-                }
-            }
-        }
-        return cachedKey;
+    public JwtProvider(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
+        this.signingKey = Keys.hmacShaKeyFor(
+                jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateAccessToken(Long userId, String email, String role, Long tokenVersion) {
@@ -47,7 +34,7 @@ public class JwtProvider {
                 .subject(String.valueOf(userId))
                 .issuedAt(now)
                 .expiration(expiry)
-                .signWith(getSigningKey())
+                .signWith(signingKey)
                 .compact();
     }
 
@@ -57,17 +44,17 @@ public class JwtProvider {
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
-                .claim("email", email)
-                .claim("role", role)
-                .claim("tokenVersion", tokenVersion)
+                .claim(JwtAuthConstants.CLAIM_EMAIL, email)
+                .claim(JwtAuthConstants.CLAIM_ROLE, role)
+                .claim(JwtAuthConstants.CLAIM_TOKEN_VERSION, tokenVersion)
                 .issuedAt(now)
                 .expiration(expiry)
-                .signWith(getSigningKey())
+                .signWith(signingKey)
                 .compact();
     }
 
     public Long extractTokenVersion(String token) {
-        Object version = parseToken(token).get("tokenVersion");
+        Object version = parseToken(token).get(JwtAuthConstants.CLAIM_TOKEN_VERSION);
         if (version instanceof Integer) return ((Integer) version).longValue();
         if (version instanceof Long) return (Long) version;
         return 0L;
@@ -75,7 +62,7 @@ public class JwtProvider {
 
     public Claims parseToken(String token) {
         return Jwts.parser()
-                .verifyWith(getSigningKey())
+                .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

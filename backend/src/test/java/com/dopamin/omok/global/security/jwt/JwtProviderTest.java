@@ -12,10 +12,11 @@ class JwtProviderTest {
 
     @BeforeEach
     void setUp() {
-        JwtProperties properties = new JwtProperties();
-        properties.setSecret("test-secret-key-for-jwt-testing-must-be-at-least-32-bytes-long");
-        properties.setAccessTokenExpiration(3_600_000L);
-        properties.setRefreshTokenExpiration(604_800_000L);
+        JwtProperties properties = new JwtProperties(
+                "test-secret-key-for-jwt-testing-must-be-at-least-32-bytes-long",
+                3_600_000L,
+                604_800_000L
+        );
         jwtProvider = new JwtProvider(properties);
     }
 

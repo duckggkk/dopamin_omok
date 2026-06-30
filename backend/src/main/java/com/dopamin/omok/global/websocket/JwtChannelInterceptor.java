@@ -5,8 +5,9 @@ import com.dopamin.omok.game.application.port.out.LoadRoomPort;
 import com.dopamin.omok.game.domain.GamePlayer;
 import com.dopamin.omok.game.domain.Room;
 import com.dopamin.omok.global.common.exception.ErrorCode;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.security.jwt.JwtAuthConstants;
 import com.dopamin.omok.global.security.jwt.JwtAuthenticator;
+import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
@@ -23,13 +24,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 // 웹소켓 전용 인증인가 인터셉터 클래스
-// 
+// HTTP 요청으로  WebSocket 핸드셰이크한 후 바로 CONNTECT전송 (여기서부터 http요청아님)
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtChannelInterceptor implements ChannelInterceptor {
 
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final Pattern ROOM_TOPIC_PATTERN = Pattern.compile("^/topic/room/([^/]+)(?:/.*)?$");
     private static final Pattern GAME_APP_PATTERN = Pattern.compile("^/app/game/([^/]+)/[^/]+$");
     private static final Pattern PHYSICAL_APP_PATTERN = Pattern.compile("^/app/physical/([^/]+)/[^/]+$");
@@ -45,14 +45,19 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
+        // “STOMP 명령어로 판단할 수 없는 프레임이므로 통과시킨다 (다음 인터셉터에서 판단)
+        // 예외를 안 던지는 이유는 STOMP heartbeat나 프레임워크 내부 메시지처럼 인증 대상이 아닌 메시지까지 막아서
         if (accessor == null || accessor.getCommand() == null) {
             return message;
         }
 
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-            String authHeader = accessor.getFirstNativeHeader("Authorization");
-            String token = (authHeader != null && authHeader.startsWith(BEARER_PREFIX))
-                    ? authHeader.substring(BEARER_PREFIX.length())
+            // 헤더 추출
+            String authHeader = accessor.getFirstNativeHeader(JwtAuthConstants.AUTHORIZATION_HEADER);
+
+            // 토큰 추출
+            String token = (authHeader != null && authHeader.startsWith(JwtAuthConstants.BEARER_PREFIX))
+                    ? authHeader.substring(JwtAuthConstants.BEARER_PREFIX.length())
                     : null;
 
             // CONNECT 단계에서 유효한 JWT(서명 + tokenVersion 일치)가 없으면 연결 자체를 거부한다.
@@ -63,6 +68,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                         log.warn("WebSocket CONNECT 거부 — 유효한 인증 토큰 없음");
                         return new MessagingException("WebSocket 인증에 실패했습니다.");
                     });
+            //WebSocket/STOMP 세션에 인증자 정보 세팅 (서버에)
             accessor.setUser(authentication);
         }
 
@@ -72,6 +78,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         return message;
     }
 
+    // 받는사람 검증
     private void authorizeDestination(StompHeaderAccessor accessor) {
         String destination = accessor.getDestination();
         if (destination == null) return;

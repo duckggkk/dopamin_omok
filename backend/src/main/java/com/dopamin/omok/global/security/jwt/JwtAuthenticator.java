@@ -26,6 +26,8 @@ public class JwtAuthenticator {
      * 토큰이 서명/만료 검증을 통과하고, 토큰에 담긴 tokenVersion이 DB의 현재 값과
      * 일치할 때에만 인증 객체를 반환한다. 그렇지 않으면 비어 있는 Optional.
      */
+    // Throw를 던지지 않는 이유는 호출부 (HTTP필터 / 웹소켓 인터셉터)에서 정하기 위해서
+    // HTTP필터는 미인증(public) API가 존재하기 때문
     public Optional<UsernamePasswordAuthenticationToken> authenticate(String token) {
         if (token == null || !jwtProvider.validateToken(token)) {
             return Optional.empty();
@@ -40,7 +42,7 @@ public class JwtAuthenticator {
                 log.debug("Token version mismatch for userId={}: jwt={}, db={}", userId, tokenVersion, currentVersion);
                 return Optional.empty();
             }
-
+            //credentials은 이미 검증이 끝났으므로 null로 변경, 넣을 필요가 없이 오히려 보안 문제만 생길 수 있음
             return Optional.of(new UsernamePasswordAuthenticationToken(
                     userDetails, null, userDetails.getAuthorities()));
         } catch (Exception e) {
