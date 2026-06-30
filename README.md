@@ -4,7 +4,7 @@
 
 - **클래식 오목** — 정통 턴제 15×15 오목.
 - **피지컬 오목** — 크레이지 아케이드 스타일 **실시간 액션 오목**. 캐릭터를 방향키로 움직여
-  Space로 착수하고, Shift로 상대 돌을 부수며, 필드 아이템을 주워 Ctrl로 사용해 먼저 5목을 만든다.
+  Space로 착수하고, Shift로 상대 돌을 부수며, 필드 아이템을 주워 Ctrl로 사용해 먼저 오목을 만든다.
   (설계: [docs/physical-omok.md](docs/physical-omok.md))
 
 ## 기술 스택
@@ -46,7 +46,18 @@ dopamin_omok/
 └── .gitignore
 ```
 
----
+
+## 문서
+
+설계·운영 메모는 `docs/`, 개발 회고는 `dev-log/`에 있다.
+
+| 문서 | 내용 |
+|------|------|
+| [docs/설정-가이드.md](docs/설정-가이드.md) | 운영/밸런스 매뉴얼 — 착수 속도·승리 확정 시간·착수음 폴더·상점 등 설정법 |
+| [docs/physical-omok.md](docs/physical-omok.md) | 피지컬 오목 설계(아키텍처·틱 루프·WebSocket) |
+| [docs/asset-loading.md](docs/asset-loading.md) | 코스메틱 에셋(스킨/착수음) 로딩 구조 |
+| [dev-log/0.README.md](dev-log/0.README.md) | 개발 회고록 작성 이유와 프로젝트 목표 |
+
 
 ## 실행 방법
 
@@ -148,57 +159,12 @@ npm install && npm run dev
 
 ## API 명세
 
-### Auth
-| Method | URL | 설명 | 인증 |
-|--------|-----|------|------|
-| POST | /api/auth/register | 회원가입 | X |
-| POST | /api/auth/login | 로그인 | X |
-| POST | /api/auth/refresh | 토큰 갱신 | X |
-| POST | /api/auth/logout | 로그아웃 | O |
-
-### User
-| Method | URL | 설명 | 인증 |
-|--------|-----|------|------|
-| GET | /api/users/me | 내 프로필 | O |
-| PATCH | /api/users/me | 프로필 수정 | O |
-| GET | /api/users/{id} | 유저 조회 | X |
-
-### Game
-| Method | URL | 설명 | 인증 |
-|--------|-----|------|------|
-| POST | /api/games/rooms | 방 생성 | O |
-| POST | /api/games/rooms/{code}/join | 방 참가 | O |
-| GET | /api/games/rooms | 대기 방 목록 | X |
-| GET | /api/games/{id} | 게임 조회 | X |
-| GET | /api/games/{id}/moves | 기보 조회 | X |
-| POST | /api/games/{id}/moves | 돌 놓기 | O |
-| POST | /api/games/{id}/surrender | 기권 | O |
-| GET | /api/games/my | 내 게임 내역 | O |
-
-### WebSocket (STOMP over SockJS)
-| 구분 | 주소 | 설명 |
-|------|------|------|
-| Endpoint | `/ws` | SockJS 연결 |
-| Subscribe | `/topic/game/{id}` | 돌 놓기 이벤트 수신 |
-| Subscribe | `/topic/game/{id}/status` | 게임 상태 변경 수신 |
-| Publish | `/app/game/{id}/move` | 돌 놓기 |
-| Publish | `/app/game/{id}/surrender` | 기권 |
-
-피지컬 오목(실시간 모드) 전용:
-| 구분 | 주소 | 설명 |
-|------|------|------|
-| Subscribe | `/topic/room/{roomCode}/physical` | 전체 스냅샷(틱마다/입력 직후) |
-| Publish | `/app/physical/{roomCode}/input` | 입력(이동/착수/파괴/아이템) |
-| Publish | `/app/physical/{roomCode}/surrender` | 기권 |
+## 주요 기능
+- 인증: JWT + 이메일 인증(Redis TTL) + 구글 OAuth
+- 대국: 방 기반 일반/랭크, 비회원 캐주얼, 싱글 AI
+- 실시간: 피지컬 오목(STOMP/SockJS 틱 루프)
+- 경제: 상점/뽑기/아이템
+- 커뮤니티: 만남의 광장(실시간 아바타), 친구
 
 ---
 
-## 문서
-
-설계·운영 메모는 `docs/`(내부 문서)에 있다.
-
-| 문서 | 내용 |
-|------|------|
-| [docs/설정-가이드.md](docs/설정-가이드.md) | 운영/밸런스 매뉴얼 — 착수 속도·승리 확정 시간·착수음 폴더·상점 등 설정법 |
-| [docs/physical-omok.md](docs/physical-omok.md) | 피지컬 오목 설계(아키텍처·틱 루프·WebSocket) |
-| [docs/asset-loading.md](docs/asset-loading.md) | 코스메틱 에셋(스킨/착수음) 로딩 구조 |
