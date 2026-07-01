@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { CreateRoomOptions } from '@/api/game';
 import { GameType, OmokRule, TimeLimit, ByoyomiOption } from '@/types';
-import { useAuthStore } from '@/store/authStore';
 import styles from './CreateRoomModal.module.css';
 
 const GAME_TYPE_OPTIONS: { key: GameType; label: string; desc: string }[] = [
@@ -47,12 +46,11 @@ interface Props {
 }
 
 const CreateRoomModal = ({ initialGameType = 'CLASSIC', busy = false, onConfirm, onClose }: Props) => {
-  // 게스트(비회원)는 랭크전을 열 수 없으므로 항상 캐주얼로 시작한다(서버도 동일하게 강제).
-  const isGuest = !!useAuthStore((s) => s.user?.guest);
+  // 랭크전은 아직 준비 중(추후 추가 예정)이라 방 생성은 항상 캐주얼로 고정한다.
   const [options, setOptions] = useState<CreateRoomOptions>({
     ...DEFAULT_ROOM_OPTIONS,
     gameType: initialGameType,
-    ranked: !isGuest,
+    ranked: false,
   });
 
   // 피지컬 오목은 실시간 액션이라 제한시간/초읽기 개념이 없다 → 선택 시 강제로 비활성.
@@ -88,28 +86,27 @@ const CreateRoomModal = ({ initialGameType = 'CLASSIC', busy = false, onConfirm,
 
         <div className={styles.formGroup}>
           <label className={styles.formLabel}>대국 방식</label>
-          {isGuest ? (
-            <p className={styles.hint}>비회원은 캐주얼 대국만 가능해요. 랭크전은 회원가입 후 이용하세요.</p>
-          ) : (
-            <div className={styles.typeGroup}>
-              <button
-                type="button"
-                className={`${styles.typeCard} ${options.ranked ? styles.typeSelected : ''}`}
-                onClick={() => setOptions((o) => ({ ...o, ranked: true }))}
-              >
-                <span className={styles.typeName}>🏆 랭크전</span>
-                <span className={styles.typeDesc}>레이팅·랭킹에 반영</span>
-              </button>
-              <button
-                type="button"
-                className={`${styles.typeCard} ${!options.ranked ? styles.typeSelected : ''}`}
-                onClick={() => setOptions((o) => ({ ...o, ranked: false }))}
-              >
-                <span className={styles.typeName}>😌 캐주얼</span>
-                <span className={styles.typeDesc}>부담 없이 · 미반영</span>
-              </button>
-            </div>
-          )}
+          <div className={styles.typeGroup}>
+            <button
+              type="button"
+              className={`${styles.typeCard} ${styles.typeSelected}`}
+              onClick={() => setOptions((o) => ({ ...o, ranked: false }))}
+            >
+              <span className={styles.typeName}>😌 캐주얼</span>
+              <span className={styles.typeDesc}>부담 없이 · 미반영</span>
+            </button>
+            {/* 랭크전은 아직 준비 중 — 비활성 표시 + hover 시 '추후 추가예정입니다' 툴팁(native title). */}
+            <button
+              type="button"
+              className={`${styles.typeCard} ${styles.typeDisabled}`}
+              title="추후 추가예정입니다"
+              aria-disabled="true"
+              onClick={(e) => e.preventDefault()}
+            >
+              <span className={styles.typeName}>🏆 랭크전</span>
+              <span className={styles.typeDesc}>추후 추가예정</span>
+            </button>
+          </div>
         </div>
 
         {!isPhysical && (

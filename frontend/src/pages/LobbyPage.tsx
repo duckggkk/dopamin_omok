@@ -37,7 +37,7 @@ type RoomFilter = 'ALL' | 'RANKED' | 'CASUAL' | 'CLASSIC' | 'PHYSICAL' | 'RECOMM
 
 const ROOM_FILTERS: { key: RoomFilter; label: string }[] = [
   { key: 'ALL', label: '전체' },
-  { key: 'RANKED', label: '🏆 랭크' },
+  // 랭크전은 추후 추가 예정이라 '🏆 랭크' 필터는 노출하지 않는다(랭크 방이 생성되지 않음).
   { key: 'CASUAL', label: '😌 캐주얼' },
   { key: 'CLASSIC', label: '일반' },
   { key: 'PHYSICAL', label: '피지컬' },

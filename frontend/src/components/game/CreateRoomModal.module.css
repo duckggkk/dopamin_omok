@@ -39,6 +39,9 @@
 }
 .typeCard:hover { border-color: var(--border-strong); }
 .typeSelected { border-color: var(--gold); background: var(--gold-soft); }
+/* 아직 준비 안 된 옵션(예: 랭크전) — 회색으로 비활성 표시하되 hover 시 title 툴팁은 뜨게 한다. */
+.typeDisabled { opacity: 0.45; cursor: not-allowed; }
+.typeDisabled:hover { border-color: var(--border); }
 .typeName { color: var(--text); font-size: 0.95rem; font-weight: 700; }
 .typeSelected .typeName { color: var(--gold-bright); }
 .typeDesc { color: var(--text-faint); font-size: 0.76rem; line-height: 1.35; }
