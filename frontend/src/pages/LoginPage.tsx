@@ -75,7 +75,7 @@ const LoginPage = () => {
       const userRes = await userApi.getMe();
       if (userRes.data.data) {
         login(userRes.data.data, accessToken, refreshToken);
-        navigate('/ai'); // 게스트의 기본 진입점 = 싱글 AI
+        navigate('/'); // 로그인 후 홈으로 (게스트도 회원과 동일)
       }
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, '게스트 시작에 실패했습니다. 잠시 후 다시 시도해주세요.'));

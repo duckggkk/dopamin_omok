@@ -52,17 +52,17 @@ const router = createBrowserRouter([
       {
         element: <PrivateRoute />,
         children: [
-          // 게스트(비회원)도 허용 — 싱글 AI, 게임 방법, 그리고 온라인 캐주얼(로비·대국)
+          // 게스트(비회원)도 허용 — 홈, 싱글 AI, 게임 방법, 그리고 온라인 캐주얼(로비·대국)
+          { path: '/', element: <HomePage /> }, // 게스트도 홈 진입(회원과 동일 화면) — 멤버 전용 기능만 각 화면에서 차단
           { path: '/ai', element: <AiGamePage /> },
           { path: '/guide', element: <GameGuidePage /> },
           { path: '/lobby', element: <LobbyPage /> },
           { path: '/game/:gameId', element: <GamePage /> },
           { path: '/plaza', element: <PlazaPage /> }, // 게스트도 입장 가능(꾸미기만 차단)
-          // 멤버(정식 회원) 전용 — 게스트는 MemberRoute에서 /ai 로 리다이렉트
+          // 멤버(정식 회원) 전용 — 게스트는 MemberRoute에서 홈(/)으로 리다이렉트
           {
             element: <MemberRoute />,
             children: [
-              { path: '/', element: <HomePage /> },
               { path: '/welcome', element: <WelcomePage /> },
               { path: '/friends', element: <FriendsPage /> },
               { path: '/ranking', element: <RankingPage /> },

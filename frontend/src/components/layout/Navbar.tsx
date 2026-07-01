@@ -112,8 +112,8 @@ const Navbar = () => {
         )}
         {isGuest && (
           <div className={styles.nav}>
+            <NavLink to="/" end className={navClass}><IconHome /><span>홈</span></NavLink>
             <NavLink to="/lobby" className={navClass}><IconPlay /><span>대국</span></NavLink>
-            <NavLink to="/ai" className={navClass}><IconHome /><span>AI 대국</span></NavLink>
             <NavLink to="/plaza" className={navClass}><IconPlaza /><span>광장</span></NavLink>
             <NavLink to="/guide" className={navClass}><IconGuide /><span>게임 방법</span></NavLink>
           </div>
