@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AiProgressService implements AiProgressUseCase {
 
     /** 싱글플레이 AI 사다리 총 단계 수. 프론트 omokAi.ts 의 AI_LEVELS 길이와 반드시 일치해야 한다. */
-    public static final int MAX_LEVEL = 7;
+    public static final int MAX_LEVEL = 9;
 
     private final LoadUserPort loadUserPort;
     private final SaveUserPort saveUserPort;

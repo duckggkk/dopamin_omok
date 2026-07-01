@@ -10,13 +10,14 @@ import { checkWin, inBounds, opposite, placeStone } from '@/utils/omokEngine';
  *  - 수비 점수: 상대가 거기 두면 얼마나 위협적인가 (= 그 칸을 막을 가치)
  * 두 점수를 합쳐 가장 큰 칸을 고르면, 자연스럽게 "이기는 수는 두고 / 막을 곳은 막는" 플레이가 된다.
  *
- * 난이도는 1~7 사다리. "얼마나 멀리 보고, 얼마나 실수하고, 얼마나 무작위인가"로 갈린다.
+ * 난이도는 1~9 사다리. "얼마나 멀리 보고, 얼마나 실수하고, 얼마나 무작위인가"로 갈린다.
  *  - 1 단계: 약한 휴리스틱 — '오목 규칙은 안다'. 한 줄을 만들고 즉시 패배(상대 사)는 막지만,
  *            수비 가중치가 낮고 무작위가 커서 상대의 열린3→열린4 전개를 놓쳐 초보도 이길 수 있다.
  *  - 2~3 단계: 한 수 앞 휴리스틱 — 즉시 위협은 모두 막고 자기 모양도 키움
  *  - 4~5 단계: 휴리스틱 + 상대 반격까지 한 겹 더 읽기(이중 위협). 무작위성 거의 0.
- *  - 6~7 단계: 사람이 후공(백)이라 선공 이점이 없다. 추가로 '연속 사(VCF)' 강제승 탐색을 켜서
- *             한 번 주도권을 잡으면 사를 연속으로 던져 끝까지 몰아 이긴다(7단계는 프로급 최종 보스).
+ *  - 6~9 단계: 사람이 후공(백)이라 선공 이점이 없다. '연속 사(VCF)' 강제승 탐색을 켜서
+ *             주도권을 잡으면 사를 연속으로 던져 끝까지 몰아 이긴다. 8~9 단계는 수읽기 폭(topK)과
+ *             VCF 깊이·수비 가중치를 더 키운 최상위 난이도(9단계가 최종 보스).
  */
 
 export interface AiMove {
@@ -43,8 +44,8 @@ export interface AiLevel {
 }
 
 /**
- * 7단계 사다리. 위로 갈수록 강하다. (백엔드 AiProgressService.MAX_LEVEL=7 과 길이 일치 필수)
- * 곡선을 가파르게: 1단계만 무작위, 2단계부터 1수 휴리스틱, 4단계부터 2수 읽기, 6~7단계는 사람 후공.
+ * 9단계 사다리. 위로 갈수록 강하다. (백엔드 AiProgressService.MAX_LEVEL=9 과 길이 일치 필수)
+ * 곡선을 가파르게: 1단계만 무작위, 2단계부터 1수 휴리스틱, 4단계부터 2수 읽기, 6단계부터 사람 후공.
  */
 export const AI_LEVELS: AiLevel[] = [
   { level: 1, label: '1단계 · 새싹',   emoji: '🌱', desc: '오목 규칙은 아는 초보. 한 줄을 만들고 큰 위협만 겨우 막아요.',
@@ -59,8 +60,12 @@ export const AI_LEVELS: AiLevel[] = [
     humanPlaysWhite: false, mode: 'deep',      blockWinProb: 1,    defenseWeight: 1.05, jitter: 4,   topK: 16, vcfDepth: 0 },
   { level: 6, label: '6단계 · 패왕',   emoji: '👑', desc: '여기부터 당신은 후공(백). 연속 위협으로 몰아붙여요.',
     humanPlaysWhite: true,  mode: 'deep',      blockWinProb: 1,    defenseWeight: 1.1,  jitter: 0,   topK: 22, vcfDepth: 8 },
-  { level: 7, label: '7단계 · 최종 보스', emoji: '🐉', desc: '당신은 후공(백). 빈틈을 보이면 연속 사(四)로 끝까지 몰아 이기는 최강의 상대.',
+  { level: 7, label: '7단계 · 용',       emoji: '🐉', desc: '당신은 후공(백). 빈틈을 보이면 연속 사(四)로 끝까지 몰아붙이는 최상급 상대.',
     humanPlaysWhite: true,  mode: 'deep',      blockWinProb: 1,    defenseWeight: 1.3,  jitter: 0,   topK: 34, vcfDepth: 16 },
+  { level: 8, label: '8단계 · 마신',      emoji: '👹', desc: '당신은 후공(백). 용을 넘어선 깊은 수읽기 — 한 번의 실수도 곧바로 응징당해요.',
+    humanPlaysWhite: true,  mode: 'deep',      blockWinProb: 1,    defenseWeight: 1.42, jitter: 0,   topK: 42, vcfDepth: 20 },
+  { level: 9, label: '9단계 · 오목의 신', emoji: '🌌', desc: '당신은 후공(백). 인간의 빈틈을 놓치지 않는 최종 보스 — 완벽에 가까운 수읽기와 연속 사로 몰아붙여요.',
+    humanPlaysWhite: true,  mode: 'deep',      blockWinProb: 1,    defenseWeight: 1.55, jitter: 0,   topK: 50, vcfDepth: 24 },
 ];
 
 export const MAX_AI_LEVEL = AI_LEVELS.length;
@@ -376,7 +381,9 @@ export const chooseAiMove = (
   // 고단계: 연속 사(four)로 강제승이 보이면 그 첫 수를 즉시 둔다(주도권을 잡으면 끝까지 마무리).
   // budget 은 노드 상한 — 병리적 국면에서도 브라우저가 멈추지 않게 막고, 초과 시 휴리스틱으로 폴백한다.
   if (cfg.vcfDepth > 0) {
-    const vcf = findVcf(board, ai, human, cfg.vcfDepth, { n: 12000 });
+    // 깊은 단계(8~9, vcfDepth>16)일수록 노드 예산을 늘려 더 긴 강제승도 실제로 찾게 한다(6~7은 12000 유지).
+    const budget = 12000 + Math.max(0, cfg.vcfDepth - 16) * 1500;
+    const vcf = findVcf(board, ai, human, cfg.vcfDepth, { n: budget });
     if (vcf) return vcf;
   }
 
