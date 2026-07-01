@@ -32,6 +32,11 @@ export const gameApi = {
   startAiPractice: () =>
     apiClient.post<ApiResponse<Room>>('/rooms/ai-practice'),
 
+  // 로컬 개발 전용 — 상대 없이 나 혼자 들어가는 피지컬 아레나(움직임 확인용).
+  // 백엔드는 local 프로파일에서만 이 엔드포인트를 등록한다.
+  startPhysicalSandbox: () =>
+    apiClient.post<ApiResponse<Room>>('/dev/physical/sandbox'),
+
   joinRoom: (roomCode: string) =>
     apiClient.post<ApiResponse<Room>>(`/rooms/${roomCode}/join`),
 

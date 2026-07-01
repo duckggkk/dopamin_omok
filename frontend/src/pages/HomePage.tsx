@@ -95,6 +95,19 @@ const HomePage = () => {
     }
   };
 
+  // 로컬 개발 전용 — 상대 없이 나 혼자 아레나에 들어가 움직임을 확인한다(prod 빌드에선 버튼 자체가 사라짐).
+  const startPhysicalSandbox = async () => {
+    setBusy(true);
+    try {
+      const res = await gameApi.startPhysicalSandbox();
+      if (res.data.data) navigate(`/game/${res.data.data.roomCode}`);
+    } catch (err) {
+      showToast(getApiErrorMessage(err, '혼자 두기 샌드박스를 시작하지 못했습니다.'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const joinByCode = async (e: FormEvent) => {
     e.preventDefault();
     if (!joinCode) return;
@@ -171,11 +184,16 @@ const HomePage = () => {
         </div>
         <div className={styles.aiBtns}>
           <button className={styles.aiBtn} onClick={() => navigate('/ai')}>
-            🪵 클래식 7단계 →
+            🪵 AI 클래식 오목 대전 →
           </button>
           <button className={styles.aiBtn} onClick={startPhysicalPractice} disabled={busy}>
-            ⚔️ 피지컬 AI →
+            ⚔️ AI 피지컬 오목 대전 →
           </button>
+          {import.meta.env.DEV && (
+            <button className={styles.aiBtn} onClick={startPhysicalSandbox} disabled={busy}>
+              🧪 혼자 두기(dev) →
+            </button>
+          )}
         </div>
       </section>
 

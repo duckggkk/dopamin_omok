@@ -45,7 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Transactional(readOnly = true)
 public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, SpectateRoomUseCase,
         LeaveRoomUseCase, RequestRematchUseCase, GetRoomUseCase, ReadyGameUseCase, StartGameUseCase,
-        ChangeStoneSkinUseCase, StartAiPracticeUseCase {
+        ChangeStoneSkinUseCase, StartAiPracticeUseCase, StartPhysicalSandboxUseCase {
 
     /** 피지컬 AI 연습 상대 봇 계정 식별용 이메일(V33 마이그레이션으로 시드). */
     private static final String AI_BOT_EMAIL = "ai-practice-bot@dopamin.local";
@@ -277,6 +277,34 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         saveGamePlayerPort.save(botPlayer);
 
         return buildRoomResponse(room, null); // WAITING 방 반환 → 방장이 '게임 시작'으로 개시
+    }
+
+    @Override
+    @Transactional
+    public RoomResponse startPhysicalSandbox(Long userId) {
+        User user = findUserById(userId);
+
+        // 상대 없이 나 혼자 들어가는 피지컬 방(캐주얼=레이팅 미반영). 방장(흑) 한 명만 참가한다.
+        String roomCode = generateUniqueRoomCode();
+        Room room = Room.create(user, roomCode, GameType.PHYSICAL,
+                OmokRule.FREESTYLE, TimeLimit.UNLIMITED, ByoyomiOption.NONE, false);
+        saveRoomPort.save(room);
+
+        GamePlayer host = GamePlayer.createHost(room, user); // 흑(선) = 나
+        saveGamePlayerPort.save(host);
+
+        // AI 연습과 달리 '게임 시작' 버튼을 누를 상대가 없으므로 여기서 바로 개시한다.
+        room.startGame();
+        saveRoomPort.save(room);
+
+        Game game = Game.start(room, user, null); // 백(상대)은 없음 — white_player_id 는 nullable
+        saveGamePort.save(game);
+
+        physicalGameLifecycle.start(room, game, List.of(host)); // 참가자 1명으로 실시간 세션 기동
+
+        RoomResponse response = buildRoomResponse(room, game);
+        roomEventPublisherPort.publishStatus(roomCode, response);
+        return response;
     }
 
     @Override
