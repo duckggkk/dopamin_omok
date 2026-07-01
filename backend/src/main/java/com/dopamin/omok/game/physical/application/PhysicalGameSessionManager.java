@@ -242,9 +242,10 @@ public class PhysicalGameSessionManager {
                 case MOVE_START -> engine.startMove(game, player, direction, now);
                 case MOVE_STOP -> engine.stopMove(player);
                 case PLACE -> {
-                    // 쿨다운 중이면 버리지 말고 버퍼(현재 칸이 착수 가능할 때만) → 쿨다운 풀리는 즉시 tick 이 놓는다(입력 씹힘 방지).
+                    // 쿨다운 중이면 버리지 말고 무조건 버퍼 → 쿨다운 풀리는 즉시 tick 이 '그때' 착수 가능한 칸에 놓는다(연타 씹힘 방지).
+                    // (방금 둔 내 돌 위처럼 지금은 못 두는 칸이어도, 이동 중 곧 빈 칸에 닿으므로 버퍼를 유지한다.)
                     if (now - player.getLastPlaceAt() < props.placeCooldownMs()) {
-                        if (game.board().isPlaceable(player.getX(), player.getY())) player.queuePlace(now);
+                        player.queuePlace(now);
                     } else {
                         engine.place(game, player, now); // 승리는 settle 경과 후 tick에서 확정
                     }
@@ -378,8 +379,8 @@ public class PhysicalGameSessionManager {
             playerViews.add(new PhysicalPlayerView(
                     p.getColor().name(),
                     p.getNickname(),
-                    p.getX(),
-                    p.getY(),
+                    p.getRenderX(),
+                    p.getRenderY(),
                     p.getHeldItem() != null ? p.getHeldItem().name() : null,
                     p.getLastDestroyAt() + props.destroyCooldownMs(),
                     p.isSpeedBoosted(now),

@@ -44,6 +44,10 @@ public class PhysicalGame {
     // 이 시각(epoch ms)부터 실제 플레이가 시작된다. 그 전까지는 카운트다운 구간(보드/캐릭터만 세팅, 입력·이동·스폰 정지).
     private final long playStartAt;
 
+    // true 면 캐릭터가 교차점에 고정되지 않고 연속(소수) 좌표로 부드럽게 움직인다(크아식). 착수는 가장 가까운 교차점에.
+    // 현재는 로컬 개발용 '혼자 두기' 샌드박스(솔로)만 켜며, 실대전/봇 대국은 기존 격자 이동(false)을 유지한다.
+    private boolean continuousMovement;
+
     public PhysicalGame(String roomCode, Long gameId, int boardSize, int winCount, int targetScore,
                         long startedAt, long countdownMs) {
         this.roomCode = roomCode;
@@ -189,6 +193,15 @@ public class PhysicalGame {
 
     public long playStartAt() {
         return playStartAt;
+    }
+
+    /** 이 판을 연속(부드러운) 이동으로 전환한다 — 시작 구성 시 1회 호출(솔로 샌드박스). */
+    public void enableContinuousMovement() {
+        this.continuousMovement = true;
+    }
+
+    public boolean isContinuousMovement() {
+        return continuousMovement;
     }
 
     /** 시작 카운트다운(보드/캐릭터만 세팅되고 입력·이동이 멈춘) 구간인지. */

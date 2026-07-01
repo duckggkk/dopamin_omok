@@ -35,8 +35,8 @@ class PhysicalOmokEngineTest {
         weights.put(PhysicalItemType.CRATER, 30);
         weights.put(PhysicalItemType.BOMB, 20);
         // boardSize=14, winCount=5, targetScore=3, move=100, place=300, destroy=2000, winSettle=400,
-        // countdown=3000, tick=60, spawnInterval=1000, maxItems=3, boostDuration=5000, boostMoveCd=50, training=false, inputBuffer=130, moveQueueMax=6
-        return new PhysicalOmokProperties(SIZE, 5, 3, 100, 300, 2000, 400, 3000, 60, 1000, 3, 5000, 50, weights, false, 130, 6);
+        // countdown=3000, tick=60, spawnInterval=1000, maxItems=3, boostDuration=5000, boostMoveCd=50, training=false, inputBuffer=130
+        return new PhysicalOmokProperties(SIZE, 5, 3, 100, 300, 2000, 400, 3000, 60, 1000, 3, 5000, 50, weights, false, 130);
     }
 
     private PhysicalGame newGame() {
@@ -76,25 +76,29 @@ class PhysicalOmokEngineTest {
     }
 
     @Test
-    @DisplayName("이동 버퍼 큐: 방향을 빠르게 번갈아 입력해도 마지막 것만 남지 않고 순서대로 모두 소화한다")
-    void rapidAlternatingDirectionsAreQueuedInOrder() {
+    @DisplayName("이동 버퍼(단일 슬롯): 미리 여러 방향을 눌러도 최신 입력만 반영되고 옛 방향은 뒤늦게 튀지 않는다")
+    void rapidPreInputKeepsOnlyLatestDirection() {
         PhysicalGame g = newGame();
         PhysicalPlayer p = black(g); // (5,5)
         int x0 = p.getX(), y0 = p.getY();
 
-        // 위·오른쪽을 쿨다운(100ms)보다 빠르게 번갈아 탭(같은 시각) — 예전 단일 슬롯 버퍼는 마지막 방향만 남아 '오른쪽만' 갔다.
+        // 첫 입력은 쿨다운이 비어 있어 즉시 반영되므로, 먼저 위로 한 칸 움직여 쿨다운(100ms)을 건다.
         long t = 1000;
-        for (Direction dir : new Direction[]{Direction.UP, Direction.RIGHT, Direction.UP, Direction.RIGHT}) {
-            engine.startMove(g, p, dir, t);
-            engine.stopMove(p); // 눌렀다 바로 뗌(빠른 탭)
+        engine.startMove(g, p, Direction.UP, t);
+        engine.stopMove(p);
+        assertThat(p.getY()).isEqualTo(y0 - 1); // 즉시 (5,4)
+
+        // 쿨다운 중 여러 방향을 미리 탭 — 단일 슬롯이라 이전 버퍼를 계속 덮어써 마지막(RIGHT)만 남는다.
+        for (Direction dir : new Direction[]{Direction.DOWN, Direction.LEFT, Direction.RIGHT}) {
+            engine.startMove(g, p, dir, t); // 같은 시각(쿨다운 중) → 즉시 이동 없이 버퍼만 갱신
+            engine.stopMove(p);
         }
 
-        // 틱을 쿨다운 간격으로 진행해 큐를 소진
+        // 틱을 넉넉히 진행 — 버퍼된 최신 방향(RIGHT) 한 칸만 소화되고, 옛 방향(DOWN/LEFT)은 사라진다.
         for (int i = 0; i < 6; i++) { t += 100; engine.tickMovement(g, t); }
 
-        // 4번 입력(UP·RIGHT·UP·RIGHT)이 모두 반영 → 위로 2칸, 오른쪽으로 2칸(한 방향만 가면 실패).
-        assertThat(p.getX()).isEqualTo(x0 + 2);
-        assertThat(p.getY()).isEqualTo(y0 - 2);
+        assertThat(p.getX()).isEqualTo(x0 + 1); // 최신 RIGHT 한 칸만
+        assertThat(p.getY()).isEqualTo(y0 - 1); // 처음 UP 그대로(취소된 DOWN 은 반영 안 됨)
     }
 
     @Test

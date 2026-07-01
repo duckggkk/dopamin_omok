@@ -57,6 +57,8 @@ public class PhysicalGameService implements PhysicalGameLifecycle {
             // 파괴는 Ctrl 기본키 동작이므로 시작 아이템(상대 돌 제거)을 더 이상 지급하지 않는다.
             pg.addPlayer(player);
         }
+        // 솔로(참가자 1명) = 로컬 개발용 '혼자 두기' 샌드박스 → 연속(부드러운) 이동을 켠다. 실대전/AI연습(2명)은 격자 유지.
+        if (pg.players().size() == 1) pg.enableContinuousMovement();
         manager.register(pg);
     }
 

@@ -37,8 +37,8 @@ public record PhysicalSnapshot(
     public record PhysicalPlayerView(
             String color,             // BLACK / WHITE
             String nickname,
-            int x,
-            int y,
+            double x,                 // 칸 단위 위치(격자 모드는 정수값, 연속 모드는 소수값) — 클라가 보간해 렌더
+            double y,
             String heldItem,          // 보유 아이템 종류명(없으면 null)
             long destroyReadyAt,      // 파괴 쿨다운 해제 시각(epoch ms) — HUD 링 표시용
             boolean speedBoosted,

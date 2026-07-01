@@ -27,8 +27,7 @@ public record PhysicalOmokProperties(
         long speedBoostMoveCooldownMs,
         Map<PhysicalItemType, Integer> itemWeights,
         boolean trainingLogEnabled,  // true 면 게임마다 ML 학습용 행동 로그를 기록(서버 전용 저장)
-        long inputBufferMs,          // 쿨다운에 막힌 착수 입력을 이 시간 안이면 버퍼했다가 풀리는 즉시 1회 실행(착수 씹힘 방지)
-        int moveQueueMax             // 이동 입력 버퍼 큐 최대 길이 — 방향을 빠르게 번갈아 눌러도 순서대로 소화(클수록 더 많이 버퍼, 멈춘 뒤 잔여 이동도 길어짐)
+        long inputBufferMs           // 쿨다운에 막힌 착수 입력을 이 시간 안이면 버퍼했다가 풀리는 즉시 1회 실행(착수 씹힘 방지)
 ) {
     public PhysicalOmokProperties {
         // 설정 누락 시(예: 테스트 프로파일) 안전한 기본값으로 보정 — 게임이 0ms 쿨다운/0 크기로 깨지지 않게 함.
@@ -46,7 +45,6 @@ public record PhysicalOmokProperties(
         if (speedBoostDurationMs <= 0) speedBoostDurationMs = 5000;
         if (speedBoostMoveCooldownMs <= 0) speedBoostMoveCooldownMs = 55;
         if (inputBufferMs < 0) inputBufferMs = 170;   // 0 = 버퍼링 끔(음수만 보정)
-        if (moveQueueMax <= 0) moveQueueMax = 6;      // 미설정 시 기본 6(위·오른쪽 번갈아 빠르게 눌러도 순서대로 소화)
         if (itemWeights == null || itemWeights.isEmpty()) {
             itemWeights = new EnumMap<>(PhysicalItemType.class);
             itemWeights.put(PhysicalItemType.SPEED_BOOST, 50);

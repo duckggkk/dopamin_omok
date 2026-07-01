@@ -20,6 +20,9 @@ import java.util.Random;
 @Component
 public class PhysicalOmokEngine {
 
+    // 연속(샌드박스) 이동 전용 속도 배율 — 격자(실대전) 이동은 영향받지 않는다. 여기 값만 바꿔 체감 속도를 조절한다.
+    private static final double CONTINUOUS_SPEED_SCALE = 1.15;
+
     private final PhysicalOmokProperties props;
     private final PhysicalItemEffectRegistry effects;
     private final Random random;
@@ -39,14 +42,16 @@ public class PhysicalOmokEngine {
     // ===================== 입력 적용 =====================
 
     /**
-     * 이동 의도 설정 + 입력 큐에 적재 + 즉시 한 칸(반응성).
-     * 큐에 쌓아두므로 방향을 빠르게 번갈아 눌러도(위·오른쪽 반복) 마지막 것만 남지 않고 누른 순서대로 한 칸씩 소화된다.
-     * 키를 누르고 있는 동안에는 큐가 빈 뒤 intent 로 계속 전진한다.
+     * 이동 의도 설정 + 버퍼에 적재 + 즉시 한 칸(반응성).
+     * 버퍼는 단일 슬롯이라 미리 여러 번 눌러도 '최신 입력'만 남는다 — 쿨다운에 막혀 밀린 옛 방향이 뒤늦게 튀지 않는다.
+     * 키를 누르고 있는 동안에는 버퍼를 소비한 뒤 intent 로 계속 전진한다.
      */
     public void startMove(PhysicalGame game, PhysicalPlayer player, Direction dir, long now) {
         if (dir == null) return;
         player.setIntent(dir);
-        player.enqueueMove(dir, props.moveQueueMax());
+        // 연속 모드: 방향(속도)만 세팅하고 실제 전진은 매 틱 advanceContinuous 가 처리한다(칸 버퍼/쿨다운 미사용).
+        if (game.isContinuousMovement()) return;
+        player.bufferMove(dir); // 이전 버퍼를 덮어씀(최신 우선)
         advance(game, player, now); // 쿨다운이 풀려 있으면 이번 입력을 즉시 반영
     }
 
@@ -135,25 +140,64 @@ public class PhysicalOmokEngine {
 
     // ===================== 틱 루프 =====================
 
-    /** 큐에 쌓인 이동 입력(+누르고 있는 방향)을 쿨다운에 맞춰 한 칸씩 소화한다. */
+    /** 버퍼된 이동 입력(+누르고 있는 방향)을 쿨다운에 맞춰 한 칸씩 소화한다(연속 모드는 소수 좌표로 매끄럽게). */
     public void tickMovement(PhysicalGame game, long now) {
+        boolean continuous = game.isContinuousMovement();
         for (PhysicalPlayer player : game.players()) {
-            advance(game, player, now);
+            if (continuous) advanceContinuous(game, player, now);
+            else advance(game, player, now);
         }
     }
 
     /**
-     * 한 박자(쿨다운당) 전진을 시도한다. 버퍼 큐가 있으면 큐의 다음 방향을 먼저(순서대로), 비었으면 누르고 있는 방향(intent)으로.
-     * 큐 입력은 시도 시 1회 소비한다(벽이라 못 가도 소비 — 탭 1회 = 1박자). intent 는 소비하지 않아 누르는 동안 계속 전진한다.
+     * 연속(부드러운) 이동 — 누르고 있는 방향(intent)으로 매 틱 '속도×틱간격'만큼 소수 좌표를 전진시킨다.
+     * 평균 속도는 격자 모드(쿨다운당 1칸)와 동일하게 맞춘다: 기본 1000/moveCooldownMs 칸/초, 부스트 시 1000/speedBoostMoveCooldownMs 칸/초.
+     * 진행 방향으로 '들어갈 교차점(반올림 칸)'이 돌·분화구·범위 밖이면 그 축을 정지시켜(≈0.5칸 앞에서 멈춤) 돌을 통과하지 못하게 한다.
+     * 착수/파괴/획득은 moveContinuous 가 맞춘 정수 칸(가장 가까운 교차점)을 그대로 쓴다.
+     */
+    private void advanceContinuous(PhysicalGame game, PhysicalPlayer player, long now) {
+        Direction dir = player.getIntent();
+        if (dir == null) return;
+        double speed = (player.isSpeedBoosted(now)
+                ? 1000.0 / props.speedBoostMoveCooldownMs()
+                : 1000.0 / props.moveCooldownMs()) * CONTINUOUS_SPEED_SCALE;
+        double step = speed * props.tickIntervalMs() / 1000.0; // 칸/틱
+        int maxCell = game.board().size() - 1;
+
+        double nx = clampCoord(player.getRenderX() + dir.dx * step, maxCell);
+        double ny = clampCoord(player.getRenderY() + dir.dy * step, maxCell);
+        // 축별로 진입 칸을 검사(4방향이라 실제로는 한 축만 변함) — 막힌 칸이면 그 축 이동 취소.
+        if (dir.dx != 0 && isCellBlocked(game, (int) Math.round(nx), (int) Math.round(player.getRenderY()))) {
+            nx = player.getRenderX();
+        }
+        if (dir.dy != 0 && isCellBlocked(game, (int) Math.round(player.getRenderX()), (int) Math.round(ny))) {
+            ny = player.getRenderY();
+        }
+        player.moveContinuous(nx, ny, now);
+        tryPickup(game, player);
+    }
+
+    private static double clampCoord(double v, int max) {
+        return v < 0 ? 0 : (v > max ? max : v);
+    }
+
+    /** 범위 밖이거나 돌/분화구가 있는 칸이면 true(연속 이동이 진입 불가). */
+    private boolean isCellBlocked(PhysicalGame game, int cx, int cy) {
+        return !game.board().inBounds(cx, cy) || game.board().isBlocked(cx, cy);
+    }
+
+    /**
+     * 한 박자(쿨다운당) 전진을 시도한다. 버퍼된 방향이 있으면 그것을 먼저, 없으면 누르고 있는 방향(intent)으로.
+     * 버퍼 입력은 시도 시 1회 소비한다(벽이라 못 가도 소비 — 탭 1회 = 1박자). intent 는 소비하지 않아 누르는 동안 계속 전진한다.
      * @return 실제로 한 칸 이동했으면 true.
      */
     private boolean advance(PhysicalGame game, PhysicalPlayer player, long now) {
-        boolean fromQueue = player.hasQueuedMove();
-        Direction dir = fromQueue ? player.peekMove() : player.getIntent();
+        boolean fromBuffer = player.hasBufferedMove();
+        Direction dir = fromBuffer ? player.peekBufferedMove() : player.getIntent();
         if (dir == null) return false;
         if (now - player.getLastMoveAt() < moveCooldown(player, now)) return false; // 아직 쿨다운
         boolean moved = doStep(game, player, dir, now); // 벽/범위 밖이면 제자리(쿨다운 미갱신)
-        if (fromQueue) player.pollMove(); // 큐 입력은 1박자 소비
+        if (fromBuffer) player.consumeBufferedMove(); // 버퍼 입력은 1박자 소비
         return moved;
     }
 
@@ -186,8 +230,9 @@ public class PhysicalOmokEngine {
                 if (game.board().isPlaceable(player.getX(), player.getY())) {
                     place(game, player, now);
                     boardChanged = true;
+                    player.clearPlaceQueue();
                 }
-                player.clearPlaceQueue();
+                // 아직 못 두는 칸(예: 방금 둔 내 돌 위)이면 버퍼를 유지 → window 안에서 빈 칸에 닿는 즉시 착수(연타 씹힘 방지).
             }
         }
         return boardChanged;
