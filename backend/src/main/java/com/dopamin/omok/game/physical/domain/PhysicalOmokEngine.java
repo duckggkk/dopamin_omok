@@ -20,7 +20,7 @@ import java.util.Random;
 @Component
 public class PhysicalOmokEngine {
 
-    // 연속(샌드박스) 이동 전용 속도 배율 — 격자(실대전) 이동은 영향받지 않는다. 여기 값만 바꿔 체감 속도를 조절한다.
+    // 연속 이동 속도 배율(격자 쿨다운당 1칸 기준 대비). 여기 값만 바꿔 모든 피지컬 대국의 체감 이동속도를 조절한다.
     private static final double CONTINUOUS_SPEED_SCALE = 1.15;
 
     private final PhysicalOmokProperties props;

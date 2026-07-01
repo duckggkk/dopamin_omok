@@ -45,7 +45,7 @@ public class PhysicalGame {
     private final long playStartAt;
 
     // true 면 캐릭터가 교차점에 고정되지 않고 연속(소수) 좌표로 부드럽게 움직인다(크아식). 착수는 가장 가까운 교차점에.
-    // 현재는 로컬 개발용 '혼자 두기' 샌드박스(솔로)만 켜며, 실대전/봇 대국은 기존 격자 이동(false)을 유지한다.
+    // 현재는 모든 피지컬 대국(실대전·AI연습·혼자 두기)에 켠다. 격자 이동(false)은 폴백 경로로 남겨둔다.
     private boolean continuousMovement;
 
     public PhysicalGame(String roomCode, Long gameId, int boardSize, int winCount, int targetScore,
