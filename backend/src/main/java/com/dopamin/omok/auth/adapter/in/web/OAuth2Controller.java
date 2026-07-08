@@ -54,18 +54,20 @@ public class OAuth2Controller {
     /** 구글 동의화면으로 보낸다. state 를 쿠키에 심어 콜백에서 위조 여부를 검증한다. */
     @GetMapping("/google")
     public void startGoogle(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String state = UUID.randomUUID().toString().replace("-", "");
+        String state = UUID.randomUUID().toString().replace("-", ""); // csrf 방지용 난수
+        //state를 쿠키에도 담고 url에도 담아서 콜백url에서 비교
         response.addHeader(HttpHeaders.SET_COOKIE, buildStateCookie(state, request.isSecure(), STATE_TTL_SECONDS));
 
+        //쿼리 파라 변수명은 OAuth/OIDC 표준 + 구글 규격
         String authUrl = UriComponentsBuilder.fromUriString(GOOGLE_AUTH_URI)
                 .queryParam("client_id", googleProperties.clientId())
                 .queryParam("redirect_uri", googleProperties.redirectUri())
-                .queryParam("response_type", "code")
-                .queryParam("scope", "openid email profile")
-                .queryParam("state", state)
-                .queryParam("prompt", "select_account")
+                .queryParam("response_type", "code") // OAuth 표준, 인가코드방식 쓰겠다
+                .queryParam("scope", "openid email profile") //구글에서 받을것들, id,email,profile
+                .queryParam("state", state) // csrf 방지용 난수
+                .queryParam("prompt", "select_account") // 구글 로그인 ui설정, 계정선택화면보여주기
                 .build().toUriString();
-        response.sendRedirect(authUrl);
+        response.sendRedirect(authUrl); //302 리다이렉트
     }
 
     /** 구글 콜백. 토큰을 발급해 프론트 콜백 페이지로 넘기고, 실패하면 로그인 화면으로 보낸다. */
@@ -86,7 +88,8 @@ public class OAuth2Controller {
 
         try {
             OAuth2LoginResult result = oAuth2LoginUseCase.loginWithGoogle(code);
-            String redirect = frontendUrl + "/oauth/callback#accessToken=" + enc(result.tokens().accessToken())
+            String redirect = frontendUrl + "/oauth/callback#accessToken=" 
+                    + enc(result.tokens().accessToken())
                     + "&refreshToken=" + enc(result.tokens().refreshToken())
                     + "&newUser=" + result.newUser();
             response.sendRedirect(redirect);

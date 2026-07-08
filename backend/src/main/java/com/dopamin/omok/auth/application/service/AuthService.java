@@ -103,7 +103,7 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
         user.incrementTokenVersion();
         saveUserPort.save(user);
 
-        return issueTokens(user);
+        return issueTokens(user); //토큰 발급
     }
 
     @Override

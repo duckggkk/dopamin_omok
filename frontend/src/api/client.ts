@@ -6,7 +6,13 @@ const BASE_URL = '/api';
 const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 10000,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+    // 이 프론트는 웹 클라이언트 — 서버가 리프레시 토큰을 HttpOnly 쿠키로 내려주도록 알린다.
+    'X-Client-Type': 'web',
+  },
+  // 리프레시 토큰 HttpOnly 쿠키를 주고받으려면 필요(로그인 시 저장, /auth/refresh 시 자동 전송).
+  withCredentials: true,
 });
 
 apiClient.interceptors.request.use(
@@ -56,17 +62,15 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = tokenStorage.getRefreshToken();
-      if (!refreshToken) {
-        tokenStorage.clearTokens();
-        window.location.href = '/login';
-        return Promise.reject(error);
-      }
-
       try {
-        const response = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
-        const { accessToken, refreshToken: newRefreshToken } = response.data.data;
-        tokenStorage.setTokens(accessToken, newRefreshToken);
+        // 리프레시 토큰은 HttpOnly 쿠키에 있어 JS 가 읽지 못하므로 body 에 싣지 않는다.
+        // withCredentials 로 쿠키가 자동 전송되고, 서버가 새 액세스 토큰을 body 로 돌려준다(쿠키도 회전).
+        const response = await axios.post(`${BASE_URL}/auth/refresh`, {}, {
+          withCredentials: true,
+          headers: { 'X-Client-Type': 'web' },
+        });
+        const { accessToken } = response.data.data;
+        tokenStorage.setTokens(accessToken);
         processQueue(null, accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);

@@ -56,8 +56,8 @@ public class PendingRegistrationRedisAdapter
                 "failedAttempts", String.valueOf(pending.getFailedAttempts())
         ));
         // 만료시각은 고정이므로 저장할 때마다 다시 계산해도 TTL 은 줄기만 할 뿐 늘어나지 않는다.
-        long ttlSeconds = Duration.between(LocalDateTime.now(), pending.getExpiresAt()).getSeconds() + GRACE_SECONDS;
-        Duration ttl = Duration.ofSeconds(Math.max(1, ttlSeconds));
+        long ttlSeconds = Duration.between(LocalDateTime.now(), pending.getExpiresAt()).getSeconds() + GRACE_SECONDS; //현재시각과 만료시각+60초 사이 숫자추출
+        Duration ttl = Duration.ofSeconds(Math.max(1, ttlSeconds));// 최소1초 보장하는 장치, 초로변환
         redis.expire(pKey, ttl);
         // 닉네임 예약을 가입 본문과 같은 TTL 로 맞춘다(가입 본문이 사라지면 예약도 곧 사라지게).
         redis.opsForValue().set(nickKey(pending.getNickname()), pending.getEmail(), ttl);

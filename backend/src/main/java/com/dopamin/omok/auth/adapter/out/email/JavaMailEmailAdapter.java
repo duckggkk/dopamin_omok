@@ -72,7 +72,7 @@ public class JavaMailEmailAdapter implements SendEmailPort {
 
     private void sleepBeforeRetry() {
         try {
-            Thread.sleep(retryDelayMs);
+            Thread.sleep(retryDelayMs); // retryDelayMs ms초 쉬고
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt(); // 인터럽트 플래그 복원
         }

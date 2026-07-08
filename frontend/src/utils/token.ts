@@ -19,12 +19,19 @@ export const tokenStorage = {
     localStorage.getItem(ACCESS_TOKEN_KEY) ?? sessionStorage.getItem(ACCESS_TOKEN_KEY),
   getRefreshToken: (): string | null =>
     localStorage.getItem(REFRESH_TOKEN_KEY) ?? sessionStorage.getItem(REFRESH_TOKEN_KEY),
-  setTokens: (accessToken: string, refreshToken: string): void => {
+  // 웹은 리프레시 토큰이 HttpOnly 쿠키에 있어 JS 로 저장하지 않는다(refreshToken 생략).
+  // 앱 등에서 body 로 받은 경우에만 저장한다.
+  setTokens: (accessToken: string, refreshToken?: string): void => {
     primary().setItem(ACCESS_TOKEN_KEY, accessToken);
-    primary().setItem(REFRESH_TOKEN_KEY, refreshToken);
-    // 반대편에 남아있을 수 있는 잔여 토큰 제거(저장 위치 일원화)
     secondary().removeItem(ACCESS_TOKEN_KEY);
-    secondary().removeItem(REFRESH_TOKEN_KEY);
+    if (refreshToken) {
+      primary().setItem(REFRESH_TOKEN_KEY, refreshToken);
+      secondary().removeItem(REFRESH_TOKEN_KEY);
+    } else {
+      // 쿠키 모드: 예전에 저장돼 있을 수 있는 잔여 리프레시 토큰 제거
+      primary().removeItem(REFRESH_TOKEN_KEY);
+      secondary().removeItem(REFRESH_TOKEN_KEY);
+    }
   },
   clearTokens: (): void => {
     localStorage.removeItem(ACCESS_TOKEN_KEY);
