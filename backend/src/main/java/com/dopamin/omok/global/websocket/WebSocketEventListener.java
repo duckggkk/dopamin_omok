@@ -1,7 +1,7 @@
 package com.dopamin.omok.global.websocket;
 
 import com.dopamin.omok.game.application.service.RoomService;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.security.principal.AuthUser;
 import com.dopamin.omok.plaza.application.PlazaSessionManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,8 +59,8 @@ public class WebSocketEventListener {
     private Long extractUserId(StompHeaderAccessor accessor) {
         try {
             if (accessor.getUser() instanceof UsernamePasswordAuthenticationToken authToken
-                    && authToken.getPrincipal() instanceof CustomUserDetails userDetails) {
-                return userDetails.getId();
+                    && authToken.getPrincipal() instanceof AuthUser user) {
+                return user.id();
             }
         } catch (Exception e) {
             log.debug("Could not extract userId from WebSocket session: {}", e.getMessage());

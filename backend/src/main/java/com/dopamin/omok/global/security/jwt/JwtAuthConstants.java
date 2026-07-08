@@ -7,7 +7,9 @@ public final class JwtAuthConstants {
 
     // 토큰 내용(claim 키)
     public static final String CLAIM_TOKEN_VERSION = "tokenVersion";
+    public static final String CLAIM_PUBLIC_ID = "publicId";
     public static final String CLAIM_EMAIL = "email";
+    public static final String CLAIM_NICKNAME = "nickName";
     public static final String CLAIM_ROLE = "role";
 
     private JwtAuthConstants() {

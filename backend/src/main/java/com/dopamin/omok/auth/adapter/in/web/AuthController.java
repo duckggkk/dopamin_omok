@@ -11,7 +11,7 @@ import com.dopamin.omok.auth.application.port.in.*;
 import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.common.exception.OmokException;
 import com.dopamin.omok.global.common.response.ApiResponse;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.security.principal.AuthUser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -93,9 +93,9 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal AuthUser userDetails,
             HttpServletRequest httpRequest) {
-        logoutUseCase.logout(userDetails.getId());
+        logoutUseCase.logout(userDetails.id());
         // 웹은 서버 세션 삭제와 함께 브라우저의 리프레시 쿠키도 만료시킨다.
         if (RefreshTokenCookie.isWebClient(httpRequest)) {
             ResponseCookie cleared = RefreshTokenCookie.expired(httpRequest.isSecure());

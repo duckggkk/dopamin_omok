@@ -1,7 +1,7 @@
 package com.dopamin.omok.global.security.jwt;
 
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetailsService;
+import com.dopamin.omok.global.security.principal.AuthUser;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,7 +20,6 @@ import java.util.Optional;
 public class JwtAuthenticator {
 
     private final JwtProvider jwtProvider;
-    private final CustomUserDetailsService userDetailsService;
 
     /**
      * 토큰이 서명/만료 검증을 통과하고, 토큰에 담긴 tokenVersion이 DB의 현재 값과
@@ -33,18 +32,15 @@ public class JwtAuthenticator {
             return Optional.empty();
         }
         try {
-            Long userId = jwtProvider.extractUserId(token);
-            Long tokenVersion = jwtProvider.extractTokenVersion(token);
-            CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserById(userId);
+            AuthUser authUser = new AuthUser(
+                    jwtProvider.extractUserId(token),
+                    jwtProvider.extractPublicId(token),
+                    jwtProvider.extractEmail(token),
+                    jwtProvider.extractNickName(token),
+                    jwtProvider.extractRole(token));
 
-            Long currentVersion = userDetails.getUser().getTokenVersion();
-            if (!tokenVersion.equals(currentVersion)) {
-                log.debug("Token version mismatch for userId={}: jwt={}, db={}", userId, tokenVersion, currentVersion);
-                return Optional.empty();
-            }
-            //credentials은 이미 검증이 끝났으므로 null로 변경, 넣을 필요가 없이 오히려 보안 문제만 생길 수 있음
             return Optional.of(new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities()));
+                    authUser, null, authUser.getAuthorities()));
         } catch (Exception e) {
             log.debug("Failed to authenticate token: {}", e.getMessage());
             return Optional.empty();

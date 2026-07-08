@@ -9,7 +9,7 @@ import com.dopamin.omok.user.application.port.in.GetRankingUseCase;
 import com.dopamin.omok.user.application.port.in.GetUserUseCase;
 import com.dopamin.omok.user.application.port.in.UpdateProfileUseCase;
 import com.dopamin.omok.global.common.response.ApiResponse;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.security.principal.AuthUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,25 +30,25 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getMyProfile(
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        UserResponse response = getUserUseCase.getUser(userDetails.getId());
+            @AuthenticationPrincipal AuthUser userDetails) {
+        UserResponse response = getUserUseCase.getUser(userDetails.id());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/{publicId}")
     public ResponseEntity<ApiResponse<PublicUserResponse>> getUserProfile(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal AuthUser userDetails,
             @PathVariable UUID publicId) {
-        PublicUserResponse response = getUserUseCase.getUserByPublicId(publicId, userDetails.getId());
+        PublicUserResponse response = getUserUseCase.getUserByPublicId(publicId, userDetails.id());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PatchMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> updateMyProfile(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal AuthUser userDetails,
             @Valid @RequestBody UpdateProfileRequest request) {
         UserResponse response = updateProfileUseCase.updateProfile(
-                userDetails.getId(), request.nickname(), request.profileImageUrl(), request.profilePrivate());
+                userDetails.id(), request.nickname(), request.profileImageUrl(), request.profilePrivate());
         return ResponseEntity.ok(ApiResponse.success("프로필이 업데이트되었습니다.", response));
     }
 

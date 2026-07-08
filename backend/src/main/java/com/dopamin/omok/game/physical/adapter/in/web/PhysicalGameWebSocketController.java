@@ -2,7 +2,7 @@ package com.dopamin.omok.game.physical.adapter.in.web;
 
 import com.dopamin.omok.game.physical.adapter.in.web.dto.PhysicalInputRequest;
 import com.dopamin.omok.game.physical.application.PhysicalGameSessionManager;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.security.principal.AuthUser;
 import com.dopamin.omok.global.websocket.WebSocketSessionRegistry;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -49,8 +49,8 @@ public class PhysicalGameWebSocketController {
 
     private Long extractUserId(SimpMessageHeaderAccessor accessor) {
         if (accessor.getUser() instanceof UsernamePasswordAuthenticationToken authToken
-                && authToken.getPrincipal() instanceof CustomUserDetails userDetails) {
-            return userDetails.getId();
+                && authToken.getPrincipal() instanceof AuthUser user) {
+            return user.id();
         }
         return null;
     }

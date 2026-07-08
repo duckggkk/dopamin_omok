@@ -1,7 +1,7 @@
 package com.dopamin.omok.shop.adapter.in.web;
 
 import com.dopamin.omok.global.common.response.ApiResponse;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.security.principal.AuthUser;
 import com.dopamin.omok.shop.adapter.in.web.dto.ChargeCurrencyRequest;
 import com.dopamin.omok.shop.adapter.in.web.dto.EquipItemRequest;
 import com.dopamin.omok.shop.adapter.in.web.dto.OpenGachaRequest;
@@ -34,43 +34,43 @@ public class ShopController {
 
     @PostMapping("/currency/charge")
     public ResponseEntity<ApiResponse<Map<String, Integer>>> chargeCurrency(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal AuthUser userDetails,
             @Valid @RequestBody ChargeCurrencyRequest request) {
         int newBalance = chargeCurrencyUseCase.chargeCurrency(
-                userDetails.getId(), request.packageId());
+                userDetails.id(), request.packageId());
         return ResponseEntity.ok(ApiResponse.success(Map.of("currency", newBalance)));
     }
 
     @PostMapping("/gacha/open")
     public ResponseEntity<ApiResponse<GachaResultResponse>> openBox(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal AuthUser userDetails,
             @Valid @RequestBody OpenGachaRequest request) {
         GachaResultResponse result = openGachaUseCase.openBox(
-                userDetails.getId(), request.boxType());
+                userDetails.id(), request.boxType());
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
     @GetMapping("/inventory")
     public ResponseEntity<ApiResponse<InventoryResponse>> getInventory(
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal AuthUser userDetails) {
         return ResponseEntity.ok(ApiResponse.success(
-                getInventoryUseCase.getInventory(userDetails.getId())));
+                getInventoryUseCase.getInventory(userDetails.id())));
     }
 
     @PostMapping("/equip")
     public ResponseEntity<ApiResponse<Void>> equipItem(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal AuthUser userDetails,
             @Valid @RequestBody EquipItemRequest request) {
-        equipItemUseCase.equipItem(userDetails.getId(), request.itemId());
+        equipItemUseCase.equipItem(userDetails.id(), request.itemId());
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     /** 장착 해제 — 해당 카테고리를 기본값으로 되돌린다(예: 바둑알 스킨 → 기본 스킨). */
     @PostMapping("/unequip")
     public ResponseEntity<ApiResponse<Void>> unequipItem(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal AuthUser userDetails,
             @Valid @RequestBody UnequipItemRequest request) {
-        equipItemUseCase.unequip(userDetails.getId(), request.itemType());
+        equipItemUseCase.unequip(userDetails.id(), request.itemType());
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

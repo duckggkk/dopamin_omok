@@ -3,7 +3,7 @@ package com.dopamin.omok.game.adapter.in.web;
 import com.dopamin.omok.game.application.dto.RoomResponse;
 import com.dopamin.omok.game.application.port.in.StartPhysicalSandboxUseCase;
 import com.dopamin.omok.global.common.response.ApiResponse;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.security.principal.AuthUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
@@ -28,8 +28,8 @@ public class DevPhysicalSandboxController {
     /** 상대 없이 나 혼자 들어가는 피지컬 아레나를 즉시 시작(움직임 확인용). 생성된 방으로 입장하면 된다. */
     @PostMapping("/sandbox")
     public ResponseEntity<ApiResponse<RoomResponse>> startSandbox(
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        RoomResponse response = startPhysicalSandboxUseCase.startPhysicalSandbox(userDetails.getId());
+            @AuthenticationPrincipal AuthUser userDetails) {
+        RoomResponse response = startPhysicalSandboxUseCase.startPhysicalSandbox(userDetails.id());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("혼자 두기(피지컬) 샌드박스를 시작합니다.", response));
     }

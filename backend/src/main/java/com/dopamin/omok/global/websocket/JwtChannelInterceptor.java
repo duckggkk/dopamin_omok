@@ -7,7 +7,7 @@ import com.dopamin.omok.game.domain.Room;
 import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.security.jwt.JwtAuthConstants;
 import com.dopamin.omok.global.security.jwt.JwtAuthenticator;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.security.principal.AuthUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
@@ -137,8 +137,8 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
     private Long extractUserId(StompHeaderAccessor accessor) {
         if (accessor.getUser() instanceof UsernamePasswordAuthenticationToken authToken
-                && authToken.getPrincipal() instanceof CustomUserDetails userDetails) {
-            return userDetails.getId();
+                && authToken.getPrincipal() instanceof AuthUser user) {
+            return user.id();
         }
         return null;
     }

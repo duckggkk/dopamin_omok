@@ -28,7 +28,7 @@ public class TokenIssuer {
 
     public TokenResponse issue(User user) {
         String accessToken = jwtProvider.generateAccessToken(
-                user.getId(), user.getEmail(), user.getRole().name(), user.getTokenVersion()
+                user.getId(), user.getPublicId(), user.getEmail(), user.getNickname(), user.getRole(), user.getTokenVersion()
         );
         String refreshTokenValue = jwtProvider.generateRefreshToken(user.getId());
 

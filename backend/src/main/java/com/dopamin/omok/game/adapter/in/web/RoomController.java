@@ -5,7 +5,7 @@ import com.dopamin.omok.game.application.dto.RoomResponse;
 import com.dopamin.omok.game.application.port.in.*;
 import com.dopamin.omok.game.domain.GameType;
 import com.dopamin.omok.global.common.response.ApiResponse;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.security.principal.AuthUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,10 +32,10 @@ public class RoomController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<RoomResponse>> createRoom(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal AuthUser userDetails,
             @Valid @RequestBody CreateRoomRequest request) {
         RoomResponse response = createRoomUseCase.createRoom(
-                userDetails.getId(), request.gameType(), request.omokRule(),
+                userDetails.id(), request.gameType(), request.omokRule(),
                 request.timeLimit(), request.byoyomiOption(), request.ranked());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("방이 생성되었습니다.", response));
@@ -44,8 +44,8 @@ public class RoomController {
     /** 피지컬 오목 'AI 연습' — 봇과 즉시 한 판 시작(레이팅 미반영). 생성된 방으로 입장하면 된다. */
     @PostMapping("/ai-practice")
     public ResponseEntity<ApiResponse<RoomResponse>> startAiPractice(
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        RoomResponse response = startAiPracticeUseCase.startAiPractice(userDetails.getId());
+            @AuthenticationPrincipal AuthUser userDetails) {
+        RoomResponse response = startAiPracticeUseCase.startAiPractice(userDetails.id());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("AI 연습 대국을 시작합니다.", response));
     }
@@ -53,44 +53,44 @@ public class RoomController {
     @PostMapping("/{roomCode}/join")
     public ResponseEntity<ApiResponse<RoomResponse>> joinRoom(
             @PathVariable String roomCode,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        RoomResponse response = joinRoomUseCase.joinRoom(roomCode, userDetails.getId());
+            @AuthenticationPrincipal AuthUser userDetails) {
+        RoomResponse response = joinRoomUseCase.joinRoom(roomCode, userDetails.id());
         return ResponseEntity.ok(ApiResponse.success("방에 참가했습니다.", response));
     }
 
     @PostMapping("/{roomCode}/spectate")
     public ResponseEntity<ApiResponse<RoomResponse>> spectateRoom(
             @PathVariable String roomCode,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        RoomResponse response = spectateRoomUseCase.spectateRoom(roomCode, userDetails.getId());
+            @AuthenticationPrincipal AuthUser userDetails) {
+        RoomResponse response = spectateRoomUseCase.spectateRoom(roomCode, userDetails.id());
         return ResponseEntity.ok(ApiResponse.success("관전을 시작합니다.", response));
     }
 
     @PostMapping("/{roomCode}/leave")
     public ResponseEntity<ApiResponse<Void>> leaveRoom(
             @PathVariable String roomCode,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        leaveRoomUseCase.leaveRoom(roomCode, userDetails.getId());
+            @AuthenticationPrincipal AuthUser userDetails) {
+        leaveRoomUseCase.leaveRoom(roomCode, userDetails.id());
         return ResponseEntity.ok(ApiResponse.success("방을 나갔습니다.", null));
     }
 
     @PostMapping("/{roomCode}/rematch")
     public ResponseEntity<ApiResponse<RoomResponse>> requestRematch(
             @PathVariable String roomCode,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        RoomResponse response = requestRematchUseCase.requestRematch(roomCode, userDetails.getId());
+            @AuthenticationPrincipal AuthUser userDetails) {
+        RoomResponse response = requestRematchUseCase.requestRematch(roomCode, userDetails.id());
         return ResponseEntity.ok(ApiResponse.success("리매치 요청이 처리되었습니다.", response));
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getWaitingRooms(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal AuthUser userDetails,
             @RequestParam(required = false) GameType gameType,
             @RequestParam(required = false) Boolean ranked,
             @RequestParam(required = false, defaultValue = "false") boolean recommended,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<RoomResponse> response = recommended
-                ? getRoomUseCase.getRecommendedRooms(userDetails.getId(), pageable)
+                ? getRoomUseCase.getRecommendedRooms(userDetails.id(), pageable)
                 : getRoomUseCase.getWaitingRooms(gameType, ranked, pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }

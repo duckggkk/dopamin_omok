@@ -8,7 +8,7 @@ import com.dopamin.omok.game.application.port.in.GetGameUseCase;
 import com.dopamin.omok.game.application.port.in.PlaceStoneUseCase;
 import com.dopamin.omok.game.application.port.in.SurrenderUseCase;
 import com.dopamin.omok.global.common.response.ApiResponse;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.security.principal.AuthUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -44,10 +44,10 @@ public class GameController {
     @PostMapping("/moves")
     public ResponseEntity<ApiResponse<GameMoveResponse>> placeStone(
             @PathVariable String roomCode,
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal AuthUser userDetails,
             @Valid @RequestBody GameMoveRequest request) {
         GameMoveResponse response = placeStoneUseCase.placeStone(
-                roomCode, userDetails.getId(), request.row(), request.col());
+                roomCode, userDetails.id(), request.row(), request.col());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response));
     }
@@ -55,8 +55,8 @@ public class GameController {
     @PostMapping("/surrender")
     public ResponseEntity<ApiResponse<GameResponse>> surrender(
             @PathVariable String roomCode,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        GameResponse response = surrenderUseCase.surrender(roomCode, userDetails.getId());
+            @AuthenticationPrincipal AuthUser userDetails) {
+        GameResponse response = surrenderUseCase.surrender(roomCode, userDetails.id());
         return ResponseEntity.ok(ApiResponse.success("기권하였습니다.", response));
     }
 }

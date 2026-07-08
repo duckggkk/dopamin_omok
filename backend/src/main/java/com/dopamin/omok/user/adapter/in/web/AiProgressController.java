@@ -1,7 +1,7 @@
 package com.dopamin.omok.user.adapter.in.web;
 
 import com.dopamin.omok.global.common.response.ApiResponse;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.security.principal.AuthUser;
 import com.dopamin.omok.user.adapter.in.web.dto.AiClearRequest;
 import com.dopamin.omok.user.application.dto.AiProgressResponse;
 import com.dopamin.omok.user.application.port.in.AiProgressUseCase;
@@ -25,15 +25,15 @@ public class AiProgressController {
     /** 내 AI 사다리 진척 조회. */
     @GetMapping("/progress")
     public ResponseEntity<ApiResponse<AiProgressResponse>> getProgress(
-            @AuthenticationPrincipal CustomUserDetails me) {
-        return ResponseEntity.ok(ApiResponse.success(aiProgressUseCase.getProgress(me.getId())));
+            @AuthenticationPrincipal AuthUser me) {
+        return ResponseEntity.ok(ApiResponse.success(aiProgressUseCase.getProgress(me.id())));
     }
 
     /** 한 단계 클리어 보고 → 갱신된 진척 반환. */
     @PostMapping("/clear")
     public ResponseEntity<ApiResponse<AiProgressResponse>> recordClear(
-            @AuthenticationPrincipal CustomUserDetails me,
+            @AuthenticationPrincipal AuthUser me,
             @Valid @RequestBody AiClearRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(aiProgressUseCase.recordClear(me.getId(), request.level())));
+        return ResponseEntity.ok(ApiResponse.success(aiProgressUseCase.recordClear(me.id(), request.level())));
     }
 }

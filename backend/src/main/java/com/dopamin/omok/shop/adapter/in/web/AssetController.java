@@ -2,7 +2,7 @@ package com.dopamin.omok.shop.adapter.in.web;
 
 import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.common.exception.OmokException;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.security.principal.AuthUser;
 import com.dopamin.omok.shop.application.port.in.GetAssetUseCase;
 import com.dopamin.omok.shop.domain.AssetResult;
 import com.dopamin.omok.shop.domain.ItemType;
@@ -32,10 +32,10 @@ public class AssetController {
     public ResponseEntity<byte[]> getAsset(
             @PathVariable String itemType,
             @PathVariable String assetKey,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal AuthUser userDetails) {
 
         ItemType type = parseType(itemType);
-        AssetResult result = getAssetUseCase.getAsset(userDetails.getId(), type, assetKey);
+        AssetResult result = getAssetUseCase.getAsset(userDetails.id(), type, assetKey);
 
         return switch (result) {
             // classpath 바이너리 — 이미지/오디오 데이터를 직접 스트리밍

@@ -1,5 +1,6 @@
 package com.dopamin.omok.global.security.jwt;
 
+import com.dopamin.omok.user.domain.UserRole;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -22,8 +24,9 @@ public class JwtProvider {
                 jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(Long userId, String email, String role, Long tokenVersion) {
-        return buildToken(userId, email, role, tokenVersion, jwtProperties.getAccessTokenExpiration());
+    public String generateAccessToken(
+            Long userId, UUID publicId, String email, String nickName, UserRole role, Long tokenVersion) {
+        return buildToken(userId, publicId, email, nickName, role, tokenVersion, jwtProperties.getAccessTokenExpiration());
     }
 
     public String generateRefreshToken(Long userId) {
@@ -38,14 +41,17 @@ public class JwtProvider {
                 .compact();
     }
 
-    private String buildToken(Long userId, String email, String role, Long tokenVersion, long expiration) {
+    private String buildToken(
+            Long userId, UUID publicId, String email, String nickName, UserRole role, Long tokenVersion, long expiration) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim(JwtAuthConstants.CLAIM_PUBLIC_ID, publicId.toString())
                 .claim(JwtAuthConstants.CLAIM_EMAIL, email)
-                .claim(JwtAuthConstants.CLAIM_ROLE, role)
+                .claim(JwtAuthConstants.CLAIM_NICKNAME, nickName)
+                .claim(JwtAuthConstants.CLAIM_ROLE, role.name())
                 .claim(JwtAuthConstants.CLAIM_TOKEN_VERSION, tokenVersion)
                 .issuedAt(now)
                 .expiration(expiry)
@@ -86,6 +92,22 @@ public class JwtProvider {
 
     public Long extractUserId(String token) {
         return Long.parseLong(parseToken(token).getSubject());
+    }
+
+    public UUID extractPublicId(String token) {
+        return UUID.fromString(parseToken(token).get(JwtAuthConstants.CLAIM_PUBLIC_ID, String.class));
+    }
+
+    public String extractNickName(String token){
+        return parseToken(token).get(JwtAuthConstants.CLAIM_NICKNAME, String.class);
+    }
+
+    public String extractEmail(String token) {
+        return parseToken(token).get(JwtAuthConstants.CLAIM_EMAIL, String.class);
+    }
+
+    public UserRole extractRole(String token) {
+        return UserRole.valueOf(parseToken(token).get(JwtAuthConstants.CLAIM_ROLE, String.class));
     }
 
     public long getRefreshTokenExpirationMillis() {

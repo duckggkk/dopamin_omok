@@ -20,7 +20,7 @@ import com.dopamin.omok.game.domain.Room;
 import com.dopamin.omok.game.domain.StoneColor;
 import com.dopamin.omok.global.common.exception.OmokException;
 import com.dopamin.omok.global.common.response.ApiResponse;
-import com.dopamin.omok.global.security.userdetails.CustomUserDetails;
+import com.dopamin.omok.global.security.principal.AuthUser;
 import com.dopamin.omok.global.websocket.WebSocketSessionRegistry;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -152,10 +152,10 @@ public class GameWebSocketController {
             @DestinationVariable String roomCode,
             @Valid @Payload ChatMessageRequest request,
             SimpMessageHeaderAccessor headerAccessor) {
-        CustomUserDetails userDetails = extractUserDetails(headerAccessor);
-        if (userDetails == null) return ApiResponse.error("인증이 필요합니다.");
-        Long userId = userDetails.getId();
-        String nickname = userDetails.getUser().getNickname();
+        AuthUser user = extractUser(headerAccessor);
+        if (user == null) return ApiResponse.error("인증이 필요합니다.");
+        Long userId = user.id();
+        String nickname = user.nickname();
         registerSession(headerAccessor, roomCode, userId);
         try {
             Room room = loadRoomPort.findByRoomCode(roomCode)
@@ -183,10 +183,10 @@ public class GameWebSocketController {
     // JwtChannelInterceptor가 CONNECT 시 accessor.setUser(auth)로 설정한 값을 읽음
     // @AuthenticationPrincipal은 SecurityContextHolder(ThreadLocal)을 사용하므로
     // WebSocket 메시지 처리 스레드에서는 동작하지 않음
-    private CustomUserDetails extractUserDetails(SimpMessageHeaderAccessor accessor) {
+    private AuthUser extractUser(SimpMessageHeaderAccessor accessor) {
         if (accessor.getUser() instanceof UsernamePasswordAuthenticationToken authToken
-                && authToken.getPrincipal() instanceof CustomUserDetails userDetails) {
-            return userDetails;
+                && authToken.getPrincipal() instanceof AuthUser user) {
+            return user;
         }
         return null;
     }
@@ -198,8 +198,8 @@ public class GameWebSocketController {
     }
 
     private Long extractUserId(SimpMessageHeaderAccessor accessor) {
-        CustomUserDetails userDetails = extractUserDetails(accessor);
-        return userDetails != null ? userDetails.getId() : null;
+        AuthUser user = extractUser(accessor);
+        return user != null ? user.id() : null;
     }
 
     private void registerSession(SimpMessageHeaderAccessor accessor, String roomCode, Long userId) {
