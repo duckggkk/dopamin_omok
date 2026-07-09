@@ -9,7 +9,7 @@ interface AuthState {
   isLoading: boolean;
   setUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
-  login: (user: User, accessToken: string, refreshToken: string) => void;
+  login: (user: User, accessToken: string, refreshToken?: string | null) => void;
   logout: () => void;
 }
 

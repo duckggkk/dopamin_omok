@@ -15,11 +15,16 @@ public interface FriendshipJpaRepository extends JpaRepository<Friendship, Long>
             + "OR (f.requester.id = :b AND f.addressee.id = :a)")
     Optional<Friendship> findBetween(@Param("a") Long a, @Param("b") Long b);
 
-    @Query("SELECT f FROM Friendship f WHERE f.status = :status "
+    @Query("SELECT f FROM Friendship f "
+            + "JOIN FETCH f.requester "
+            + "JOIN FETCH f.addressee "
+            + "WHERE f.status = :status "
             + "AND (f.requester.id = :uid OR f.addressee.id = :uid) ORDER BY f.updatedAt DESC")
     List<Friendship> findInvolving(@Param("uid") Long uid, @Param("status") FriendshipStatus status);
 
-    @Query("SELECT f FROM Friendship f WHERE f.status = :status AND f.addressee.id = :uid "
+    @Query("SELECT f FROM Friendship f "
+            + "JOIN FETCH f.requester "
+            + "WHERE f.status = :status AND f.addressee.id = :uid "
             + "ORDER BY f.createdAt DESC")
     List<Friendship> findByAddressee(@Param("uid") Long uid, @Param("status") FriendshipStatus status);
 }

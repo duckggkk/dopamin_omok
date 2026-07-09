@@ -41,3 +41,6 @@ docs/
 
 # 개인 공부 노트 (학습용 — 저장소에 올리지 않음)
 study/
+
+# Local test run records
+local-test-results/

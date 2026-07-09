@@ -1,5 +1,6 @@
 package com.dopamin.omok.auth.adapter.in.web;
 
+import com.dopamin.omok.auth.adapter.in.web.support.RefreshTokenCookie;
 import com.dopamin.omok.auth.application.dto.OAuth2LoginResult;
 import com.dopamin.omok.auth.application.port.in.OAuth2LoginUseCase;
 import com.dopamin.omok.auth.config.GoogleOAuthProperties;
@@ -26,9 +27,9 @@ import java.util.UUID;
  * 구글 로그인(백엔드 인가 코드 방식)의 진입점과 콜백.
  *
  * <p>흐름: 프론트가 {@code /api/auth/oauth2/google} 로 전체 페이지 이동 → 여기서 구글 동의화면으로
- * 302 리다이렉트 → 구글이 {@code /callback?code=...} 으로 되돌려보냄 → 서비스가 토큰을 발급하고
- * 프론트 콜백 페이지로 토큰을 URL 프래그먼트(#)에 실어 리다이렉트한다(프래그먼트는 서버 로그/리퍼러에
- * 남지 않음).
+ * 302 리다이렉트 → 구글이 {@code /callback?code=...} 으로 되돌려보냄 → 서비스가 토큰을 발급하고,
+ * 리프레시 토큰은 HttpOnly 쿠키에 담고 액세스 토큰만 프론트 콜백 페이지의 URL 프래그먼트(#)로 넘긴다
+ * (프래그먼트는 서버 로그/리퍼러에 남지 않음).
  *
  * <p><b>CSRF(로그인 위조) 방지</b> — 진입 시 임의의 state 를 HttpOnly 쿠키로 심고, 콜백에서 쿼리의
  * state 와 대조한다. 일치하지 않으면 거부한다.
@@ -72,11 +73,12 @@ public class OAuth2Controller {
 
     /** 구글 콜백. 토큰을 발급해 프론트 콜백 페이지로 넘기고, 실패하면 로그인 화면으로 보낸다. */
     @GetMapping("/google/callback")
-    public void googleCallback(@RequestParam(required = false) String code,
-                               @RequestParam(required = false) String state,
-                               @CookieValue(name = STATE_COOKIE, required = false) String cookieState,
-                               HttpServletRequest request,
-                               HttpServletResponse response) throws IOException {
+    public void googleCallback(
+            @RequestParam(required = false) String code,
+            @RequestParam(required = false) String state,
+            @CookieValue(name = STATE_COOKIE, required = false) String cookieState,
+            HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
         // state 쿠키는 1회용 — 성공/실패와 무관하게 즉시 만료시킨다.
         response.addHeader(HttpHeaders.SET_COOKIE, buildStateCookie("", request.isSecure(), 0));
 
@@ -88,9 +90,13 @@ public class OAuth2Controller {
 
         try {
             OAuth2LoginResult result = oAuth2LoginUseCase.loginWithGoogle(code);
-            String redirect = frontendUrl + "/oauth/callback#accessToken=" 
+            ResponseCookie refreshCookie = RefreshTokenCookie.of(
+                    result.tokens().refreshToken(),
+                    result.tokens().expiresIn() / 1000,
+                    request.isSecure());
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+            String redirect = frontendUrl + "/oauth/callback#accessToken="
                     + enc(result.tokens().accessToken())
-                    + "&refreshToken=" + enc(result.tokens().refreshToken())
                     + "&newUser=" + result.newUser();
             response.sendRedirect(redirect);
         } catch (Exception e) {

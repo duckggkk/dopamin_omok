@@ -98,7 +98,7 @@ export interface PublicUser {
 
 export interface TokenResponse {
   accessToken: string;
-  refreshToken: string;
+  refreshToken: string | null;
   tokenType: string;
   expiresIn: number;
 }

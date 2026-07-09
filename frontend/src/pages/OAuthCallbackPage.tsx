@@ -8,8 +8,8 @@ import styles from './AuthPage.module.css';
 /**
  * 소셜 로그인(구글) 콜백 처리 페이지.
  *
- * 백엔드가 토큰을 URL 프래그먼트(#accessToken=...&refreshToken=...)에 실어 이 경로로 보낸다.
- * 프래그먼트는 서버로 전송되지 않아(로그/리퍼러에 안 남음) 토큰 전달에 비교적 안전하다.
+ * 백엔드가 액세스 토큰을 URL 프래그먼트(#accessToken=...)에 실어 이 경로로 보낸다.
+ * 리프레시 토큰은 HttpOnly 쿠키로 내려와 JS 에서 읽지 않는다.
  * 여기서 토큰을 저장하고 내 정보를 받아 로그인 상태를 세운 뒤 홈으로 이동한다.
  */
 const OAuthCallbackPage = () => {
@@ -24,12 +24,11 @@ const OAuthCallbackPage = () => {
 
     const params = new URLSearchParams(window.location.hash.slice(1));
     const accessToken = params.get('accessToken');
-    const refreshToken = params.get('refreshToken');
     const isNewUser = params.get('newUser') === 'true';
     // URL에서 토큰 흔적 즉시 제거(주소창/히스토리 노출 최소화)
     window.history.replaceState(null, '', window.location.pathname);
 
-    if (!accessToken || !refreshToken) {
+    if (!accessToken) {
       setError(true);
       return;
     }
@@ -37,10 +36,10 @@ const OAuthCallbackPage = () => {
     (async () => {
       try {
         tokenStorage.setRemember(true); // 소셜 로그인은 로그인 유지 기본 ON
-        tokenStorage.setTokens(accessToken, refreshToken);
+        tokenStorage.setTokens(accessToken);
         const me = await userApi.getMe();
         if (!me.data.data) throw new Error('no user');
-        login(me.data.data, accessToken, refreshToken);
+        login(me.data.data, accessToken);
         // 신규 가입자는 닉네임 설정 화면으로 한 번 안내, 기존 사용자는 바로 홈으로.
         navigate(isNewUser ? '/welcome' : '/', { replace: true });
       } catch {

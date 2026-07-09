@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -78,8 +79,17 @@ public class FriendService implements FriendUseCase {
 
     @Override
     public List<FriendResponse> getFriends(Long meId) {
-        return loadFriendshipPort.findAcceptedOf(meId).stream()
-                .map(f -> toFriendResponse(meId, f.other(meId)))
+        List<User> friends = loadFriendshipPort.findAcceptedOf(meId).stream()
+                .map(f -> f.other(meId))
+                .toList();
+
+        List<Long> friendIds = friends.stream()
+                .map(User::getId)
+                .toList();
+        Map<Long, HeadToHead> headToHeads = loadHeadToHeadPort.betweenMany(meId, friendIds);
+
+        return friends.stream()
+                .map(friend -> toFriendResponse(friend, headToHeads.getOrDefault(friend.getId(), HeadToHead.empty())))
                 .toList();
     }
 
@@ -111,8 +121,7 @@ public class FriendService implements FriendUseCase {
         return new RelationResponse(relation, head);
     }
 
-    private FriendResponse toFriendResponse(Long meId, User other) {
-        HeadToHead head = loadHeadToHeadPort.between(meId, other.getId());
+    private FriendResponse toFriendResponse(User other, HeadToHead head) {
         return new FriendResponse(
                 other.getPublicId(), other.getNickname(), other.getProfileImageUrl(),
                 other.getClassicRating(), other.getPhysicalRating(), head);

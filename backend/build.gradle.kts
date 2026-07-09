@@ -79,6 +79,14 @@ tasks.withType<Test> {
     useJUnitPlatform()
     maxParallelForks = 1
     jvmArgs("-Xmx512m")
+    listOf(
+        "omok.bench.mysql",
+        "omok.bench.mysql.url",
+        "omok.bench.mysql.username",
+        "omok.bench.mysql.password",
+    ).forEach { name ->
+        System.getProperty(name)?.let { systemProperty(name, it) }
+    }
 }
 
 // 로컬 기본 프로파일
