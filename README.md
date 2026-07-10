@@ -82,7 +82,7 @@ docker-compose -f docker-compose.dev.yml up --build
 |--------|----------|
 | Frontend (Vite) | http://localhost:3000 |
 | Backend (Spring Boot) | http://localhost:8080 |
-| MySQL | localhost:3306 |
+| MySQL | localhost:3307 (`DB_PORT` 미설정 시) |
 
 ---
 
@@ -137,6 +137,56 @@ npm install && npm run dev
 
 ---
 
+### 3. 테스트와 로컬 MySQL 벤치마크
+
+일반 자동 테스트는 H2를 사용합니다. `backend/src/test/resources/application.yml`이 테스트 전용 설정이라서
+서버용 `application-local.yml`, `application-docker.yml`, `application-prod.yml`에는 영향이 없습니다.
+
+```powershell
+cd backend
+.\gradlew.bat test
+```
+
+친구 상대전적 batch 집계의 로컬 MySQL 벤치마크는 별도 opt-in task로 실행합니다.
+
+```powershell
+cd backend
+.\gradlew.bat mysqlBenchmarkTest --rerun-tasks --console=plain
+```
+
+벤치마크 기본값은 `docker-compose.dev.yml` 기준입니다.
+
+| 항목 | 값 |
+|------|----|
+| MySQL host port | `3307` (`DB_PORT` 미설정 시) |
+| Database | `dopamin_omok_bench` |
+| Username | `root` |
+| Password | `root1234` |
+| 설정 파일 | `backend/src/test/resources/application-mysql-benchmark.yml` |
+
+벤치마크 설정은 test resources 안의 `mysql-benchmark` 프로파일에만 있습니다. `ddl-auto=create-drop`,
+`flyway.enabled=false`로 실행되고, 테스트 코드가 JDBC URL에 `dopamin_omok_bench`가 없으면 바로 실패시켜
+실제 개발/운영 DB에 잘못 붙지 않도록 막습니다.
+
+포트나 비밀번호가 다르면 짧게 덮어씁니다.
+
+```powershell
+.\gradlew.bat mysqlBenchmarkTest --rerun-tasks --console=plain `
+  "-Domok.bench.mysql.port=3306" `
+  "-Domok.bench.mysql.password=YOUR_PASSWORD"
+```
+
+호스트나 DB URL 전체가 다르면 `-Domok.bench.mysql.url=...`로 덮어쓸 수 있지만, URL에는 반드시
+`dopamin_omok_bench`가 들어가야 합니다.
+
+결과는 콘솔에서 `[HeadToHeadBenchmark]` 라인을 확인합니다. 콘솔에 안 보이면 XML 리포트에서 찾습니다.
+
+```powershell
+Select-String -Path .\build\test-results\mysqlBenchmarkTest\*.xml -Pattern "HeadToHeadBenchmark"
+```
+
+---
+
 ## 컨테이너 구성
 
 ```
@@ -167,4 +217,3 @@ npm install && npm run dev
 - 커뮤니티: 만남의 광장(실시간 아바타), 친구
 
 ---
-
