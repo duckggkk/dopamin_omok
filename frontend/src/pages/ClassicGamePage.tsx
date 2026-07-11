@@ -228,7 +228,9 @@ const ClassicGamePage = () => {
     if (!room || !user) return;
 
     if (room.status === 'WAITING') {
-      if (!playerRolePlayer) {
+      if (myPlayer?.role === 'SPECTATOR') {
+        setStatusMessage(playerRolePlayer ? '게임 시작을 기다리는 중...' : '플레이어 입장을 기다리는 중...');
+      } else if (!playerRolePlayer) {
         setStatusMessage('상대방을 기다리는 중...');
       } else if (sameStoneSkin) {
         setStatusMessage('두 플레이어가 같은 바둑알 스킨입니다. 한 명이 다른 스킨으로 바꿔야 시작할 수 있습니다.');
@@ -373,7 +375,7 @@ const ClassicGamePage = () => {
         {/* 초대 + 준비/시작 버튼 (WAITING 상태) */}
         {room.status === 'WAITING' && (
           <div className={styles.waitingPanel}>
-            {!playerRolePlayer && (
+            {!playerRolePlayer && isHost && (
               <>
                 <p className={styles.inviteText}>방 코드를 공유하여 상대방을 초대하세요</p>
                 <button

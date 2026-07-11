@@ -257,6 +257,9 @@ const LobbyPage = () => {
                   </div>
                   <div className={styles.roomStatus}>
                     <span className={styles.waitingBadge}>대기 중</span>
+                    <button onClick={() => handleSpectate(room.roomCode)} className={styles.spectateBtn}>
+                      관전
+                    </button>
                     <button onClick={() => handleJoinRoom(room.roomCode)} className={styles.enterBtn}>
                       입장
                     </button>

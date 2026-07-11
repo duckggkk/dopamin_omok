@@ -688,13 +688,18 @@ const PhysicalGamePage = () => {
                   필드의 아이템을 주워 <b>Shift</b>로 사용하세요. <b>오목</b>을 완성할 때마다 1점
                   (완성한 줄만 사라져요)! 먼저 <b>{snapshot?.targetScore ?? 3}점</b>이면 승리!
                 </p>
-                {!playerRolePlayer && (
+                {!playerRolePlayer && isHost && (
                   <>
                     <p className={styles.inviteText}>방 코드를 공유해 상대를 초대하세요</p>
                     <button className={styles.copyBtn} onClick={() => navigator.clipboard.writeText(room.roomCode)}>
                       코드 복사 ({room.roomCode})
                     </button>
                   </>
+                )}
+                {myPlayer?.role === 'SPECTATOR' && (
+                  <p className={styles.inviteText}>
+                    {playerRolePlayer ? '게임 시작을 기다리는 중...' : '플레이어 입장을 기다리는 중...'}
+                  </p>
                 )}
                 {isPlayerRole && (
                   <button

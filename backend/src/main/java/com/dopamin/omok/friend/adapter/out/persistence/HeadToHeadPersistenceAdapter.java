@@ -29,7 +29,7 @@ public class HeadToHeadPersistenceAdapter implements LoadHeadToHeadPort {
 
     @Override
     public HeadToHead between(Long meId, Long otherId) {
-        return betweenMany(meId, List.of(otherId)).getOrDefault(otherId, HeadToHead.empty());
+        return betweenMany(meId, List.of(otherId)).getOrDefault(otherId, HeadToHead.empty()); //Map에서 otherId가 키인 객체를 꺼내라 없으면 empty
     }
 
     @Override
@@ -67,8 +67,8 @@ public class HeadToHeadPersistenceAdapter implements LoadHeadToHeadPort {
 
         Map<Long, HeadToHead> result = new HashMap<>();
         for (Tuple row : rows) {
-            Long id = row.get(opponentId);
-            if (id != null) {
+                Long id = row.get(opponentId);
+                if (id != null) {
                 HeadToHead head = new HeadToHead(
                         value(row.get(wins)),
                         value(row.get(losses)),
@@ -77,7 +77,7 @@ public class HeadToHeadPersistenceAdapter implements LoadHeadToHeadPort {
                         left.wins() + right.wins(),
                         left.losses() + right.losses(),
                         left.draws() + right.draws()));
-            }
+                }
         }
         return result;
     }

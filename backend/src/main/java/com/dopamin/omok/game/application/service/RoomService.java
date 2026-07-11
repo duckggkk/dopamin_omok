@@ -139,7 +139,13 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         GamePlayer spectator = GamePlayer.createSpectator(room, user);
         saveGamePlayerPort.save(spectator);
 
-        return buildRoomResponse(room);
+        // 대기 중인 방에만 관전자 입장을 실시간 브로드캐스트.
+        // 대국 중에는 currentGame이 빠진 이 응답이 플레이어 화면의 게임 상태를 덮어쓸 수 있어 보내지 않는다.
+        RoomResponse response = buildRoomResponse(room);
+        if (room.isWaiting()) {
+            roomEventPublisherPort.publishStatus(roomCode, response);
+        }
+        return response;
     }
 
     @Override
