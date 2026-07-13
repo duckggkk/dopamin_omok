@@ -11,6 +11,20 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
 
+  # 메일 — dev 컨테이너는 실제 발송 없이 부팅만 가능하면 된다(JavaMailSender 빈 생성용).
+  # 실제 발송이 필요하면 MAIL_* 환경변수를 compose 에 넘겨서 덮어쓴다.
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
   jpa:
     hibernate:
       # 스키마 관리 주체는 Flyway 하나로 통일. dev/docker 도 운영(prod)과 동일하게 validate 로 맞춰
@@ -21,6 +35,9 @@ spring:
     show-sql: false
 
 app:
+  mail:
+    from: ${MAIL_FROM:dev@localhost}
+
   jwt:
     secret: ${JWT_SECRET}
     access-token-expiration: 1800000
