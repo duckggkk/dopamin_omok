@@ -44,14 +44,25 @@ const IconChevron = () => (
   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"
     strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
 );
+// 모바일 햄버거 / 닫기
+const IconMenu = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round"><path d="M4 6h16" /><path d="M4 12h16" /><path d="M4 18h16" /></svg>
+);
+const IconClose = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round"><path d="M6 6l12 12" /><path d="M18 6L6 18" /></svg>
+);
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
 
   const inRoom = location.pathname.startsWith('/game/');
   // 게스트(비회원)와 정식 회원을 구분 — 게스트는 멤버 전용 메뉴를 숨기고 가입 CTA를 보여준다.
@@ -67,6 +78,21 @@ const Navbar = () => {
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [menuOpen]);
+
+  // 모바일 메뉴: 바깥 클릭 시 닫기
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setMobileOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [mobileOpen]);
+
+  // 페이지 이동 시 모바일 메뉴 닫기
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     if (inRoom) {
@@ -87,9 +113,31 @@ const Navbar = () => {
 
   const navClass = ({ isActive }: { isActive: boolean }) =>
     `${styles.navItem} ${isActive ? styles.navActive : ''}`;
+  const mobileNavClass = ({ isActive }: { isActive: boolean }) =>
+    `${styles.mobileItem} ${isActive ? styles.navActive : ''}`;
+
+  // 데스크톱 가운데 내비와 모바일 햄버거 메뉴가 공유하는 링크 목록
+  const links = isMember
+    ? [
+        { to: '/', end: true, icon: <IconHome />, label: '홈' },
+        { to: '/lobby', icon: <IconPlay />, label: '대국' },
+        { to: '/plaza', icon: <IconPlaza />, label: '광장' },
+        { to: '/friends', icon: <IconFriends />, label: '친구' },
+        { to: '/ranking', icon: <IconRank />, label: '랭킹' },
+        { to: '/shop', icon: <IconShop />, label: '상점' },
+        { to: '/guide', icon: <IconGuide />, label: '게임 방법' },
+      ]
+    : isGuest
+      ? [
+          { to: '/', end: true, icon: <IconHome />, label: '홈' },
+          { to: '/lobby', icon: <IconPlay />, label: '대국' },
+          { to: '/plaza', icon: <IconPlaza />, label: '광장' },
+          { to: '/guide', icon: <IconGuide />, label: '게임 방법' },
+        ]
+      : [];
 
   return (
-    <nav className={styles.navbar}>
+    <nav className={styles.navbar} ref={navRef}>
       <div className={styles.container}>
         <Link to="/" className={styles.logo}>
           <span className={styles.logoStones} aria-hidden="true">
@@ -99,23 +147,13 @@ const Navbar = () => {
           <span className={styles.logoText}>도파민 오목</span>
         </Link>
 
-        {isMember && (
+        {links.length > 0 && (
           <div className={styles.nav}>
-            <NavLink to="/" end className={navClass}><IconHome /><span>홈</span></NavLink>
-            <NavLink to="/lobby" className={navClass}><IconPlay /><span>대국</span></NavLink>
-            <NavLink to="/plaza" className={navClass}><IconPlaza /><span>광장</span></NavLink>
-            <NavLink to="/friends" className={navClass}><IconFriends /><span>친구</span></NavLink>
-            <NavLink to="/ranking" className={navClass}><IconRank /><span>랭킹</span></NavLink>
-            <NavLink to="/shop" className={navClass}><IconShop /><span>상점</span></NavLink>
-            <NavLink to="/guide" className={navClass}><IconGuide /><span>게임 방법</span></NavLink>
-          </div>
-        )}
-        {isGuest && (
-          <div className={styles.nav}>
-            <NavLink to="/" end className={navClass}><IconHome /><span>홈</span></NavLink>
-            <NavLink to="/lobby" className={navClass}><IconPlay /><span>대국</span></NavLink>
-            <NavLink to="/plaza" className={navClass}><IconPlaza /><span>광장</span></NavLink>
-            <NavLink to="/guide" className={navClass}><IconGuide /><span>게임 방법</span></NavLink>
+            {links.map((l) => (
+              <NavLink key={l.to} to={l.to} end={l.end} className={navClass}>
+                {l.icon}<span>{l.label}</span>
+              </NavLink>
+            ))}
           </div>
         )}
 
@@ -189,8 +227,36 @@ const Navbar = () => {
               <Link to="/register" className={styles.registerBtn}>회원가입</Link>
             </>
           )}
+
+          {links.length > 0 && (
+            <button
+              className={styles.hamburger}
+              onClick={() => setMobileOpen((o) => !o)}
+              aria-label="메뉴"
+              aria-expanded={mobileOpen}
+            >
+              {mobileOpen ? <IconClose /> : <IconMenu />}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* 모바일 메뉴 패널 — 좁은 화면에서 햄버거로 연다 */}
+      {mobileOpen && (
+        <div className={styles.mobileMenu}>
+          {links.map((l) => (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              end={l.end}
+              className={mobileNavClass}
+              onClick={() => setMobileOpen(false)}
+            >
+              {l.icon}<span>{l.label}</span>
+            </NavLink>
+          ))}
+        </div>
+      )}
 
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </nav>

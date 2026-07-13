@@ -99,9 +99,15 @@
 }
 .chatName { font-weight: 800; margin-right: 6px; }
 .chatText { color: #fff; font-weight: 600; }
+.chatInputRow {
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
+}
 .chatInput {
   pointer-events: auto;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   background: rgba(12, 10, 6, 0.82);
   border: 1px solid var(--gold-soft-border, rgba(224, 168, 63, 0.5));
   border-radius: var(--r-sm);
@@ -109,6 +115,17 @@
   color: #fff;
   font-size: 0.88rem;
   outline: none;
+}
+.chatSendBtn {
+  flex-shrink: 0;
+  width: 38px;
+  background: rgba(224, 168, 63, 0.85);
+  border: none;
+  border-radius: var(--r-sm);
+  color: #2a1c05;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
 }
 .chatInput:focus { border-color: var(--gold-bright); box-shadow: 0 0 0 2px rgba(224, 168, 63, 0.25); }
 .chatPrompt {
@@ -339,6 +356,16 @@
   cursor: pointer;
 }
 
+/* 터치 화면: 가상 방향패드 (캔버스 우하단 오버레이) */
+.dpadOverlay {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 5;
+  line-height: normal;
+  opacity: 0.92;
+}
+
 @media (max-width: 980px) {
   .container {
     flex-direction: column;
@@ -346,4 +373,14 @@
   .sidebar {
     width: 100%;
   }
+}
+
+/* 폰: 채팅 오버레이를 방향패드와 겹치지 않게 좁힘 */
+@media (max-width: 560px) {
+  .container { padding: 10px 8px 24px; }
+  .canvasWrap { height: clamp(380px, calc(100vh - 230px), 640px); }
+  .chatOverlay { width: min(300px, 55%); }
+  .chatLog { max-height: 96px; }
+  .topBar { flex-wrap: wrap; gap: 6px; }
+  .dressBtn { padding: 7px 12px; font-size: 0.8rem; }
 }

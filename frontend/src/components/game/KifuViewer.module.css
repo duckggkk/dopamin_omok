@@ -14,6 +14,8 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--r-lg);
   padding: 20px;
+  /* 보드가 %폭이라 모달이 명시 폭을 가져야 한다 (콘텐츠 크기 순환 방지) */
+  width: min(92vw, 680px);
   max-width: 100%;
   max-height: 94vh;
   overflow-y: auto;

@@ -384,7 +384,62 @@
 }
 .overlaySubtext { color: var(--text-faint); font-size: 0.85rem; margin-top: 8px; }
 
+/* ===== 터치 가상 컨트롤 (방향패드 + 착수/파괴/아이템) ===== */
+.touchControls {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.touchActions {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.actionBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: rgba(24, 18, 10, 0.8);
+  color: var(--text);
+  font-size: 1.15rem;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.actionBtn span { font-size: 0.62rem; font-weight: 800; color: var(--text-muted); }
+.actionBtn:active { transform: scale(0.94); }
+/* 착수가 주력 — 가장 크고 금색 */
+.actionPlace {
+  width: 74px;
+  height: 74px;
+  border-color: var(--gold-soft-border);
+  background: rgba(224, 168, 63, 0.28);
+}
+.actionPlace span { color: var(--gold-bright); }
+.actionDestroy { border-color: var(--danger-border); background: rgba(200, 60, 50, 0.22); }
+.actionDestroy span { color: var(--danger); }
+.actionItem { border-color: rgba(96, 140, 200, 0.5); background: rgba(96, 140, 200, 0.2); }
+.actionItem span { color: #9cc0ff; }
+
 @media (max-width: 920px) {
   .container { flex-direction: column; align-items: center; }
   .sidebar { width: 100%; max-width: 600px; }
+}
+
+/* 폰: 여백 축소 + HUD 압축 */
+@media (max-width: 560px) {
+  .container { padding: 12px 8px 32px; gap: 12px; }
+  .hud { padding: 8px 10px; }
+  .hudName { max-width: 80px; }
 }

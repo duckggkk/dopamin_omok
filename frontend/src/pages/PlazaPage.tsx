@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useChat } from '@/hooks/useChat';
 import { usePlazaSocket } from '@/hooks/usePlazaSocket';
+import { useTouchUI } from '@/hooks/useTouchUI';
 import { plazaApi } from '@/api/plaza';
 import { ApiResponse, ChatMessage, Direction, PlazaAppearance, PlazaJoinResponse, PlazaPlayerView, PlazaSnapshot } from '@/types';
+import DirectionPad from '@/components/common/DirectionPad';
 import styles from './PlazaPage.module.css';
 
 // 캔버스 초기(폴백) 해상도. 실제 크기는 컨테이너에 맞춰 ResizeObserver 가 동적으로 맞춘다.
@@ -108,6 +110,7 @@ const PlazaPage = () => {
   const { user } = useAuthStore();
   const myId = user?.id ?? '';
   const isGuest = !!user?.guest; // 게스트는 광장 입장은 되지만 아바타 꾸미기는 불가(가입 유도)
+  const touchUI = useTouchUI(); // 터치 화면이면 가상 방향패드/터치 안내 노출
 
   const [joinInfo, setJoinInfo] = useState<PlazaJoinResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -638,29 +641,48 @@ const PlazaPage = () => {
               <div ref={chat.bottomRef} />
             </div>
             {chatActive ? (
-              <input
-                ref={chatInputRef}
-                className={styles.chatInput}
-                value={chat.input}
-                onChange={(e) => chat.setInput(e.target.value)}
-                onBlur={() => setChatActive(false)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    // 내용이 있으면 전송(입력칸 유지), 빈 채로 Enter 한번 더면 입력칸 닫기
-                    if (chat.input.trim()) handleSendChat();
-                    else setChatActive(false);
-                  } else if (e.key === 'Escape') { e.preventDefault(); chat.setInput(''); setChatActive(false); }
-                }}
-                placeholder="메시지 입력 후 Enter · 빈 채로 Enter 또는 Esc 로 닫기"
-                maxLength={200}
-              />
+              <div className={styles.chatInputRow}>
+                <input
+                  ref={chatInputRef}
+                  className={styles.chatInput}
+                  value={chat.input}
+                  onChange={(e) => chat.setInput(e.target.value)}
+                  onBlur={() => setChatActive(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      // 내용이 있으면 전송(입력칸 유지), 빈 채로 Enter 한번 더면 입력칸 닫기
+                      if (chat.input.trim()) handleSendChat();
+                      else setChatActive(false);
+                    } else if (e.key === 'Escape') { e.preventDefault(); chat.setInput(''); setChatActive(false); }
+                  }}
+                  placeholder={touchUI ? '메시지 입력' : '메시지 입력 후 Enter · 빈 채로 Enter 또는 Esc 로 닫기'}
+                  maxLength={200}
+                />
+                {/* 터치용 전송 버튼 — pointerdown 에서 처리해 입력칸 blur(닫힘)보다 먼저 전송 */}
+                <button
+                  className={styles.chatSendBtn}
+                  onPointerDown={(e) => { e.preventDefault(); handleSendChat(); }}
+                  aria-label="전송"
+                >
+                  ➤
+                </button>
+              </div>
             ) : (
               <button className={styles.chatPrompt} onClick={() => setChatActive(true)}>
-                💬 <kbd>Enter</kbd> 로 채팅
+                {touchUI ? <>💬 채팅</> : <>💬 <kbd>Enter</kbd> 로 채팅</>}
               </button>
             )}
           </div>
+
+          {/* 터치 화면 전용: 가상 방향패드 (캔버스 우하단) */}
+          {touchUI && joinInfo && (
+            <DirectionPad
+              className={styles.dpadOverlay}
+              onStart={(d: Direction) => sendInput('MOVE_START', d)}
+              onStop={() => sendInput('MOVE_STOP')}
+            />
+          )}
 
           {/* 아바타 꾸미기 팝업 — 광장 화면 내부 오버레이 */}
           {dressOpen && (
@@ -722,9 +744,19 @@ const PlazaPage = () => {
         </div>
 
         <div className={styles.controls}>
-          <span><kbd>←↑↓→</kbd> / <kbd>WASD</kbd> 이동</span>
-          <span><kbd>Enter</kbd> 채팅</span>
-          <span>아바타 클릭: 프로필</span>
+          {touchUI ? (
+            <>
+              <span>방향패드로 이동</span>
+              <span>💬 버튼으로 채팅</span>
+              <span>아바타 탭: 프로필</span>
+            </>
+          ) : (
+            <>
+              <span><kbd>←↑↓→</kbd> / <kbd>WASD</kbd> 이동</span>
+              <span><kbd>Enter</kbd> 채팅</span>
+              <span>아바타 클릭: 프로필</span>
+            </>
+          )}
           <span className={styles.muted}>춤·상호작용은 다음 단계에서 추가됩니다</span>
         </div>
       </div>

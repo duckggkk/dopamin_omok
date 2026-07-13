@@ -312,6 +312,8 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  /* 보드(SVG)가 %폭으로 줄어들 수 있도록 명시 폭 제공 */
+  width: 100%;
 }
 
 .status {
@@ -708,4 +710,27 @@
   border: 1px solid var(--gold-soft-border);
   border-radius: var(--r-pill);
   padding: 1px 6px;
+}
+
+/* ===== 반응형 ===== */
+/* 태블릿 이하: 사이드바(방 정보/채팅/기보)를 보드 아래로 내려 세로 1열 배치 */
+@media (max-width: 1024px) {
+  .container {
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 12px 48px;
+  }
+  .gameArea { width: 100%; }
+  .sidebar { width: 100%; max-width: 640px; }
+}
+
+/* 폰: 여백/글자 축소 */
+@media (max-width: 480px) {
+  .container { padding: 12px 8px 40px; }
+  .playerCard { padding: 10px 13px; gap: 10px; }
+  .status { font-size: 0.98rem; }
+  .chatMessages { height: 200px; }
+  .moveList { max-height: 220px; }
+  .overlayContent { padding: 24px 26px; margin: 0 16px; }
 }

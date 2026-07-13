@@ -127,3 +127,10 @@
   border: 1px solid var(--border-strong);
 }
 .rejectBtn:hover { color: var(--danger, #ff7a92); }
+
+/* 폰: 이름/버튼이 좁으면 버튼 줄을 아래로 내린다 */
+@media (max-width: 480px) {
+  .card { padding: 16px 14px; }
+  .row { flex-wrap: wrap; }
+  .actions { margin-left: auto; }
+}

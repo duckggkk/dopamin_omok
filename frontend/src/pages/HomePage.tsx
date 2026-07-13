@@ -7,6 +7,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { getApiErrorMessage } from '@/utils/error';
 import { GameInfo, RankingEntry } from '@/types';
 import CreateRoomModal from '@/components/game/CreateRoomModal';
+import GameRecordViewer from '@/components/game/GameRecordViewer';
 import styles from './HomePage.module.css';
 
 /** 히어로 장식용 정적 오목판 (대각 오목 완성 직전 형세) */
@@ -61,6 +62,8 @@ const HomePage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [recent, setRecent] = useState<GameInfo[] | null>(null);
   const [topRanking, setTopRanking] = useState<RankingEntry[] | null>(null);
+  // 최근 전적에서 선택한 대국 — 기보(일반)/리플레이(피지컬) 다시보기 모달
+  const [kifuGame, setKifuGame] = useState<GameInfo | null>(null);
 
   useEffect(() => {
     gameApi.getMyGames(0, 5).then((res) => setRecent(res.data.data?.content ?? [])).catch(() => setRecent([]));
@@ -140,6 +143,7 @@ const HomePage = () => {
           <p className={styles.heroSub}>
             {user.nickname}님, 한 수의 쾌감을 다시. 가로·세로·대각 오목을 먼저 완성하세요.
           </p>
+          {/* 모바일에선 2×2 그리드: [방 만들기|대국 로비] / [광장|코드 참가] */}
           <div className={styles.heroActions}>
             <button className={styles.ctaPrimary} onClick={() => setShowCreateModal(true)} disabled={busy}>
               ✚ 방 만들기
@@ -150,19 +154,19 @@ const HomePage = () => {
             <button className={styles.ctaGhost} onClick={() => navigate('/plaza')}>
               🏛️ 광장
             </button>
+            <form className={styles.joinRow} onSubmit={joinByCode}>
+              <input
+                className={styles.joinInput}
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="방 코드로 바로 참가"
+                maxLength={8}
+              />
+              <button type="submit" className={styles.joinBtn} disabled={!joinCode}>
+                참가
+              </button>
+            </form>
           </div>
-          <form className={styles.joinRow} onSubmit={joinByCode}>
-            <input
-              className={styles.joinInput}
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="방 코드로 바로 참가"
-              maxLength={8}
-            />
-            <button type="submit" className={styles.joinBtn} disabled={!joinCode}>
-              참가
-            </button>
-          </form>
         </div>
         <div className={styles.heroArt}>
           <DecoBoard />
@@ -226,58 +230,32 @@ const HomePage = () => {
         </Link>
       </section>
 
-      {/* ---- 메뉴 타일 + 최근 전적 ---- */}
-      <div className={styles.grid}>
-        <section className={styles.menuCol}>
-          <h2 className={styles.colTitle}>바로가기</h2>
-          <button className={styles.tile} onClick={() => navigate('/lobby')}>
-            <span className={styles.tileIcon}>🎯</span>
-            <span className={styles.tileBody}>
-              <span className={styles.tileName}>대국 로비</span>
-              <span className={styles.tileDesc}>대기 중인 방에 참가하거나 새 방을 만드세요</span>
-            </span>
-            <span className={styles.tileArrow}>→</span>
-          </button>
-          <button className={styles.tile} onClick={() => navigate('/shop')}>
-            <span className={styles.tileIcon}>🛍️</span>
-            <span className={styles.tileBody}>
-              <span className={styles.tileName}>상점</span>
-              <span className={styles.tileDesc}>바둑알 스킨·착수 효과·착수음을 뽑아보세요</span>
-            </span>
-            <span className={styles.tileArrow}>→</span>
-          </button>
-          <button className={styles.tile} onClick={() => navigate('/profile')}>
-            <span className={styles.tileIcon}>📊</span>
-            <span className={styles.tileBody}>
-              <span className={styles.tileName}>내 전적</span>
-              <span className={styles.tileDesc}>승률과 통계, 닉네임을 관리하세요</span>
-            </span>
-            <span className={styles.tileArrow}>→</span>
-          </button>
-        </section>
-
-        <section className={styles.recentCol}>
+      {/* ---- 최근 전적 ---- */}
+      <section className={styles.recentCol}>
+        <div className={styles.rankHead}>
           <h2 className={styles.colTitle}>최근 전적</h2>
-          <div className={styles.recentList}>
-            {recent === null ? (
-              <p className={styles.recentEmpty}>불러오는 중...</p>
-            ) : recent.length === 0 ? (
-              <p className={styles.recentEmpty}>아직 대국 기록이 없어요. 첫 대국을 시작해보세요!</p>
-            ) : (
-              recent.map((g) => {
-                const r = resultOf(g);
-                return (
-                  <div key={g.id} className={styles.recentItem}>
-                    <span className={`${styles.resultChip} ${r.cls}`}>{r.label}</span>
-                    <span className={styles.recentOpp}>vs {opponentOf(g)}</span>
-                    <span className={styles.recentDate}>{fmtDate(g.finishedAt ?? g.startedAt)}</span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </section>
-      </div>
+          <button className={styles.rankMore} onClick={() => navigate('/profile')}>전체 보기 →</button>
+        </div>
+        <div className={styles.recentList}>
+          {recent === null ? (
+            <p className={styles.recentEmpty}>불러오는 중...</p>
+          ) : recent.length === 0 ? (
+            <p className={styles.recentEmpty}>아직 대국 기록이 없어요. 첫 대국을 시작해보세요!</p>
+          ) : (
+            recent.map((g) => {
+              const r = resultOf(g);
+              return (
+                <button key={g.id} className={styles.recentItem} onClick={() => setKifuGame(g)}>
+                  <span className={`${styles.resultChip} ${r.cls}`}>{r.label}</span>
+                  <span className={styles.recentOpp}>vs {opponentOf(g)}</span>
+                  <span className={styles.recentDate}>{fmtDate(g.finishedAt ?? g.startedAt)}</span>
+                  <span className={styles.recentKifu}>다시보기 ▶</span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </section>
 
       {/* ---- 랭킹 TOP 3 ---- */}
       <section className={styles.rankPreview}>
@@ -309,6 +287,9 @@ const HomePage = () => {
           onClose={() => setShowCreateModal(false)}
         />
       )}
+
+      {/* 최근 전적 다시보기 — 기보(일반)/리플레이(피지컬) 자동 판별 */}
+      {kifuGame && <GameRecordViewer game={kifuGame} onClose={() => setKifuGame(null)} />}
     </div>
   );
 };

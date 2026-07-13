@@ -1,0 +1,34 @@
+.pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 4px;
+  width: 138px;
+  height: 138px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(24, 18, 10, 0.72);
+  border: 1px solid rgba(224, 168, 63, 0.4);
+  border-radius: 12px;
+  color: #e8ddc8;
+  font-size: 1.05rem;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active {
+  background: rgba(224, 168, 63, 0.35);
+  color: #ffd86b;
+}
+
+.up { grid-area: 1 / 2; }
+.left { grid-area: 2 / 1; }
+.right { grid-area: 2 / 3; }
+.down { grid-area: 3 / 2; }

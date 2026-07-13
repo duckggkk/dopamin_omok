@@ -369,3 +369,13 @@
   .layout { grid-template-columns: 1fr; }
   .sidebar { position: static; flex-direction: column; }
 }
+
+/* 폰: 방 카드를 세로로 쌓고 버튼을 오른쪽 정렬 */
+@media (max-width: 560px) {
+  .container { padding: 20px 12px 48px; }
+  .header { flex-wrap: wrap; gap: 10px; }
+  .title { font-size: 1.4rem; }
+  .tab, .tabActive { padding: 10px 12px; font-size: 0.9rem; }
+  .roomCard { flex-direction: column; align-items: stretch; gap: 12px; padding: 14px 16px; }
+  .roomStatus { justify-content: flex-end; }
+}

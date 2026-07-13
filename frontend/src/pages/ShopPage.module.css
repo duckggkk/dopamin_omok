@@ -532,3 +532,22 @@
 }
 .equipBtn:hover:not(:disabled) { background: var(--border-strong); border-color: var(--gold-soft-border); }
 .equipBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ===== 폰: 각 섹션 아이템을 일렬로 세우고 가로 스와이프 ===== */
+@media (max-width: 560px) {
+  .packageGrid, .boxGrid, .itemGrid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+  }
+  .packageGrid > *, .boxGrid > *, .itemGrid > * {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+  .packageGrid > * { width: 40%; min-width: 128px; }
+  .boxGrid > * { width: 84%; min-width: 250px; }
+  .itemGrid > * { width: 44%; min-width: 148px; }
+}

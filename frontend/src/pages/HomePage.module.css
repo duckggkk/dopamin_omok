@@ -60,7 +60,9 @@
 }
 .heroSub { color: var(--text-muted); font-size: 1rem; margin: 0 0 24px; max-width: 460px; }
 
-.heroActions { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.heroActions { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: stretch; }
+/* 코드 참가 폼은 버튼 줄 아래 한 줄 전체 (모바일에선 그리드 셀 하나가 된다) */
+.heroActions .joinRow { flex-basis: 100%; }
 .ctaPrimary {
   background: var(--gold-grad);
   color: var(--text-on-gold);
@@ -205,8 +207,7 @@
 .statValue.gold { color: var(--gold-bright); }
 .statLabel { font-size: 0.8rem; color: var(--text-faint); }
 
-/* ---------- 메뉴 / 최근 전적 ---------- */
-.grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; }
+/* ---------- 최근 전적 ---------- */
 .colTitle {
   font-size: 1.05rem;
   font-weight: 800;
@@ -216,40 +217,20 @@
 }
 .colTitle::before { content: ''; width: 5px; height: 18px; border-radius: 3px; background: var(--gold-grad); }
 
-.menuCol, .recentCol, .howto, .rankPreview {
+.recentCol, .howto, .rankPreview {
   background: linear-gradient(180deg, var(--surface-2), var(--surface));
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   padding: 22px;
   box-shadow: var(--shadow-card);
 }
-.menuCol { display: flex; flex-direction: column; }
-.menuCol .colTitle { margin-bottom: 14px; }
-
-.tile {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  text-align: left;
-  background: var(--inset);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  padding: 14px 16px;
-  cursor: pointer;
-  transition: transform var(--t) var(--ease), border-color var(--t) var(--ease), background var(--t) var(--ease);
-}
-.tile + .tile { margin-top: 10px; }
-.tile:hover { transform: translateX(3px); border-color: var(--gold-soft-border); background: var(--surface-3); }
-.tileIcon { font-size: 1.6rem; flex-shrink: 0; }
-.tileBody { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-.tileName { font-weight: 700; color: var(--text); font-size: 0.98rem; }
-.tileDesc { font-size: 0.8rem; color: var(--text-faint); }
-.tileArrow { color: var(--gold); font-size: 1.1rem; font-weight: 700; flex-shrink: 0; }
 
 .recentList { display: flex; flex-direction: column; gap: 8px; }
 .recentEmpty { color: var(--text-faint); font-size: 0.9rem; padding: 24px 4px; text-align: center; }
+/* 클릭하면 다시보기 모달이 열리는 버튼 (프로필 전적 목록과 동일 패턴) */
 .recentItem {
+  width: 100%;
+  text-align: left;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -257,7 +238,13 @@
   border: 1px solid var(--border-faint);
   border-radius: var(--r-sm);
   padding: 10px 14px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
 }
+.recentItem:hover { border-color: var(--gold-soft-border); transform: translateX(2px); }
+.recentKifu { flex-shrink: 0; color: var(--gold-bright); font-size: 0.78rem; font-weight: 700; }
 .resultChip {
   width: 26px; height: 26px;
   flex-shrink: 0;
@@ -340,9 +327,31 @@
   .hero { flex-direction: column; align-items: flex-start; }
   .heroArt { align-self: center; }
   .statRow { grid-template-columns: repeat(2, 1fr); }
-  .grid { grid-template-columns: 1fr; }
   .steps { grid-template-columns: 1fr; }
 }
-@media (max-width: 480px) {
+
+/* 폰: 히어로 액션 2×2 — [방 만들기|대국 로비] / [광장|코드 참가] */
+@media (max-width: 560px) {
   .heroTitle { font-size: 2.3rem; }
+  .heroActions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ctaPrimary, .ctaGhost { padding: 13px 10px; font-size: 0.95rem; white-space: nowrap; }
+  .heroActions .joinRow { max-width: none; min-width: 0; }
+  .joinInput { min-width: 0; padding: 11px 10px; letter-spacing: 1px; }
+  .joinBtn { padding: 11px 12px; }
+
+  /* 내 현황: 일렬 가로 스와이프 (스크롤 스냅) */
+  .statRow {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+  }
+  .statCard {
+    flex: 0 0 42%;
+    min-width: 130px;
+    scroll-snap-align: start;
+  }
 }

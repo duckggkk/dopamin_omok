@@ -7,9 +7,11 @@ import { useChat } from '@/hooks/useChat';
 import { useLeaveGuard } from '@/hooks/useLeaveGuard';
 import { useStoneSoundPlayer } from '@/hooks/useStoneSoundPlayer';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
+import { useTouchUI } from '@/hooks/useTouchUI';
 import { areSameStoneSkin, stonePreviewStyle } from '@/utils/stoneSkin';
 import { playSfx, SfxName } from '@/utils/sfx';
 import ChatPanel from '@/components/game/ChatPanel';
+import DirectionPad from '@/components/common/DirectionPad';
 import GameResultOverlay, { GameResult } from '@/components/game/GameResultOverlay';
 import {
   Room,
@@ -215,6 +217,7 @@ const PhysicalGamePage = () => {
   const sameStoneSkin = areSameStoneSkin(blackPlayer?.stoneSkin, whitePlayer?.stoneSkin);
   const isInProgress = room?.status === 'IN_PROGRESS' && currentGame?.status === 'IN_PROGRESS';
   const controllable = !!(room?.status === 'IN_PROGRESS' && myColor);
+  const touchUI = useTouchUI(); // 터치 화면이면 가상 방향패드 + 액션 버튼 노출
 
   // BGM은 게임이 진행 중일 때만 재생(대기 중엔 무음)
   useBackgroundMusic(PHYSICAL_BGM_SRC, { enabled: !!isInProgress });
@@ -660,8 +663,8 @@ const PhysicalGamePage = () => {
           {foePendingCount > 0 ? (
             <div className={styles.pendingFoe}>
               {foeIsMatchPoint
-                ? `⚠ 상대 매치포인트! 끊어라 (Ctrl/Shift)!`
-                : `⚠ 상대 오목 충전 중${foePendingCount > 1 ? ` ×${foePendingCount}` : ''}! 끊어라 (Ctrl/Shift)!`}
+                ? `⚠ 상대 매치포인트! 끊어라 (${touchUI ? '파괴/아이템' : 'Ctrl/Shift'})!`
+                : `⚠ 상대 오목 충전 중${foePendingCount > 1 ? ` ×${foePendingCount}` : ''}! 끊어라 (${touchUI ? '파괴/아이템' : 'Ctrl/Shift'})!`}
             </div>
           ) : myPendingCount > 0 ? (
             <div className={styles.pendingMine}>
@@ -684,8 +687,18 @@ const PhysicalGamePage = () => {
               <div className={styles.waitCard}>
                 <h2 className={styles.waitTitle}>⚔️ 피지컬 오목</h2>
                 <p className={styles.waitDesc}>
-                  방향키로 캐릭터를 움직여 <b>Space</b>로 착수! <b>Ctrl</b>로 상대 돌을 부수고,
-                  필드의 아이템을 주워 <b>Shift</b>로 사용하세요. <b>오목</b>을 완성할 때마다 1점
+                  {touchUI ? (
+                    <>
+                      방향패드로 캐릭터를 움직여 <b>⚫ 착수</b>! <b>💥 파괴</b>로 상대 돌을 부수고,
+                      필드의 아이템을 주워 <b>🎁 아이템</b>으로 사용하세요.
+                    </>
+                  ) : (
+                    <>
+                      방향키로 캐릭터를 움직여 <b>Space</b>로 착수! <b>Ctrl</b>로 상대 돌을 부수고,
+                      필드의 아이템을 주워 <b>Shift</b>로 사용하세요.
+                    </>
+                  )}
+                  {' '}<b>오목</b>을 완성할 때마다 1점
                   (완성한 줄만 사라져요)! 먼저 <b>{snapshot?.targetScore ?? 3}점</b>이면 승리!
                 </p>
                 {!playerRolePlayer && isHost && (
@@ -731,11 +744,55 @@ const PhysicalGamePage = () => {
           )}
         </div>
 
+        {/* 터치 화면 전용: 가상 컨트롤 (왼쪽 방향패드 + 오른쪽 액션 버튼) */}
+        {touchUI && controllable && (
+          <div className={styles.touchControls} onContextMenu={(e) => e.preventDefault()}>
+            <DirectionPad
+              onStart={(d: Direction) => sendPhysicalInput('MOVE_START', d)}
+              onStop={() => sendPhysicalInput('MOVE_STOP')}
+            />
+            <div className={styles.touchActions}>
+              <button
+                type="button"
+                className={`${styles.actionBtn} ${styles.actionDestroy}`}
+                onPointerDown={(e) => { e.preventDefault(); sendPhysicalInput('DESTROY'); }}
+              >
+                💥<span>파괴</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.actionBtn} ${styles.actionItem}`}
+                onPointerDown={(e) => { e.preventDefault(); sendPhysicalInput('USE_ITEM'); }}
+              >
+                🎁<span>아이템</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.actionBtn} ${styles.actionPlace}`}
+                onPointerDown={(e) => { e.preventDefault(); sendPhysicalInput('PLACE'); }}
+              >
+                ⚫<span>착수</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className={styles.controls}>
-          <span><kbd>←↑↓→</kbd> 이동</span>
-          <span><kbd>Space</kbd> 착수</span>
-          <span><kbd>Ctrl</kbd> 파괴</span>
-          <span><kbd>Shift</kbd> 아이템</span>
+          {touchUI ? (
+            <>
+              <span>방향패드 이동</span>
+              <span>⚫ 착수</span>
+              <span>💥 파괴</span>
+              <span>🎁 아이템</span>
+            </>
+          ) : (
+            <>
+              <span><kbd>←↑↓→</kbd> 이동</span>
+              <span><kbd>Space</kbd> 착수</span>
+              <span><kbd>Ctrl</kbd> 파괴</span>
+              <span><kbd>Shift</kbd> 아이템</span>
+            </>
+          )}
         </div>
       </div>
 

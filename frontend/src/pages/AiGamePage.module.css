@@ -190,7 +190,15 @@
 }
 .statusDone { color: var(--gold-bright); }
 
-.boardWrap { position: relative; }
+/* 보드(SVG)가 %폭으로 줄어들 수 있도록 명시 폭 제공 (모바일에서 화면에 맞게 축소) */
+.boardWrap {
+  position: relative;
+  width: 100%;
+  max-width: 648px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
 /* ---------- 결과 오버레이 ---------- */
 .resultOverlay {
@@ -253,4 +261,7 @@
 
 @media (max-width: 560px) {
   .diffGrid { grid-template-columns: 1fr; }
+  .page { padding: 18px 10px 48px; gap: 14px; }
+  .setupCard { padding: 26px 18px; }
+  .resultCard { padding: 22px 20px; margin: 0 12px; }
 }
