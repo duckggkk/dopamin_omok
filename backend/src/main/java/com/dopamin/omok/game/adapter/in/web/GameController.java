@@ -28,6 +28,7 @@ public class GameController {
     private final GetGameUseCase getGameUseCase;
     private final GetGameMovesUseCase getGameMovesUseCase;
 
+    //룸코드로
     @GetMapping
     public ResponseEntity<ApiResponse<GameResponse>> getGame(@PathVariable String roomCode) {
         GameResponse response = getGameUseCase.getGame(roomCode);

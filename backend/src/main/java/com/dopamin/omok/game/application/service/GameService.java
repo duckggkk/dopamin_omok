@@ -62,6 +62,7 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         // 시간 제한 체크
         checkAndDeductTime(room, game, userId);
 
+        // 보드 사이즈와 맞지 않으면
         if (!gameEngine.isValidPosition(row, col)) {
             throw new OmokException(ErrorCode.INVALID_MOVE);
         }
@@ -69,6 +70,7 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         List<GameMove> existingMoves = loadGameMovesPort.findByGameIdOrderByMoveNumberAsc(game.getId());
         StoneColor[][] board = gameEngine.buildBoardFromMoves(existingMoves);
 
+        //중복착수 방지
         if (board[row][col] != null) {
             throw new OmokException(ErrorCode.POSITION_ALREADY_OCCUPIED);
         }
@@ -126,7 +128,7 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         saveGamePort.save(game);
 
         loadRoomPort.findByRoomCode(roomCode).ifPresent(room -> {
-            room.waitForNextGame();
+            room.waitForNextGame(); //방대기전환
         });
 
         return GameResponse.from(game);
