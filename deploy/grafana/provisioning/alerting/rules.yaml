@@ -70,3 +70,229 @@ groups:
                 - evaluator:
                     type: gt
                     params: [0]
+
+  # ── 인프라/성능 알림(Prometheus 메트릭 기반) ────────────────────────────────
+  # 위 그룹이 "에러가 났다"를 잡는다면, 이 그룹은 "터지기 전에 미리" 잡는다.
+  # 모든 규칙이 같은 3단 구조다: A(메트릭 조회) → B(마지막 값 하나로 축약) → C(임계값 비교).
+  - orgId: 1
+    name: infra
+    folder: Alerts
+    interval: 1m
+    rules:
+      # 가장 중요한 알림 — 백엔드가 응답하지 않으면 서비스 전체가 죽은 것.
+      # up 은 Prometheus 가 수집에 성공하면 1, 실패하면 0.
+      - uid: backend-down
+        title: 백엔드 응답 없음
+        condition: C
+        for: 2m                # 재배포 중 잠깐 끊기는 건 무시하고, 2분 이상 지속될 때만
+        noDataState: NoData    # Prometheus 자체가 죽어도 알아야 하므로 OK 처리하지 않는다
+        execErrState: Alerting
+        annotations:
+          summary: '백엔드(spring-backend)가 2분 이상 응답하지 않습니다. 컨테이너 상태(docker ps)와 로그를 즉시 확인하세요.'
+        labels:
+          severity: critical
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              datasource: { type: prometheus, uid: prometheus }
+              expr: 'up{job="spring-backend"}'
+              instant: true
+              range: false
+          - refId: B
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource: { type: __expr__, uid: __expr__ }
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              datasource: { type: __expr__, uid: __expr__ }
+              conditions:
+                - evaluator:
+                    type: lt
+                    params: [1]
+
+      # 힙이 최대치의 90%에 5분 이상 붙어 있으면 OOM(메모리 부족 종료) 직전 신호.
+      # 운영 서버가 4GB뿐이라 특히 중요하다.
+      - uid: jvm-heap-high
+        title: JVM 힙 메모리 90% 초과
+        condition: C
+        for: 5m
+        noDataState: OK
+        execErrState: OK
+        annotations:
+          summary: 'JVM 힙 사용률이 5분 이상 90%를 넘었습니다. 메모리 누수이거나 힙(-Xmx)이 부족합니다 — 백엔드 개요 대시보드의 힙/GC 패널을 확인하세요.'
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              datasource: { type: prometheus, uid: prometheus }
+              expr: 'sum(jvm_memory_used_bytes{area="heap"}) / sum(jvm_memory_max_bytes{area="heap"})'
+              instant: true
+              range: false
+          - refId: B
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource: { type: __expr__, uid: __expr__ }
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              datasource: { type: __expr__, uid: __expr__ }
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.9]
+
+      # 평균 응답시간이 1초를 넘으면 체감상 이미 느리다(k6 측정 기준 p95 17.6ms 였다).
+      - uid: http-latency-high
+        title: 응답시간 지연 (평균 1초 초과)
+        condition: C
+        for: 5m
+        noDataState: OK
+        execErrState: OK
+        annotations:
+          summary: '평균 응답시간이 5분 이상 1초를 넘었습니다. 백엔드 개요 대시보드의 "느린 API TOP 5"와 DB 커넥션 풀을 확인하세요.'
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              datasource: { type: prometheus, uid: prometheus }
+              expr: 'sum(rate(http_server_requests_seconds_sum[5m])) / sum(rate(http_server_requests_seconds_count[5m]))'
+              instant: true
+              range: false
+          - refId: B
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource: { type: __expr__, uid: __expr__ }
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              datasource: { type: __expr__, uid: __expr__ }
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [1]
+
+      # 5xx = 서버 잘못으로 실패한 요청. ERROR 로그 알림과 겹칠 수 있으나,
+      # 로그를 남기지 않고 실패하는 경로(프레임워크 단 오류 등)까지 잡아준다.
+      - uid: http-5xx-errors
+        title: 5xx 서버 에러 발생
+        condition: C
+        for: 2m
+        noDataState: OK
+        execErrState: OK
+        annotations:
+          summary: '5xx 응답이 2분 이상 계속 발생하고 있습니다. 로그 대시보드에서 해당 시간대의 ERROR 로그를 확인하세요.'
+        labels:
+          severity: critical
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              datasource: { type: prometheus, uid: prometheus }
+              expr: 'sum(rate(http_server_requests_seconds_count{outcome="SERVER_ERROR"}[5m])) or vector(0)'
+              instant: true
+              range: false
+          - refId: B
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource: { type: __expr__, uid: __expr__ }
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              datasource: { type: __expr__, uid: __expr__ }
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      # 커넥션을 얻으려고 줄 서 있는 요청이 있다는 뜻 — 풀 고갈은 곧 전체 지연으로 번진다.
+      - uid: db-pool-pending
+        title: DB 커넥션 풀 대기 발생
+        condition: C
+        for: 5m
+        noDataState: OK
+        execErrState: OK
+        annotations:
+          summary: 'DB 커넥션을 기다리는 요청이 5분 이상 있습니다. 느린 쿼리를 찾거나 Hikari 풀 크기를 조정해야 합니다.'
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              datasource: { type: prometheus, uid: prometheus }
+              expr: 'sum(hikaricp_connections_pending) or vector(0)'
+              instant: true
+              range: false
+          - refId: B
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource: { type: __expr__, uid: __expr__ }
+          - refId: C
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              datasource: { type: __expr__, uid: __expr__ }
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]

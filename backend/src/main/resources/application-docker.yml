@@ -64,6 +64,18 @@ app:
   frontend:
     url: ${FRONTEND_URL:http://localhost:3000}
 
+# Actuator: 로컬 관측 스택(prometheus 컨테이너)이 메트릭을 긁어갈 수 있게 prod 와 같은 엔드포인트를 연다.
+# 기본값은 health 뿐이라 이게 없으면 /api/actuator/prometheus 가 404 → 대시보드가 전부 빈다.
+# dev 전용 프로필이므로 외부 노출 우려는 없다(운영은 application-prod.yml 이 따로 관리).
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  metrics:
+    tags:
+      application: dopamin-omok      # 대시보드가 앱 단위로 구분하는 공통 라벨(prod 와 동일)
+
 logging:
   level:
     com.dopamin.omok: INFO

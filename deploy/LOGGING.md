@@ -160,3 +160,78 @@ Explore 오른쪽 위 **Live** 버튼 → 실시간 스트리밍(= `docker logs 
   `/var/run/docker.sock:/var/run/docker.sock:ro` 마운트 확인.
 - **traceId 가 빈칸 `[]`** → 요청 컨텍스트 밖(서버 시작 로그, 틱 루프 등)이라 정상.
   HTTP 요청 처리 로그에는 항상 채워진다.
+
+---
+
+## 8. 대시보드 — 무엇이 있고 어디서 오나
+
+`deploy/grafana/provisioning/dashboards/json/` 의 JSON 파일이 **정본**이다.
+Grafana 가 부팅할 때 자동으로 읽어 "도파민오목" 폴더에 만들어 준다(UI에서 손으로 만들 필요 없음).
+
+| 대시보드 | 데이터 출처 | 언제 보나 |
+|---|---|---|
+| **도파민오목 · 백엔드 개요** (`backend-overview.json`) | Prometheus (Micrometer 메트릭) | 평소 상태 점검, 느려졌을 때 원인 찾기 |
+| **도파민오목 · 로그** (`logs.json`) | Loki (컨테이너 로그) | 알림이 왔을 때 "무슨 일이 있었나" 확인 |
+
+패널을 고치는 방법은 두 가지다.
+- **UI 에서 고치고 저장** — `allowUiUpdates: true` 라 가능하다. 단 파일과 달라지므로 실험용으로만.
+- **JSON 파일을 고친다(권장)** — 30초 안에 반영된다(`updateIntervalSeconds`). 파일이 정본이라
+  서버를 새로 만들어도 그대로 복원된다.
+
+> 메트릭이 전부 "No data" 라면 → 백엔드의 `/api/actuator/prometheus` 가 열려 있는지 확인.
+> 프로필별로 `management.endpoints.web.exposure.include: health,prometheus` 가 있어야 한다
+> (`application-local.yml` / `application-docker.yml` / `application-prod.yml` 모두 설정되어 있음).
+> 이 설정 없이 백엔드를 띄우면 이 엔드포인트가 없어 Prometheus 수집이 실패한다.
+
+---
+
+## 9. 로컬(내 PC)에서 대시보드 보기
+
+운영에 올리기 전에 대시보드를 고쳐보려면 로컬에서 같은 스택을 띄우면 된다.
+설정 파일은 운영과 공유하므로, 여기서 확인한 게 운영에서도 그대로 동작한다.
+
+```bash
+# 관측 스택만 띄운다(백엔드/DB 는 평소 하던 대로 따로 실행)
+docker compose -f docker-compose.dev.yml up -d prometheus loki promtail grafana
+```
+
+접속: **http://localhost:3001** (`admin` / `admin`)
+Prometheus 쿼리를 직접 실험하고 싶으면: http://localhost:9090
+
+### 백엔드를 어떻게 띄우든 메트릭은 잡힌다
+개발용 수집 설정(`deploy/prometheus/prometheus.dev.yml`)은 백엔드를 **`host.docker.internal:8080`**,
+즉 "내 PC 의 8080" 에서 찾는다. 그래서 백엔드를 IDE/`gradlew bootRun` 으로 직접 띄우든,
+`docker compose -f docker-compose.dev.yml up -d backend` 로 띄우든(8080 을 호스트에 공개) 양쪽 다 수집된다.
+(운영은 `prometheus.yml` 이 `backend:8080` 을 쓴다 — 리눅스엔 `host.docker.internal` 이 없기 때문.)
+
+### 로컬에서 다른 점 두 가지 (알고 있어야 함)
+
+1. **백엔드를 네이티브로 띄우면 '로그' 대시보드는 빈다.**
+   Promtail 은 *도커 컨테이너*의 로그만 수집한다. IDE 로 띄운 백엔드 로그는 도커 밖이라 Loki 에 안 들어간다.
+   로컬에서 로그 대시보드까지 보고 싶으면 백엔드도 도커로 띄워야 한다.
+   ⚠️ 단, 네이티브 백엔드와 컨테이너 백엔드를 **동시에** 띄우면 안 된다 —
+   8080 포트가 겹치고, `backend/.gradle` 락을 두 gradle 이 함께 건드려 컨테이너가 I/O 에러로 죽는다.
+   (증상: `Could not create service of type FileHasher ... java.io.IOException: I/O error` 후 재시작 반복)
+
+2. **알림은 로컬에서 동작하지 않는다.**
+   dev compose 의 Grafana 는 `datasources/` 와 `dashboards/` 만 프로비저닝하고 `alerting/` 은 제외한다.
+   알림 설정이 `DISCORD_WEBHOOK_URL`·SMTP 값을 요구해서, 값이 빈 로컬에선 프로비저닝이 실패하기 때문이다.
+   알림 규칙은 운영에서만 뜬다.
+
+---
+
+## 10. 알림 규칙 — 무엇이 언제 울리나
+
+`deploy/grafana/provisioning/alerting/rules.yaml` 이 정본이며, 디스코드 + 이메일로 함께 나간다.
+
+| 알림 | 조건 | 심각도 |
+|---|---|---|
+| 백엔드 ERROR 로그 발생 | 최근 5분 ERROR 로그 ≥ 1건 | critical |
+| 백엔드 응답 없음 | 메트릭 수집 실패가 2분 지속 | critical |
+| 5xx 서버 에러 발생 | 5xx 응답이 2분 지속 | critical |
+| JVM 힙 메모리 90% 초과 | 힙 사용률 > 90% 가 5분 지속 | warning |
+| 응답시간 지연 | 평균 응답시간 > 1초 가 5분 지속 | warning |
+| DB 커넥션 풀 대기 발생 | 커넥션 대기(pending) > 0 이 5분 지속 | warning |
+
+`for` (지속 시간)를 둔 이유는 **재배포 중 잠깐 끊기는 것으로 알림이 오지 않게** 하기 위함이다.
+알림이 너무 잦으면 `rules.yaml` 의 임계값(`params`)이나 `for` 를 올리면 된다.

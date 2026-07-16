@@ -1,0 +1,19 @@
+# 대시보드 자동 등록 — json/ 폴더의 *.json 을 Grafana 가 부팅 시 읽어 대시보드로 만든다.
+# (UI에서 손으로 만들 필요 없음. 파일이 곧 정본이라 서버를 갈아엎어도 그대로 복원된다.)
+#
+# 왜 json/ 하위 폴더인가:
+#   Grafana 는 이 폴더(provisioning/dashboards)에서 *.yaml 을 'provider 설정'으로 읽는다.
+#   대시보드 JSON 을 같은 폴더에 두면 서로 섞이므로, JSON 은 json/ 아래로 분리한다.
+apiVersion: 1
+
+providers:
+  - name: dopamin-omok
+    orgId: 1
+    folder: 도파민오목            # Grafana 좌측 대시보드 목록에 이 폴더로 묶여 보인다
+    type: file
+    disableDeletion: true        # UI에서 실수로 지워도 파일이 정본이라 되살아난다
+    allowUiUpdates: true         # UI에서 패널을 고쳐보고 저장할 수 있게(학습·실험용)
+    updateIntervalSeconds: 30    # 파일을 고치면 30초 안에 반영
+    options:
+      path: /etc/grafana/provisioning/dashboards/json
+      foldersFromFilesStructure: false

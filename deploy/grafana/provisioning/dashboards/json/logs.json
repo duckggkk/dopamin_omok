@@ -1,0 +1,229 @@
+{
+  "uid": "omok-logs",
+  "title": "도파민오목 · 로그",
+  "description": "Promtail이 컨테이너 stdout을 모아 Loki에 넣은 로그. 알림이 왔을 때 '무슨 일이 있었나'를 여기서 확인한다.",
+  "tags": ["dopamin-omok", "logs"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "annotations": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "서비스",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "loki" },
+        "query": { "label": "service", "refId": "LokiVariableQueryEditor-VariableQuery", "type": 1 },
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false,
+        "current": { "text": "backend", "value": "backend", "selected": true },
+        "options": [],
+        "sort": 1
+      },
+      {
+        "name": "search",
+        "label": "검색어",
+        "type": "textbox",
+        "query": "",
+        "current": { "text": "", "value": "", "selected": false },
+        "options": [],
+        "description": "입력한 글자가 들어간 로그만 필터링(빈 칸이면 전체)"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "ERROR (최근 5분)",
+      "description": "0이 정상. 1건이라도 있으면 아래 'ERROR 로그만' 패널을 확인한다.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(count_over_time({service=\"$service\"} |= \"ERROR\" [5m]))",
+          "queryType": "range"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "WARN (최근 5분)",
+      "description": "당장 장애는 아니지만 반복되면 원인을 봐야 하는 경고.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "textMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(count_over_time({service=\"$service\"} |= \"WARN\" [5m]))",
+          "queryType": "range"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "레벨별 로그 발생량 (분당)",
+      "description": "ERROR가 튀는 시점을 먼저 찾고, 그 시간대를 드래그해 아래 로그를 좁혀 본다.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 40,
+            "showPoints": "never",
+            "drawStyle": "bars",
+            "stacking": { "mode": "normal", "group": "A" }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "ERROR" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "WARN" },
+            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true, "calcs": [] },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(count_over_time({service=\"$service\"} |= \"ERROR\" [1m]))",
+          "queryType": "range",
+          "legendFormat": "ERROR"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(count_over_time({service=\"$service\"} |= \"WARN\" [1m]))",
+          "queryType": "range",
+          "legendFormat": "WARN"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(count_over_time({service=\"$service\"} |= \"INFO\" [1m]))",
+          "queryType": "range",
+          "legendFormat": "INFO"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "logs",
+      "title": "ERROR 로그만",
+      "description": "진짜 문제만 모아 본다(정상 4xx는 ERROR로 남기지 않으므로 여기 뜨면 실제 버그·장애).",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 4 },
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{service=\"$service\"} |= \"ERROR\"",
+          "queryType": "range"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "logs",
+      "title": "전체 로그 (검색어 적용)",
+      "description": "위 '검색어' 칸에 입력한 글자가 포함된 로그만 보여준다. 예: 특정 traceId, 사용자 이메일, API 경로.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 13 },
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{service=\"$service\"} |= \"$search\"",
+          "queryType": "range"
+        }
+      ]
+    }
+  ]
+}

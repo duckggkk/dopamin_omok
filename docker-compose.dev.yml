@@ -86,11 +86,88 @@ services:
     networks:
       - omok_dev_net
 
+  # ── 관측 스택(개발용) ─────────────────────────────────────────────────────
+  # 운영(docker-compose.prod.yml)과 같은 구성을 로컬에서도 띄워, 대시보드를 눈으로 보며 고칠 수 있게 한다.
+  # 설정 파일(deploy/…)은 운영과 그대로 공유하므로, 로컬에서 확인한 게 운영에서도 동일하게 동작한다.
+  # 접속: http://localhost:3001 (admin / admin)
+
+  prometheus:
+    image: prom/prometheus:v3.13.1   # 운영과 동일 버전 고정
+    container_name: omok_prometheus_dev
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=3d    # 로컬은 3일치면 충분(디스크 절약)
+    volumes:
+      # 개발 전용 설정 — 백엔드를 host.docker.internal:8080 에서 찾는다(네이티브 실행/도커 실행 양쪽 대응).
+      - ./deploy/prometheus/prometheus.dev.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_dev_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"     # 쿼리를 직접 실험해보고 싶을 때(Prometheus 자체 UI)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # 리눅스에서도 호스트를 찾을 수 있게(Docker Desktop 은 기본 제공)
+    networks:
+      - omok_dev_net
+
+  loki:
+    image: grafana/loki:3.7.3        # 운영과 동일 버전 고정
+    container_name: omok_loki_dev
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./deploy/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_dev_data:/loki
+    networks:
+      - omok_dev_net
+
+  promtail:
+    image: grafana/promtail:3.6.8    # 운영과 동일 버전 고정
+    container_name: omok_promtail_dev
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./deploy/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro   # 실행 중인 컨테이너 로그를 자동 발견
+      - promtail_dev_data:/tmp
+    depends_on:
+      - loki
+    networks:
+      - omok_dev_net
+
+  grafana:
+    image: grafana/grafana:13.1.0   # 운영과 같은 버전으로 고정 — 로컬에서 확인한 게 운영에서도 그대로 동작하게
+    container_name: omok_grafana_dev
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}   # 로컬 전용 기본값
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      # 개발에선 데이터소스 + 대시보드만 프로비저닝한다.
+      # alerting/ 은 DISCORD_WEBHOOK_URL·SMTP 값을 요구해서, 빈 값인 로컬에선 프로비저닝이 실패한다 → 제외.
+      # (알림 규칙 자체는 운영에서만 동작하며, 문법 검증은 deploy/LOGGING.md 참고)
+      - ./deploy/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./deploy/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_dev_data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"   # 3000 은 프론트가 쓰므로 3001 로 노출
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - omok_dev_net
+
 volumes:
   mysql_dev_data:
   gradle_cache:
   gradle_build:
   frontend_node_modules:
+  prometheus_dev_data:
+  loki_dev_data:
+  promtail_dev_data:
+  grafana_dev_data:
 
 networks:
   omok_dev_net:
