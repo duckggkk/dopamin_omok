@@ -7,11 +7,11 @@ import { useChat } from '@/hooks/useChat';
 import { useLeaveGuard } from '@/hooks/useLeaveGuard';
 import { useStoneSoundPlayer } from '@/hooks/useStoneSoundPlayer';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
-import { useTouchUI } from '@/hooks/useTouchUI';
+import { useCoarsePointer } from '@/hooks/useTouchUI';
 import { areSameStoneSkin, stonePreviewStyle } from '@/utils/stoneSkin';
 import { playSfx, SfxName } from '@/utils/sfx';
 import ChatPanel from '@/components/game/ChatPanel';
-import DirectionPad from '@/components/common/DirectionPad';
+import Joystick from '@/components/common/Joystick';
 import GameResultOverlay, { GameResult } from '@/components/game/GameResultOverlay';
 import {
   Room,
@@ -217,7 +217,11 @@ const PhysicalGamePage = () => {
   const sameStoneSkin = areSameStoneSkin(blackPlayer?.stoneSkin, whitePlayer?.stoneSkin);
   const isInProgress = room?.status === 'IN_PROGRESS' && currentGame?.status === 'IN_PROGRESS';
   const controllable = !!(room?.status === 'IN_PROGRESS' && myColor);
-  const touchUI = useTouchUI(); // 터치 화면이면 가상 방향패드 + 액션 버튼 노출
+  // 가상 컨트롤/안내문구는 '진짜 터치 기기'에서만. 데스크톱은 창을 줄여도 키보드가 더 정확하므로 그대로 둔다.
+  const touchDevice = useCoarsePointer();
+  // 컨트롤은 대기 중에도 띄운다 — 시작 전에 조작법을 눈으로 익히고, 시작 순간 레이아웃이 밀리지 않게.
+  // 실제 입력은 controllable 일 때만 나간다.
+  const showTouchControls = !!(touchDevice && myPlayer && myPlayer.role !== 'SPECTATOR');
 
   // BGM은 게임이 진행 중일 때만 재생(대기 중엔 무음)
   useBackgroundMusic(PHYSICAL_BGM_SRC, { enabled: !!isInProgress });
@@ -663,8 +667,8 @@ const PhysicalGamePage = () => {
           {foePendingCount > 0 ? (
             <div className={styles.pendingFoe}>
               {foeIsMatchPoint
-                ? `⚠ 상대 매치포인트! 끊어라 (${touchUI ? '파괴/아이템' : 'Ctrl/Shift'})!`
-                : `⚠ 상대 오목 충전 중${foePendingCount > 1 ? ` ×${foePendingCount}` : ''}! 끊어라 (${touchUI ? '파괴/아이템' : 'Ctrl/Shift'})!`}
+                ? `⚠ 상대 매치포인트! 끊어라 (${touchDevice ? '파괴/아이템' : 'Ctrl/Shift'})!`
+                : `⚠ 상대 오목 충전 중${foePendingCount > 1 ? ` ×${foePendingCount}` : ''}! 끊어라 (${touchDevice ? '파괴/아이템' : 'Ctrl/Shift'})!`}
             </div>
           ) : myPendingCount > 0 ? (
             <div className={styles.pendingMine}>
@@ -687,9 +691,9 @@ const PhysicalGamePage = () => {
               <div className={styles.waitCard}>
                 <h2 className={styles.waitTitle}>⚔️ 피지컬 오목</h2>
                 <p className={styles.waitDesc}>
-                  {touchUI ? (
+                  {touchDevice ? (
                     <>
-                      방향패드로 캐릭터를 움직여 <b>⚫ 착수</b>! <b>💥 파괴</b>로 상대 돌을 부수고,
+                      조이스틱으로 캐릭터를 움직여 <b>⚫ 착수</b>! <b>💥 파괴</b>로 상대 돌을 부수고,
                       필드의 아이템을 주워 <b>🎁 아이템</b>으로 사용하세요.
                     </>
                   ) : (
@@ -744,10 +748,14 @@ const PhysicalGamePage = () => {
           )}
         </div>
 
-        {/* 터치 화면 전용: 가상 컨트롤 (왼쪽 방향패드 + 오른쪽 액션 버튼) */}
-        {touchUI && controllable && (
-          <div className={styles.touchControls} onContextMenu={(e) => e.preventDefault()}>
-            <DirectionPad
+        {/* 터치 화면 전용: 바둑판 바로 밑 가상 컨트롤 (왼쪽 조이스틱 + 오른쪽 액션 버튼) */}
+        {showTouchControls && (
+          <div
+            className={`${styles.touchControls} ${controllable ? '' : styles.touchControlsIdle}`}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            <Joystick
+              disabled={!controllable}
               onStart={(d: Direction) => sendPhysicalInput('MOVE_START', d)}
               onStop={() => sendPhysicalInput('MOVE_STOP')}
             />
@@ -755,6 +763,7 @@ const PhysicalGamePage = () => {
               <button
                 type="button"
                 className={`${styles.actionBtn} ${styles.actionDestroy}`}
+                disabled={!controllable}
                 onPointerDown={(e) => { e.preventDefault(); sendPhysicalInput('DESTROY'); }}
               >
                 💥<span>파괴</span>
@@ -762,6 +771,7 @@ const PhysicalGamePage = () => {
               <button
                 type="button"
                 className={`${styles.actionBtn} ${styles.actionItem}`}
+                disabled={!controllable}
                 onPointerDown={(e) => { e.preventDefault(); sendPhysicalInput('USE_ITEM'); }}
               >
                 🎁<span>아이템</span>
@@ -769,6 +779,7 @@ const PhysicalGamePage = () => {
               <button
                 type="button"
                 className={`${styles.actionBtn} ${styles.actionPlace}`}
+                disabled={!controllable}
                 onPointerDown={(e) => { e.preventDefault(); sendPhysicalInput('PLACE'); }}
               >
                 ⚫<span>착수</span>
@@ -778,9 +789,9 @@ const PhysicalGamePage = () => {
         )}
 
         <div className={styles.controls}>
-          {touchUI ? (
+          {touchDevice ? (
             <>
-              <span>방향패드 이동</span>
+              <span>🕹 조이스틱 이동</span>
               <span>⚫ 착수</span>
               <span>💥 파괴</span>
               <span>🎁 아이템</span>

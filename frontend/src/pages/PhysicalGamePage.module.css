@@ -395,6 +395,10 @@
   user-select: none;
   -webkit-user-select: none;
 }
+/* 게임 시작 전: 자리만 잡아두고 조작은 막는다 */
+.touchControlsIdle {
+  opacity: 0.5;
+}
 .touchActions {
   display: flex;
   align-items: flex-end;
@@ -419,6 +423,8 @@
 }
 .actionBtn span { font-size: 0.62rem; font-weight: 800; color: var(--text-muted); }
 .actionBtn:active { transform: scale(0.94); }
+.actionBtn:disabled { cursor: default; }
+.actionBtn:disabled:active { transform: none; }
 /* 착수가 주력 — 가장 크고 금색 */
 .actionPlace {
   width: 74px;

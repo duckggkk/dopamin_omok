@@ -6,7 +6,7 @@ import { usePlazaSocket } from '@/hooks/usePlazaSocket';
 import { useTouchUI } from '@/hooks/useTouchUI';
 import { plazaApi } from '@/api/plaza';
 import { ApiResponse, ChatMessage, Direction, PlazaAppearance, PlazaJoinResponse, PlazaPlayerView, PlazaSnapshot } from '@/types';
-import DirectionPad from '@/components/common/DirectionPad';
+import Joystick from '@/components/common/Joystick';
 import styles from './PlazaPage.module.css';
 
 // 캔버스 초기(폴백) 해상도. 실제 크기는 컨테이너에 맞춰 ResizeObserver 가 동적으로 맞춘다.
@@ -675,13 +675,14 @@ const PlazaPage = () => {
             )}
           </div>
 
-          {/* 터치 화면 전용: 가상 방향패드 (캔버스 우하단) */}
+          {/* 터치 화면 전용: 가상 조이스틱 (캔버스 우하단) */}
           {touchUI && joinInfo && (
-            <DirectionPad
-              className={styles.dpadOverlay}
-              onStart={(d: Direction) => sendInput('MOVE_START', d)}
-              onStop={() => sendInput('MOVE_STOP')}
-            />
+            <div className={styles.joystickOverlay}>
+              <Joystick
+                onStart={(d: Direction) => sendInput('MOVE_START', d)}
+                onStop={() => sendInput('MOVE_STOP')}
+              />
+            </div>
           )}
 
           {/* 아바타 꾸미기 팝업 — 광장 화면 내부 오버레이 */}
