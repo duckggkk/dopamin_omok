@@ -5,6 +5,7 @@ apiVersion: 1
 datasources:
   - name: Prometheus
     type: prometheus
+    uid: prometheus            # 대시보드/알림 규칙이 이 고정 UID로 참조한다(Loki 와 같은 방식)
     access: proxy
     url: http://prometheus:9090      # docker 내부망의 Prometheus
     isDefault: true
