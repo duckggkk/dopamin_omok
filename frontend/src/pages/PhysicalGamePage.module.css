@@ -394,6 +394,8 @@
   gap: 12px;
   user-select: none;
   -webkit-user-select: none;
+  /* 버튼 사이 틈에 손가락이 닿아도 브라우저가 스크롤/핀치줌으로 가로채지 않게 */
+  touch-action: none;
 }
 /* 게임 시작 전: 자리만 잡아두고 조작은 막는다 */
 .touchControlsIdle {

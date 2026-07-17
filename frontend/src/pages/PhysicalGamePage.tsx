@@ -7,7 +7,7 @@ import { useChat } from '@/hooks/useChat';
 import { useLeaveGuard } from '@/hooks/useLeaveGuard';
 import { useStoneSoundPlayer } from '@/hooks/useStoneSoundPlayer';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
-import { useCoarsePointer } from '@/hooks/useTouchUI';
+import { useTouchUI } from '@/hooks/useTouchUI';
 import { areSameStoneSkin, stonePreviewStyle } from '@/utils/stoneSkin';
 import { playSfx, SfxName } from '@/utils/sfx';
 import ChatPanel from '@/components/game/ChatPanel';
@@ -217,8 +217,11 @@ const PhysicalGamePage = () => {
   const sameStoneSkin = areSameStoneSkin(blackPlayer?.stoneSkin, whitePlayer?.stoneSkin);
   const isInProgress = room?.status === 'IN_PROGRESS' && currentGame?.status === 'IN_PROGRESS';
   const controllable = !!(room?.status === 'IN_PROGRESS' && myColor);
-  // 가상 컨트롤/안내문구는 '진짜 터치 기기'에서만. 데스크톱은 창을 줄여도 키보드가 더 정확하므로 그대로 둔다.
-  const touchDevice = useCoarsePointer();
+  // 가상 컨트롤/안내문구: 터치 기기 '또는' 좁은 화면이면 노출.
+  // 순수 터치 판정((hover:none) and (pointer:coarse))만 쓰면 인앱 브라우저·데스크톱 모드·
+  // 키보드/펜 연결 기기에서 false 가 되어 폰인데도 컨트롤이 안 뜨는 사고가 나므로 화면 폭을 안전망으로 둔다.
+  // 키보드가 있는 기기라면 컨트롤이 떠 있어도 키보드 입력이 그대로 동작한다.
+  const touchDevice = useTouchUI();
   // 컨트롤은 대기 중에도 띄운다 — 시작 전에 조작법을 눈으로 익히고, 시작 순간 레이아웃이 밀리지 않게.
   // 실제 입력은 controllable 일 때만 나간다.
   const showTouchControls = !!(touchDevice && myPlayer && myPlayer.role !== 'SPECTATOR');
@@ -436,6 +439,27 @@ const PhysicalGamePage = () => {
       }
     };
   }, [controllable, sendPhysicalInput]);
+
+  // 이 페이지에 있는 동안 브라우저 핀치줌 차단.
+  // 조이스틱을 밀면서 착수/파괴 버튼을 같이 누르는 게임이라, 두 손가락이 닿는 순간
+  // 브라우저가 확대 제스처로 가로채면 컨트롤이 끊긴다. 두 손가락 이상일 때만 막으므로
+  // 한 손가락 스크롤은 그대로 된다. 데스크톱은 터치 이벤트 자체가 없어 영향 없음.
+  useEffect(() => {
+    const blockMultiTouch = (e: TouchEvent) => {
+      if (e.touches.length > 1) e.preventDefault();
+    };
+    const blockGesture = (e: Event) => e.preventDefault(); // iOS 사파리 전용 핀치 이벤트
+    document.addEventListener('touchstart', blockMultiTouch, { passive: false });
+    document.addEventListener('touchmove', blockMultiTouch, { passive: false });
+    document.addEventListener('gesturestart', blockGesture);
+    document.addEventListener('gesturechange', blockGesture);
+    return () => {
+      document.removeEventListener('touchstart', blockMultiTouch);
+      document.removeEventListener('touchmove', blockMultiTouch);
+      document.removeEventListener('gesturestart', blockGesture);
+      document.removeEventListener('gesturechange', blockGesture);
+    };
+  }, []);
 
   // 캔버스 렌더 루프
   useEffect(() => {

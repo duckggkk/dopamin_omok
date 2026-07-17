@@ -17,19 +17,12 @@ const COARSE = '(hover: none) and (pointer: coarse)';
 const NARROW = '(max-width: 768px)';
 
 /**
- * 터치 기기 '또는' 좁은 화면.
- * 마우스로도 쓸 수 있어서 창을 줄인 데스크톱에서도 켜져야 하는 UI에 쓴다
- * (오목판 탭 미리보기/줌, 광장 방향패드).
+ * 터치 기기 '또는' 좁은 화면이면 true — 터치 UI(가상 컨트롤·탭 미리보기 등) 노출 기준.
+ * 순수 터치 판정(COARSE)만 쓰면 인앱 브라우저·데스크톱 모드·키보드/펜 연결 기기에서
+ * 폰인데도 false 가 나올 수 있어, 화면 폭(NARROW)을 안전망으로 함께 본다.
  */
 export const useTouchUI = () => {
   const coarse = useMediaQuery(COARSE);
   const narrow = useMediaQuery(NARROW);
   return coarse || narrow;
 };
-
-/**
- * 진짜 터치 기기인지만 본다(창 폭 무관).
- * 데스크톱에서 창을 줄였다고 켜지면 안 되는 모바일 전용 UI에 쓴다 — 피지컬 가상 컨트롤은
- * 키보드로 하는 게 더 정확하므로, 키보드가 있는 기기에는 띄우지 않는다.
- */
-export const useCoarsePointer = () => useMediaQuery(COARSE);
