@@ -54,7 +54,7 @@ public class PhysicalGameService implements PhysicalGameLifecycle {
                     pos[0], pos[1]);
             // AI 연습: 봇 계정 플레이어는 드라이버가 매 틱 구동하도록 표시한다.
             if (gp.getUser().isBot()) player.markAsBot();
-            // 파괴는 Ctrl 기본키 동작이므로 시작 아이템(상대 돌 제거)을 더 이상 지급하지 않는다.
+            // 파괴는 X 기본키 동작이므로 시작 아이템(상대 돌 제거)을 더 이상 지급하지 않는다.
             pg.addPlayer(player);
         }
         // 모든 피지컬 대국(실대전·AI연습·혼자 두기)에 연속(부드러운) 이동을 적용한다.

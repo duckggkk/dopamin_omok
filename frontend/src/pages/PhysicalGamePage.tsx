@@ -409,12 +409,12 @@ const PhysicalGamePage = () => {
       if (e.code === 'Space') {
         e.preventDefault();
         sendPhysicalInput('PLACE');
-      } else if (e.key === 'Control') {
-        // 파괴: 기본키 Ctrl (상대 돌 부수기)
+      } else if (e.code === 'KeyX') {
+        // 파괴: X (상대 돌 부수기)
         e.preventDefault();
         sendPhysicalInput('DESTROY');
-      } else if (e.key === 'Shift') {
-        // 아이템 사용: Shift
+      } else if (e.code === 'KeyC') {
+        // 아이템 사용: C
         e.preventDefault();
         sendPhysicalInput('USE_ITEM');
       }
@@ -691,8 +691,8 @@ const PhysicalGamePage = () => {
           {foePendingCount > 0 ? (
             <div className={styles.pendingFoe}>
               {foeIsMatchPoint
-                ? `⚠ 상대 매치포인트! 끊어라 (${touchDevice ? '파괴/아이템' : 'Ctrl/Shift'})!`
-                : `⚠ 상대 오목 충전 중${foePendingCount > 1 ? ` ×${foePendingCount}` : ''}! 끊어라 (${touchDevice ? '파괴/아이템' : 'Ctrl/Shift'})!`}
+                ? `⚠ 상대 매치포인트! 끊어라 (${touchDevice ? '파괴/아이템' : 'X/C'})!`
+                : `⚠ 상대 오목 충전 중${foePendingCount > 1 ? ` ×${foePendingCount}` : ''}! 끊어라 (${touchDevice ? '파괴/아이템' : 'X/C'})!`}
             </div>
           ) : myPendingCount > 0 ? (
             <div className={styles.pendingMine}>
@@ -722,8 +722,8 @@ const PhysicalGamePage = () => {
                     </>
                   ) : (
                     <>
-                      방향키로 캐릭터를 움직여 <b>Space</b>로 착수! <b>Ctrl</b>로 상대 돌을 부수고,
-                      필드의 아이템을 주워 <b>Shift</b>로 사용하세요.
+                      방향키로 캐릭터를 움직여 <b>Space</b>로 착수! <b>X</b>로 상대 돌을 부수고,
+                      필드의 아이템을 주워 <b>C</b>로 사용하세요.
                     </>
                   )}
                   {' '}<b>오목</b>을 완성할 때마다 1점
@@ -824,8 +824,8 @@ const PhysicalGamePage = () => {
             <>
               <span><kbd>←↑↓→</kbd> 이동</span>
               <span><kbd>Space</kbd> 착수</span>
-              <span><kbd>Ctrl</kbd> 파괴</span>
-              <span><kbd>Shift</kbd> 아이템</span>
+              <span><kbd>X</kbd> 파괴</span>
+              <span><kbd>C</kbd> 아이템</span>
             </>
           )}
         </div>

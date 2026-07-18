@@ -8,6 +8,6 @@ public enum PhysicalInputType {
     MOVE_START,  // 방향키 누름 → 이동 의도 시작
     MOVE_STOP,   // 방향키 뗌 → 이동 정지
     PLACE,       // Space → 현재 칸 착수
-    DESTROY,     // Shift → 현재 칸 상대 돌 파괴
-    USE_ITEM     // Ctrl → 보유 아이템 사용
+    DESTROY,     // X → 현재 칸 상대 돌 파괴
+    USE_ITEM     // C → 보유 아이템 사용
 }
