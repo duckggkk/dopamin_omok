@@ -22,7 +22,7 @@ const toDirection = (dx: number, dy: number): Direction =>
   Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'RIGHT' : 'LEFT') : dy > 0 ? 'DOWN' : 'UP';
 
 /**
- * 모바일 게임식 아날로그 조이스틱. 방향 전환은 손가락을 떼지 않고 이어지며,
+ * 모바일 게임식 아날로그 패드. 방향 전환은 손가락을 떼지 않고 이어지며,
  * 방향이 실제로 바뀔 때만 onStart 를 부른다(같은 방향 재전송 없음).
  */
 const Joystick = ({ onStart, onStop, disabled, className }: Props) => {
@@ -93,7 +93,7 @@ const Joystick = ({ onStart, onStop, disabled, className }: Props) => {
       onPointerCancel={handleUp}
       onContextMenu={(e) => e.preventDefault()}
       role="application"
-      aria-label="이동 조이스틱"
+      aria-label="이동 패드"
     >
       <span className={`${styles.hint} ${styles.hintUp}`}>▲</span>
       <span className={`${styles.hint} ${styles.hintLeft}`}>◀</span>

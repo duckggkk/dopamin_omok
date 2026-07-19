@@ -675,7 +675,7 @@ const PlazaPage = () => {
             )}
           </div>
 
-          {/* 터치 화면 전용: 가상 조이스틱 (캔버스 우하단) */}
+          {/* 터치 화면 전용: 가상 패드 (캔버스 우하단) */}
           {touchUI && joinInfo && (
             <div className={styles.joystickOverlay}>
               <Joystick
@@ -738,7 +738,6 @@ const PlazaPage = () => {
                     ))}
                   </div>
                 </div>
-                <p className={styles.dressHint}>지금은 플레이스홀더예요. 결제형 아바타는 다음 단계에서 붙습니다.</p>
               </div>
             </div>
           )}
@@ -758,7 +757,6 @@ const PlazaPage = () => {
               <span>아바타 클릭: 프로필</span>
             </>
           )}
-          <span className={styles.muted}>춤·상호작용은 다음 단계에서 추가됩니다</span>
         </div>
       </div>
     </div>

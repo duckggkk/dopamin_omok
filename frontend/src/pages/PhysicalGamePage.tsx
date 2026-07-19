@@ -441,7 +441,7 @@ const PhysicalGamePage = () => {
   }, [controllable, sendPhysicalInput]);
 
   // 이 페이지에 있는 동안 브라우저 핀치줌 차단.
-  // 조이스틱을 밀면서 착수/파괴 버튼을 같이 누르는 게임이라, 두 손가락이 닿는 순간
+  // 패드를 밀면서 착수/파괴 버튼을 같이 누르는 게임이라, 두 손가락이 닿는 순간
   // 브라우저가 확대 제스처로 가로채면 컨트롤이 끊긴다. 두 손가락 이상일 때만 막으므로
   // 한 손가락 스크롤은 그대로 된다. 데스크톱은 터치 이벤트 자체가 없어 영향 없음.
   useEffect(() => {
@@ -692,13 +692,13 @@ const PhysicalGamePage = () => {
             <div className={styles.pendingFoe}>
               {foeIsMatchPoint
                 ? `⚠ 상대 매치포인트! 끊어라 (${touchDevice ? '파괴/아이템' : 'X/C'})!`
-                : `⚠ 상대 오목 충전 중${foePendingCount > 1 ? ` ×${foePendingCount}` : ''}! 끊어라 (${touchDevice ? '파괴/아이템' : 'X/C'})!`}
+                : `⚠ 상대 오목 완성!${foePendingCount > 1 ? ` ×${foePendingCount}` : ''}! 빨리 끊어요! (${touchDevice ? '파괴/아이템' : 'X/C'})!`}
             </div>
           ) : myPendingCount > 0 ? (
             <div className={styles.pendingMine}>
               {myIsMatchPoint
                 ? '⚡ 오목 완성! 버티면 승리!'
-                : `⚡ 오목 완성${myPendingCount > 1 ? ` ×${myPendingCount}` : ''}! 게이지 지키면 득점!`}
+                : `⚡ 오목 완성${myPendingCount > 1 ? ` ×${myPendingCount}` : ''}! 버티면 1점!`}
             </div>
           ) : null}
 
@@ -717,7 +717,7 @@ const PhysicalGamePage = () => {
                 <p className={styles.waitDesc}>
                   {touchDevice ? (
                     <>
-                      조이스틱으로 캐릭터를 움직여 <b>⚫ 착수</b>! <b>💥 파괴</b>로 상대 돌을 부수고,
+                      패드로 캐릭터를 움직여 <b>⚫ 착수</b>! <b>💥 파괴</b>로 상대 돌을 부수고,
                       필드의 아이템을 주워 <b>🎁 아이템</b>으로 사용하세요.
                     </>
                   ) : (
@@ -772,7 +772,7 @@ const PhysicalGamePage = () => {
           )}
         </div>
 
-        {/* 터치 화면 전용: 바둑판 바로 밑 가상 컨트롤 (왼쪽 조이스틱 + 오른쪽 액션 버튼) */}
+        {/* 터치 화면 전용: 바둑판 바로 밑 가상 컨트롤 (왼쪽 패드 + 오른쪽 액션 버튼) */}
         {showTouchControls && (
           <div
             className={`${styles.touchControls} ${controllable ? '' : styles.touchControlsIdle}`}
@@ -815,7 +815,7 @@ const PhysicalGamePage = () => {
         <div className={styles.controls}>
           {touchDevice ? (
             <>
-              <span>🕹 조이스틱 이동</span>
+              <span>🕹 이동</span>
               <span>⚫ 착수</span>
               <span>💥 파괴</span>
               <span>🎁 아이템</span>
