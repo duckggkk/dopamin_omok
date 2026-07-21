@@ -21,6 +21,7 @@ import {
   PhysicalItemType,
   StoneColor,
   Direction,
+  PhysicalDirection,
 } from '@/types';
 import {
   ITEM_META,
@@ -49,6 +50,22 @@ const KEY_DIR: Record<string, Direction> = {
   ArrowDown: 'DOWN',
   ArrowLeft: 'LEFT',
   ArrowRight: 'RIGHT',
+};
+
+/**
+ * 누르고 있는 방향키들을 실제로 보낼 한 방향으로 합친다.
+ * 세로/가로를 하나씩 잡고 있으면 대각(UP_RIGHT 등), 한 축만이면 그 축, 같은 축을 둘 다면 나중에 누른 쪽.
+ * 조이스틱의 8방향과 키보드 조작을 맞추기 위한 규칙이다.
+ */
+const combineKeys = (pressed: Direction[]): PhysicalDirection | null => {
+  let vertical: Direction | null = null;
+  let horizontal: Direction | null = null;
+  for (const dir of pressed) {
+    if (dir === 'UP' || dir === 'DOWN') vertical = dir; // 나중에 누른 것이 덮어쓴다
+    else horizontal = dir;
+  }
+  if (vertical && horizontal) return `${vertical}_${horizontal}` as PhysicalDirection;
+  return vertical ?? horizontal;
 };
 
 // 직전 스냅샷 대비 '새로 놓인 돌'의 색을 찾는다(착수음 트리거용). 없으면 null.
@@ -193,8 +210,8 @@ const PhysicalGamePage = () => {
   const clearFxRef = useRef<{ cells: number[][]; color: StoneColor | null; start: number }[]>([]);
   // 아이템 획득/사용 순간 이펙트 — heldItem 변화 감지 시 추가, 렌더 루프가 만료된 것을 제거한다.
   const itemFxRef = useRef<{ kind: 'pickup' | 'use'; item: PhysicalItemType; x: number; y: number; start: number }[]>([]);
-  const pressedRef = useRef<Direction[]>([]);
-  const activeDirRef = useRef<Direction | null>(null);
+  const pressedRef = useRef<Direction[]>([]); // 누르고 있는 방향키(축 단위) — 대각은 combineKeys 가 만든다
+  const activeDirRef = useRef<PhysicalDirection | null>(null);
   const prevGameIdRef = useRef<number | undefined>(undefined);
   const prevRoomStatusRef = useRef<string | undefined>(undefined);
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -379,6 +396,12 @@ const PhysicalGamePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.status]);
 
+  // 입장 직후엔 항상 오목판(맨 위)부터 보이게 한다.
+  // 모바일은 세로 배치라 로비에서 스크롤해 둔 위치가 남으면 아래쪽 채팅창이 먼저 보인다.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // 키보드 입력(참가자 + 진행 중일 때만)
   useEffect(() => {
     if (!controllable) return;
@@ -387,7 +410,7 @@ const PhysicalGamePage = () => {
       t instanceof HTMLElement && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
 
     const recomputeDir = () => {
-      const next = pressedRef.current[pressedRef.current.length - 1] ?? null;
+      const next = combineKeys(pressedRef.current);
       if (next === activeDirRef.current) return;
       activeDirRef.current = next;
       if (next) sendPhysicalInput('MOVE_START', next);
@@ -778,9 +801,10 @@ const PhysicalGamePage = () => {
             className={`${styles.touchControls} ${controllable ? '' : styles.touchControlsIdle}`}
             onContextMenu={(e) => e.preventDefault()}
           >
-            <Joystick
+            <Joystick<PhysicalDirection>
+              diagonal
               disabled={!controllable}
-              onStart={(d: Direction) => sendPhysicalInput('MOVE_START', d)}
+              onStart={(d) => sendPhysicalInput('MOVE_START', d)}
               onStop={() => sendPhysicalInput('MOVE_STOP')}
             />
             <div className={styles.touchActions}>

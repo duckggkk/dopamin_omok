@@ -262,7 +262,7 @@ public class HeuristicPhysicalBotPolicy implements PhysicalBotPolicy {
         queue.add(new int[]{sx, sy});
         while (!queue.isEmpty()) {
             int[] cur = queue.poll();
-            for (Direction dir : Direction.values()) {
+            for (Direction dir : Direction.CARDINALS) { // 격자 거리장이라 대각은 제외
                 int nx = cur[0] + dir.dx, ny = cur[1] + dir.dy;
                 if (!inBounds(cells, nx, ny) || cells[ny][nx] == CRATER) continue;
                 if (dist[ny][nx] != -1) continue;
@@ -278,7 +278,7 @@ public class HeuristicPhysicalBotPolicy implements PhysicalBotPolicy {
         int[][] distToTarget = bfsDistances(cells, tx, ty);
         Direction best = null;
         int bestDist = Integer.MAX_VALUE;
-        for (Direction dir : Direction.values()) {
+        for (Direction dir : Direction.CARDINALS) { // 봇은 상하좌우로만 걷는다(거리장과 일관)
             int nx = sx + dir.dx, ny = sy + dir.dy;
             if (!inBounds(cells, nx, ny) || cells[ny][nx] == CRATER) continue;
             int d = distToTarget[ny][nx];

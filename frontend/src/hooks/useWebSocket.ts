@@ -4,9 +4,9 @@ import { tokenStorage } from '@/utils/token';
 import {
   ApiResponse,
   ChatMessage,
-  Direction,
   GameMove,
   NoticePayload,
+  PhysicalDirection,
   PhysicalInputType,
   PhysicalSnapshot,
   Room,
@@ -156,7 +156,7 @@ export const useWebSocket = ({
 
   // 피지컬 오목: 단일 입력 엔드포인트로 전송(direction 은 MOVE_START 일 때만 의미)
   const sendPhysicalInput = useCallback(
-    (type: PhysicalInputType, direction?: Direction) => {
+    (type: PhysicalInputType, direction?: PhysicalDirection) => {
       if (!clientRef.current?.connected) return;
       clientRef.current.publish({
         destination: `/app/physical/${roomCode}/input`,

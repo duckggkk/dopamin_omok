@@ -162,11 +162,13 @@ public class PhysicalOmokEngine {
                 ? 1000.0 / props.speedBoostMoveCooldownMs()
                 : 1000.0 / props.moveCooldownMs()) * CONTINUOUS_SPEED_SCALE;
         double step = speed * props.tickIntervalMs() / 1000.0; // 칸/틱
+        // 대각은 두 축을 동시에 밀어 √2 배 빨라지므로 축별 이동량을 그만큼 줄인다(체감 속도 동일).
+        if (dir.isDiagonal()) step /= Math.sqrt(2);
         int maxCell = game.board().size() - 1;
 
         double nx = clampCoord(player.getRenderX() + dir.dx * step, maxCell);
         double ny = clampCoord(player.getRenderY() + dir.dy * step, maxCell);
-        // 축별로 진입 칸을 검사(4방향이라 실제로는 한 축만 변함) — 막힌 칸이면 그 축 이동 취소.
+        // 축별로 진입 칸을 검사 — 막힌 칸이면 그 축만 취소(대각이면 나머지 축으로 벽을 타고 미끄러진다).
         if (dir.dx != 0 && isCellBlocked(game, (int) Math.round(nx), (int) Math.round(player.getRenderY()))) {
             nx = player.getRenderX();
         }
@@ -205,6 +207,10 @@ public class PhysicalOmokEngine {
     private boolean doStep(PhysicalGame game, PhysicalPlayer player, Direction dir, long now) {
         int nx = player.getX() + dir.dx, ny = player.getY() + dir.dy;
         if (!game.board().inBounds(nx, ny) || game.board().isBlocked(nx, ny)) return false;
+        // 대각은 양옆 두 칸이 모두 막혀 있으면 통과 금지(돌 사이 틈을 대각으로 뚫고 지나가는 것 방지).
+        if (dir.isDiagonal()
+                && isCellBlocked(game, nx, player.getY())
+                && isCellBlocked(game, player.getX(), ny)) return false;
         player.moveTo(nx, ny, now);
         tryPickup(game, player);
         return true;

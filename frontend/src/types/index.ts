@@ -284,6 +284,9 @@ export interface Inventory {
 
 // ===== 피지컬 오목 (실시간 액션 모드) =====
 export type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
+export type DiagonalDirection = 'UP_LEFT' | 'UP_RIGHT' | 'DOWN_LEFT' | 'DOWN_RIGHT';
+// 피지컬 오목만 대각 이동을 받는다. 광장은 아바타 스프라이트가 4방향이라 Direction 그대로.
+export type PhysicalDirection = Direction | DiagonalDirection;
 // 파괴(상대 돌 제거)는 아이템이 아니라 X 기본키 동작이므로 아이템 목록에서 제외.
 export type PhysicalItemType = 'SPEED_BOOST' | 'CRATER' | 'BOMB';
 export type PhysicalInputType = 'MOVE_START' | 'MOVE_STOP' | 'PLACE' | 'DESTROY' | 'USE_ITEM';

@@ -38,6 +38,16 @@
 .hintLeft { left: 9px; }
 .hintRight { right: 9px; }
 
+/* 8방향 패드일 때만 뜨는 대각 표시 — 축 화살표보다 한 단계 흐리게 */
+.hintDiag {
+  font-size: 0.58rem;
+  color: rgba(232, 221, 200, 0.22);
+}
+.hintUpLeft { top: 22px; left: 22px; }
+.hintUpRight { top: 22px; right: 22px; }
+.hintDownLeft { bottom: 22px; left: 22px; }
+.hintDownRight { bottom: 22px; right: 22px; }
+
 .knob {
   width: 58px;
   height: 58px;
