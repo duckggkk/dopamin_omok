@@ -90,13 +90,13 @@ public class PhysicalGameSessionManager {
             List<PhysicalReplayData.PlayerMotion> ps = new ArrayList<>();
             for (PhysicalPlayer p : game.players()) {
                 ps.add(new PhysicalReplayData.PlayerMotion(
-                        p.getColor().name(), p.getX(), p.getY(),
-                        p.getHeldItem() != null ? p.getHeldItem().name() : null,
+                        p.getColor(), p.getX(), p.getY(),
+                        p.getHeldItem(),
                         p.isSpeedBoosted(nowMs)));
             }
             List<PhysicalReplayData.ItemMotion> items = new ArrayList<>();
             for (ItemDrop d : game.drops()) {
-                items.add(new PhysicalReplayData.ItemMotion(d.x(), d.y(), d.type().name()));
+                items.add(new PhysicalReplayData.ItemMotion(d.x(), d.y(), d.type()));
             }
             frames.add(new PhysicalReplayData.MotionFrame(nowMs - startMs, ps, items));
         }
@@ -298,12 +298,11 @@ public class PhysicalGameSessionManager {
         List<PhysicalReplayData.PlayerInfo> players = new ArrayList<>();
         for (PhysicalPlayer p : g.players()) {
             players.add(new PhysicalReplayData.PlayerInfo(
-                    p.getColor().name(), p.getNickname(), p.getSkin(), p.getCharacter()));
+                    p.getColor(), p.getNickname(), p.getSkin(), p.getCharacter()));
         }
-        String winner = g.winnerColor() != null ? g.winnerColor().name() : null;
         long durationMs = System.currentTimeMillis() - s.recorder.startMs;
         return new PhysicalReplayData(
-                g.gameId(), g.board().size(), g.winCount(), durationMs, winner,
+                g.gameId(), g.board().size(), g.winCount(), durationMs, g.winnerColor(),
                 players, List.copyOf(s.recorder.events), List.copyOf(s.motion.frames), s.training.build());
     }
 
@@ -377,11 +376,11 @@ public class PhysicalGameSessionManager {
         List<PhysicalPlayerView> playerViews = new ArrayList<>();
         for (PhysicalPlayer p : game.players()) {
             playerViews.add(new PhysicalPlayerView(
-                    p.getColor().name(),
+                    p.getColor(),
                     p.getNickname(),
                     p.getRenderX(),
                     p.getRenderY(),
-                    p.getHeldItem() != null ? p.getHeldItem().name() : null,
+                    p.getHeldItem(),
                     p.getLastDestroyAt() + props.destroyCooldownMs(),
                     p.isSpeedBoosted(now),
                     p.getSkin(),
@@ -393,32 +392,30 @@ public class PhysicalGameSessionManager {
 
         List<ItemDropView> itemViews = new ArrayList<>();
         for (ItemDrop d : game.drops()) {
-            itemViews.add(new ItemDropView(d.x(), d.y(), d.type().name()));
+            itemViews.add(new ItemDropView(d.x(), d.y(), d.type()));
         }
-
-        StoneColor winner = game.winnerColor();
 
         List<PhysicalSnapshot.PendingLineView> pendingViews = new ArrayList<>();
         for (PendingLine pl : game.pendingLines()) {
             pendingViews.add(new PhysicalSnapshot.PendingLineView(
-                    pl.color().name(), pl.cells().toArray(new int[0][]), pl.lockAt()));
+                    pl.color(), pl.cells().toArray(new int[0][]), pl.lockAt()));
         }
 
         List<PhysicalSnapshot.ClearedLineView> clearedViews = new ArrayList<>();
         for (PendingLine pl : game.lastClearedLines()) {
             clearedViews.add(new PhysicalSnapshot.ClearedLineView(
-                    pl.color().name(), pl.cells().toArray(new int[0][])));
+                    pl.color(), pl.cells().toArray(new int[0][])));
         }
 
         return new PhysicalSnapshot(
                 game.roomCode(),
-                game.status().name(),
+                game.status(),
                 game.board().size(),
                 game.winCount(),
                 game.board().encode(),
                 playerViews,
                 itemViews,
-                winner != null ? winner.name() : null,
+                game.winnerColor(),
                 pendingViews,
                 props.winSettleMs(),
                 now,
