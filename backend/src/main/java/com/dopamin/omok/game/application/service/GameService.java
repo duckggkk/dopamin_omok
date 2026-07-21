@@ -2,6 +2,7 @@ package com.dopamin.omok.game.application.service;
 
 import com.dopamin.omok.game.application.dto.GameMoveResponse;
 import com.dopamin.omok.game.application.dto.GameResponse;
+import com.dopamin.omok.game.application.dto.GameSummaryResponse;
 import com.dopamin.omok.game.application.port.in.*;
 import com.dopamin.omok.game.application.port.out.*;
 import com.dopamin.omok.game.domain.*;
@@ -197,10 +198,10 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
     }
 
     @Override
-    public Page<GameResponse> getPublicGames(UUID publicId, Long viewerUserId, Pageable pageable) {
+    public Page<GameSummaryResponse> getPublicGames(UUID publicId, Long viewerUserId, Pageable pageable) {
         User owner = findVisibleProfileOwner(publicId, viewerUserId);
         return loadGamePort.findCompletedByUserId(owner.getId(), pageable)
-                .map(GameResponse::from);
+                .map(GameSummaryResponse::from);
     }
 
     private void checkAndDeductTime(Room room, Game game, Long userId) {

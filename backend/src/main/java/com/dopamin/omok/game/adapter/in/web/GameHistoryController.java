@@ -2,6 +2,7 @@ package com.dopamin.omok.game.adapter.in.web;
 
 import com.dopamin.omok.game.application.dto.GameMoveResponse;
 import com.dopamin.omok.game.application.dto.GameResponse;
+import com.dopamin.omok.game.application.dto.GameSummaryResponse;
 import com.dopamin.omok.game.application.port.in.GetGameMovesUseCase;
 import com.dopamin.omok.game.application.port.in.GetMyGamesUseCase;
 import com.dopamin.omok.game.application.port.in.GetPhysicalReplayUseCase;
@@ -56,12 +57,13 @@ public class GameHistoryController {
         return ResponseEntity.ok(ApiResponse.success(replay));
     }
 
+    /* 전적 목록보기 */
     @GetMapping("/users/{publicId}/games")
-    public ResponseEntity<ApiResponse<Page<GameResponse>>> getPublicGames(
+    public ResponseEntity<ApiResponse<Page<GameSummaryResponse>>> getPublicGames(
             @AuthenticationPrincipal AuthUser userDetails,
             @PathVariable UUID publicId,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<GameResponse> response = getMyGamesUseCase.getPublicGames(publicId, userDetails.id(), pageable);
+        Page<GameSummaryResponse> response = getMyGamesUseCase.getPublicGames(publicId, userDetails.id(), pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
