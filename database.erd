@@ -1,0 +1,2649 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dineug/erd-editor/main/json-schema/schema.json",
+  "version": "3.0.0",
+  "settings": {
+    "width": 2400,
+    "height": 2000,
+    "scrollTop": -596.7013,
+    "scrollLeft": -634.4045,
+    "zoomLevel": 0.38,
+    "show": 511,
+    "database": 4,
+    "databaseName": "dopamin_omok",
+    "canvasType": "ERD",
+    "language": 8,
+    "tableNameCase": 8,
+    "columnNameCase": 8,
+    "bracketType": 8,
+    "relationshipDataTypeSync": true,
+    "relationshipOptimization": true,
+    "columnOrder": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64
+    ],
+    "maxWidthComment": 200,
+    "ignoreSaveSettings": 0
+  },
+  "doc": {
+    "tableIds": [
+      "table-users",
+      "table-rooms",
+      "table-games",
+      "table-game_players",
+      "table-game_moves",
+      "table-physical_game_records",
+      "table-items",
+      "table-user_items",
+      "table-user_active_items",
+      "table-friendships"
+    ],
+    "relationshipIds": [
+      "relationship-1-rooms-host_id",
+      "relationship-2-games-room_id",
+      "relationship-3-games-black_player_id",
+      "relationship-4-games-white_player_id",
+      "relationship-5-games-winner_id",
+      "relationship-6-game_players-room_id",
+      "relationship-7-game_players-user_id",
+      "relationship-8-game_moves-game_id",
+      "relationship-9-game_moves-player_id",
+      "relationship-10-physical_game_records-game_id",
+      "relationship-11-user_items-user_id",
+      "relationship-12-user_items-item_id",
+      "relationship-13-user_active_items-user_id",
+      "relationship-14-user_active_items-item_id",
+      "relationship-15-friendships-requester_id",
+      "relationship-16-friendships-addressee_id"
+    ],
+    "indexIds": [],
+    "memoIds": []
+  },
+  "collections": {
+    "tableEntities": {
+      "table-users": {
+        "id": "table-users",
+        "name": "users",
+        "comment": "사용자 계정, 전적, 모드별 레이팅 및 AI 진행도",
+        "columnIds": [
+          "column-users-id",
+          "column-users-public_id",
+          "column-users-email",
+          "column-users-password",
+          "column-users-nickname",
+          "column-users-role",
+          "column-users-provider",
+          "column-users-provider_id",
+          "column-users-email_verified",
+          "column-users-profile_private",
+          "column-users-profile_image_url",
+          "column-users-wins",
+          "column-users-losses",
+          "column-users-draws",
+          "column-users-currency",
+          "column-users-token_version",
+          "column-users-classic_rating",
+          "column-users-physical_rating",
+          "column-users-ai_cleared_level",
+          "column-users-created_at",
+          "column-users-updated_at"
+        ],
+        "seqColumnIds": [
+          "column-users-id",
+          "column-users-public_id",
+          "column-users-email",
+          "column-users-password",
+          "column-users-nickname",
+          "column-users-role",
+          "column-users-provider",
+          "column-users-provider_id",
+          "column-users-email_verified",
+          "column-users-profile_private",
+          "column-users-profile_image_url",
+          "column-users-wins",
+          "column-users-losses",
+          "column-users-draws",
+          "column-users-currency",
+          "column-users-token_version",
+          "column-users-classic_rating",
+          "column-users-physical_rating",
+          "column-users-ai_cleared_level",
+          "column-users-created_at",
+          "column-users-updated_at"
+        ],
+        "ui": {
+          "x": 67.3355,
+          "y": 607.1053,
+          "zIndex": 1,
+          "widthName": 60,
+          "widthComment": 245,
+          "color": "#4C78A8"
+        },
+        "meta": {
+          "updateAt": 1784597205459,
+          "createAt": 1784546277469
+        }
+      },
+      "table-rooms": {
+        "id": "table-rooms",
+        "name": "rooms",
+        "comment": "대국방 설정과 현재 상태",
+        "columnIds": [
+          "column-rooms-id",
+          "column-rooms-room_code",
+          "column-rooms-host_id",
+          "column-rooms-status",
+          "column-rooms-game_type",
+          "column-rooms-time_limit",
+          "column-rooms-byoyomi_option",
+          "column-rooms-max_spectators",
+          "column-rooms-current_game_number",
+          "column-rooms-omok_rule",
+          "column-rooms-ranked",
+          "column-rooms-created_at"
+        ],
+        "seqColumnIds": [
+          "column-rooms-id",
+          "column-rooms-room_code",
+          "column-rooms-host_id",
+          "column-rooms-status",
+          "column-rooms-game_type",
+          "column-rooms-time_limit",
+          "column-rooms-byoyomi_option",
+          "column-rooms-max_spectators",
+          "column-rooms-current_game_number",
+          "column-rooms-omok_rule",
+          "column-rooms-ranked",
+          "column-rooms-created_at"
+        ],
+        "ui": {
+          "x": 904.5395,
+          "y": 827.2697,
+          "zIndex": 1,
+          "widthName": 60,
+          "widthComment": 132,
+          "color": "#F58518"
+        },
+        "meta": {
+          "updateAt": 1784597209245,
+          "createAt": 1784546277469
+        }
+      },
+      "table-games": {
+        "id": "table-games",
+        "name": "games",
+        "comment": "방에서 진행된 개별 대국",
+        "columnIds": [
+          "column-games-id",
+          "column-games-room_id",
+          "column-games-game_number",
+          "column-games-black_player_id",
+          "column-games-white_player_id",
+          "column-games-winner_id",
+          "column-games-status",
+          "column-games-current_turn",
+          "column-games-created_at",
+          "column-games-started_at",
+          "column-games-finished_at",
+          "column-games-last_move_at"
+        ],
+        "seqColumnIds": [
+          "column-games-id",
+          "column-games-room_id",
+          "column-games-game_number",
+          "column-games-black_player_id",
+          "column-games-white_player_id",
+          "column-games-winner_id",
+          "column-games-status",
+          "column-games-current_turn",
+          "column-games-created_at",
+          "column-games-started_at",
+          "column-games-finished_at",
+          "column-games-last_move_at"
+        ],
+        "ui": {
+          "x": 903.421,
+          "y": 379.4079,
+          "zIndex": 1,
+          "widthName": 60,
+          "widthComment": 132,
+          "color": "#E45756"
+        },
+        "meta": {
+          "updateAt": 1784597214287,
+          "createAt": 1784546277469
+        }
+      },
+      "table-game_players": {
+        "id": "table-game_players",
+        "name": "game_players",
+        "comment": "방 참여자; UNIQUE(room_id, user_id)",
+        "columnIds": [
+          "column-game_players-id",
+          "column-game_players-room_id",
+          "column-game_players-user_id",
+          "column-game_players-role",
+          "column-game_players-color",
+          "column-game_players-remaining_seconds",
+          "column-game_players-in_byoyomi",
+          "column-game_players-is_ready",
+          "column-game_players-joined_at"
+        ],
+        "seqColumnIds": [
+          "column-game_players-id",
+          "column-game_players-room_id",
+          "column-game_players-user_id",
+          "column-game_players-role",
+          "column-game_players-color",
+          "column-game_players-remaining_seconds",
+          "column-game_players-in_byoyomi",
+          "column-game_players-is_ready",
+          "column-game_players-joined_at"
+        ],
+        "ui": {
+          "x": 897.9673,
+          "y": 1256.3882,
+          "zIndex": 1,
+          "widthName": 74,
+          "widthComment": 197,
+          "color": "#72B7B2"
+        },
+        "meta": {
+          "updateAt": 1784597216523,
+          "createAt": 1784546277469
+        }
+      },
+      "table-game_moves": {
+        "id": "table-game_moves",
+        "name": "game_moves",
+        "comment": "일반 대국의 착수 기록",
+        "columnIds": [
+          "column-game_moves-id",
+          "column-game_moves-game_id",
+          "column-game_moves-player_id",
+          "column-game_moves-color",
+          "column-game_moves-row_pos",
+          "column-game_moves-col",
+          "column-game_moves-move_number",
+          "column-game_moves-created_at"
+        ],
+        "seqColumnIds": [
+          "column-game_moves-id",
+          "column-game_moves-game_id",
+          "column-game_moves-player_id",
+          "column-game_moves-color",
+          "column-game_moves-row_pos",
+          "column-game_moves-col",
+          "column-game_moves-move_number",
+          "column-game_moves-created_at"
+        ],
+        "ui": {
+          "x": 905.4278,
+          "y": 38.1252,
+          "zIndex": 1,
+          "widthName": 71,
+          "widthComment": 120,
+          "color": "#54A24B"
+        },
+        "meta": {
+          "updateAt": 1784597215516,
+          "createAt": 1784546277469
+        }
+      },
+      "table-physical_game_records": {
+        "id": "table-physical_game_records",
+        "name": "physical_game_records",
+        "comment": "물리/특수 대국 JSON 리플레이; UNIQUE(game_id)",
+        "columnIds": [
+          "column-physical_game_records-id",
+          "column-physical_game_records-game_id",
+          "column-physical_game_records-replay",
+          "column-physical_game_records-created_at"
+        ],
+        "seqColumnIds": [
+          "column-physical_game_records-id",
+          "column-physical_game_records-game_id",
+          "column-physical_game_records-replay",
+          "column-physical_game_records-created_at"
+        ],
+        "ui": {
+          "x": 1671.0526,
+          "y": 473.6843,
+          "zIndex": 1,
+          "widthName": 123,
+          "widthComment": 267,
+          "color": "#B279A2"
+        },
+        "meta": {
+          "updateAt": 1784597219410,
+          "createAt": 1784546277469
+        }
+      },
+      "table-items": {
+        "id": "table-items",
+        "name": "items",
+        "comment": "상점/커스터마이징 아이템 카탈로그",
+        "columnIds": [
+          "column-items-id",
+          "column-items-name",
+          "column-items-item_type",
+          "column-items-description",
+          "column-items-item_config",
+          "column-items-default_grant",
+          "column-items-created_at"
+        ],
+        "seqColumnIds": [
+          "column-items-id",
+          "column-items-name",
+          "column-items-item_type",
+          "column-items-description",
+          "column-items-item_config",
+          "column-items-default_grant",
+          "column-items-created_at"
+        ],
+        "ui": {
+          "x": -1.0527,
+          "y": 1741.579,
+          "zIndex": 1,
+          "widthName": 60,
+          "widthComment": 193,
+          "color": "#FF9DA6"
+        },
+        "meta": {
+          "updateAt": 1784596868228,
+          "createAt": 1784546277469
+        }
+      },
+      "table-user_items": {
+        "id": "table-user_items",
+        "name": "user_items",
+        "comment": "사용자 보유 아이템; UNIQUE(user_id, item_id)",
+        "columnIds": [
+          "column-user_items-id",
+          "column-user_items-user_id",
+          "column-user_items-item_id",
+          "column-user_items-acquired_at"
+        ],
+        "seqColumnIds": [
+          "column-user_items-id",
+          "column-user_items-user_id",
+          "column-user_items-item_id",
+          "column-user_items-acquired_at"
+        ],
+        "ui": {
+          "x": 32.6316,
+          "y": 1420,
+          "zIndex": 1,
+          "widthName": 60,
+          "widthComment": 243,
+          "color": "#9D755D"
+        },
+        "meta": {
+          "updateAt": 1784597204609,
+          "createAt": 1784546277469
+        }
+      },
+      "table-user_active_items": {
+        "id": "table-user_active_items",
+        "name": "user_active_items",
+        "comment": "유형별 장착 아이템; UNIQUE(user_id, item_type)",
+        "columnIds": [
+          "column-user_active_items-id",
+          "column-user_active_items-user_id",
+          "column-user_active_items-item_type",
+          "column-user_active_items-item_id"
+        ],
+        "seqColumnIds": [
+          "column-user_active_items-id",
+          "column-user_active_items-user_id",
+          "column-user_active_items-item_type",
+          "column-user_active_items-item_id"
+        ],
+        "ui": {
+          "x": 762.2106,
+          "y": 1762.1052,
+          "zIndex": 1,
+          "widthName": 94,
+          "widthComment": 256,
+          "color": "#BAB0AC"
+        },
+        "meta": {
+          "updateAt": 1784597218066,
+          "createAt": 1784546277469
+        }
+      },
+      "table-friendships": {
+        "id": "table-friendships",
+        "name": "friendships",
+        "comment": "방향성 친구 요청; UNIQUE(requester_id, addressee_id)",
+        "columnIds": [
+          "column-friendships-id",
+          "column-friendships-requester_id",
+          "column-friendships-addressee_id",
+          "column-friendships-status",
+          "column-friendships-created_at",
+          "column-friendships-updated_at"
+        ],
+        "seqColumnIds": [
+          "column-friendships-id",
+          "column-friendships-requester_id",
+          "column-friendships-addressee_id",
+          "column-friendships-status",
+          "column-friendships-created_at",
+          "column-friendships-updated_at"
+        ],
+        "ui": {
+          "x": 33.125,
+          "y": 140.7566,
+          "zIndex": 1,
+          "widthName": 60,
+          "widthComment": 289,
+          "color": "#8F63B8"
+        },
+        "meta": {
+          "updateAt": 1784597206726,
+          "createAt": 1784546277469
+        }
+      }
+    },
+    "tableColumnEntities": {
+      "column-users-id": {
+        "id": "column-users-id",
+        "tableId": "table-users",
+        "name": "id",
+        "comment": "내부 PK",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 11,
+        "ui": {
+          "keys": 1,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-public_id": {
+        "id": "column-users-public_id",
+        "tableId": "table-users",
+        "name": "public_id",
+        "comment": "외부 노출 UUID; UNIQUE",
+        "dataType": "BINARY(16)",
+        "default": "",
+        "options": 12,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 134,
+          "widthDataType": 63,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-email": {
+        "id": "column-users-email",
+        "tableId": "table-users",
+        "name": "email",
+        "comment": "UNIQUE",
+        "dataType": "VARCHAR(100)",
+        "default": "",
+        "options": 12,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 81,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-password": {
+        "id": "column-users-password",
+        "tableId": "table-users",
+        "name": "password",
+        "comment": "소셜/BOT 계정은 NULL",
+        "dataType": "VARCHAR(200)",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 123,
+          "widthDataType": 81,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-nickname": {
+        "id": "column-users-nickname",
+        "tableId": "table-users",
+        "name": "nickname",
+        "comment": "UNIQUE",
+        "dataType": "VARCHAR(30)",
+        "default": "",
+        "options": 12,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-role": {
+        "id": "column-users-role",
+        "tableId": "table-users",
+        "name": "role",
+        "comment": "",
+        "dataType": "VARCHAR(20)",
+        "default": "'USER'",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-provider": {
+        "id": "column-users-provider",
+        "tableId": "table-users",
+        "name": "provider",
+        "comment": "",
+        "dataType": "VARCHAR(20)",
+        "default": "'LOCAL'",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-provider_id": {
+        "id": "column-users-provider_id",
+        "tableId": "table-users",
+        "name": "provider_id",
+        "comment": "",
+        "dataType": "VARCHAR(200)",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 0,
+          "widthName": 61,
+          "widthComment": 60,
+          "widthDataType": 81,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-email_verified": {
+        "id": "column-users-email_verified",
+        "tableId": "table-users",
+        "name": "email_verified",
+        "comment": "",
+        "dataType": "BOOLEAN",
+        "default": "FALSE",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 75,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-profile_private": {
+        "id": "column-users-profile_private",
+        "tableId": "table-users",
+        "name": "profile_private",
+        "comment": "",
+        "dataType": "BOOLEAN",
+        "default": "FALSE",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 77,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-profile_image_url": {
+        "id": "column-users-profile_image_url",
+        "tableId": "table-users",
+        "name": "profile_image_url",
+        "comment": "",
+        "dataType": "VARCHAR(500)",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 0,
+          "widthName": 93,
+          "widthComment": 60,
+          "widthDataType": 81,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-wins": {
+        "id": "column-users-wins",
+        "tableId": "table-users",
+        "name": "wins",
+        "comment": "",
+        "dataType": "INT",
+        "default": "0",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-losses": {
+        "id": "column-users-losses",
+        "tableId": "table-users",
+        "name": "losses",
+        "comment": "",
+        "dataType": "INT",
+        "default": "0",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-draws": {
+        "id": "column-users-draws",
+        "tableId": "table-users",
+        "name": "draws",
+        "comment": "",
+        "dataType": "INT",
+        "default": "0",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-currency": {
+        "id": "column-users-currency",
+        "tableId": "table-users",
+        "name": "currency",
+        "comment": "",
+        "dataType": "INT",
+        "default": "0",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-token_version": {
+        "id": "column-users-token_version",
+        "tableId": "table-users",
+        "name": "token_version",
+        "comment": "",
+        "dataType": "BIGINT",
+        "default": "0",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 75,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-classic_rating": {
+        "id": "column-users-classic_rating",
+        "tableId": "table-users",
+        "name": "classic_rating",
+        "comment": "",
+        "dataType": "INT",
+        "default": "1000",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 71,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-physical_rating": {
+        "id": "column-users-physical_rating",
+        "tableId": "table-users",
+        "name": "physical_rating",
+        "comment": "",
+        "dataType": "INT",
+        "default": "1000",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 80,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-ai_cleared_level": {
+        "id": "column-users-ai_cleared_level",
+        "tableId": "table-users",
+        "name": "ai_cleared_level",
+        "comment": "",
+        "dataType": "INT",
+        "default": "0",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 83,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-created_at": {
+        "id": "column-users-created_at",
+        "tableId": "table-users",
+        "name": "created_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-users-updated_at": {
+        "id": "column-users-updated_at",
+        "tableId": "table-users",
+        "name": "updated_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 62,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-rooms-id": {
+        "id": "column-rooms-id",
+        "tableId": "table-rooms",
+        "name": "id",
+        "comment": "",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 11,
+        "ui": {
+          "keys": 1,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-rooms-room_code": {
+        "id": "column-rooms-room_code",
+        "tableId": "table-rooms",
+        "name": "room_code",
+        "comment": "UNIQUE",
+        "dataType": "VARCHAR(10)",
+        "default": "",
+        "options": 12,
+        "ui": {
+          "keys": 0,
+          "widthName": 61,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-rooms-host_id": {
+        "id": "column-rooms-host_id",
+        "tableId": "table-rooms",
+        "name": "host_id",
+        "comment": "FK → users.id",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 2,
+          "widthName": 60,
+          "widthComment": 72,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-rooms-status": {
+        "id": "column-rooms-status",
+        "tableId": "table-rooms",
+        "name": "status",
+        "comment": "",
+        "dataType": "VARCHAR(20)",
+        "default": "'WAITING'",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-rooms-game_type": {
+        "id": "column-rooms-game_type",
+        "tableId": "table-rooms",
+        "name": "game_type",
+        "comment": "",
+        "dataType": "VARCHAR(20)",
+        "default": "'CLASSIC'",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-rooms-time_limit": {
+        "id": "column-rooms-time_limit",
+        "tableId": "table-rooms",
+        "name": "time_limit",
+        "comment": "",
+        "dataType": "VARCHAR(20)",
+        "default": "'UNLIMITED'",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 68
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-rooms-byoyomi_option": {
+        "id": "column-rooms-byoyomi_option",
+        "tableId": "table-rooms",
+        "name": "byoyomi_option",
+        "comment": "",
+        "dataType": "VARCHAR(20)",
+        "default": "'NONE'",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 88,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-rooms-max_spectators": {
+        "id": "column-rooms-max_spectators",
+        "tableId": "table-rooms",
+        "name": "max_spectators",
+        "comment": "",
+        "dataType": "INT",
+        "default": "3",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 83,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-rooms-current_game_number": {
+        "id": "column-rooms-current_game_number",
+        "tableId": "table-rooms",
+        "name": "current_game_number",
+        "comment": "",
+        "dataType": "INT",
+        "default": "0",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 121,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-rooms-omok_rule": {
+        "id": "column-rooms-omok_rule",
+        "tableId": "table-rooms",
+        "name": "omok_rule",
+        "comment": "",
+        "dataType": "VARCHAR(20)",
+        "default": "'FREESTYLE'",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 64
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-rooms-ranked": {
+        "id": "column-rooms-ranked",
+        "tableId": "table-rooms",
+        "name": "ranked",
+        "comment": "",
+        "dataType": "BOOLEAN",
+        "default": "TRUE",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-rooms-created_at": {
+        "id": "column-rooms-created_at",
+        "tableId": "table-rooms",
+        "name": "created_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-games-id": {
+        "id": "column-games-id",
+        "tableId": "table-games",
+        "name": "id",
+        "comment": "",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 11,
+        "ui": {
+          "keys": 1,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-games-room_id": {
+        "id": "column-games-room_id",
+        "tableId": "table-games",
+        "name": "room_id",
+        "comment": "FK → rooms.id",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 2,
+          "widthName": 60,
+          "widthComment": 78,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-games-game_number": {
+        "id": "column-games-game_number",
+        "tableId": "table-games",
+        "name": "game_number",
+        "comment": "",
+        "dataType": "INT",
+        "default": "1",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 78,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-games-black_player_id": {
+        "id": "column-games-black_player_id",
+        "tableId": "table-games",
+        "name": "black_player_id",
+        "comment": "FK → users.id; ON DELETE SET NULL",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 2,
+          "widthName": 82,
+          "widthComment": 191,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-games-white_player_id": {
+        "id": "column-games-white_player_id",
+        "tableId": "table-games",
+        "name": "white_player_id",
+        "comment": "FK → users.id; ON DELETE SET NULL",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 2,
+          "widthName": 83,
+          "widthComment": 191,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-games-winner_id": {
+        "id": "column-games-winner_id",
+        "tableId": "table-games",
+        "name": "winner_id",
+        "comment": "FK → users.id; ON DELETE SET NULL",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 2,
+          "widthName": 60,
+          "widthComment": 191,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-games-status": {
+        "id": "column-games-status",
+        "tableId": "table-games",
+        "name": "status",
+        "comment": "",
+        "dataType": "VARCHAR(20)",
+        "default": "'WAITING'",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-games-current_turn": {
+        "id": "column-games-current_turn",
+        "tableId": "table-games",
+        "name": "current_turn",
+        "comment": "",
+        "dataType": "VARCHAR(10)",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 0,
+          "widthName": 67,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-games-created_at": {
+        "id": "column-games-created_at",
+        "tableId": "table-games",
+        "name": "created_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-games-started_at": {
+        "id": "column-games-started_at",
+        "tableId": "table-games",
+        "name": "started_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-games-finished_at": {
+        "id": "column-games-finished_at",
+        "tableId": "table-games",
+        "name": "finished_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-games-last_move_at": {
+        "id": "column-games-last_move_at",
+        "tableId": "table-games",
+        "name": "last_move_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 0,
+          "widthName": 70,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_players-id": {
+        "id": "column-game_players-id",
+        "tableId": "table-game_players",
+        "name": "id",
+        "comment": "",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 11,
+        "ui": {
+          "keys": 1,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_players-room_id": {
+        "id": "column-game_players-room_id",
+        "tableId": "table-game_players",
+        "name": "room_id",
+        "comment": "FK → rooms.id",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 2,
+          "widthName": 60,
+          "widthComment": 78,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_players-user_id": {
+        "id": "column-game_players-user_id",
+        "tableId": "table-game_players",
+        "name": "user_id",
+        "comment": "FK → users.id",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 2,
+          "widthName": 60,
+          "widthComment": 72,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_players-role": {
+        "id": "column-game_players-role",
+        "tableId": "table-game_players",
+        "name": "role",
+        "comment": "",
+        "dataType": "VARCHAR(20)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_players-color": {
+        "id": "column-game_players-color",
+        "tableId": "table-game_players",
+        "name": "color",
+        "comment": "",
+        "dataType": "VARCHAR(10)",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_players-remaining_seconds": {
+        "id": "column-game_players-remaining_seconds",
+        "tableId": "table-game_players",
+        "name": "remaining_seconds",
+        "comment": "",
+        "dataType": "INT",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 0,
+          "widthName": 103,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_players-in_byoyomi": {
+        "id": "column-game_players-in_byoyomi",
+        "tableId": "table-game_players",
+        "name": "in_byoyomi",
+        "comment": "",
+        "dataType": "BOOLEAN",
+        "default": "FALSE",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 63,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_players-is_ready": {
+        "id": "column-game_players-is_ready",
+        "tableId": "table-game_players",
+        "name": "is_ready",
+        "comment": "",
+        "dataType": "BOOLEAN",
+        "default": "FALSE",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_players-joined_at": {
+        "id": "column-game_players-joined_at",
+        "tableId": "table-game_players",
+        "name": "joined_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_moves-id": {
+        "id": "column-game_moves-id",
+        "tableId": "table-game_moves",
+        "name": "id",
+        "comment": "",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 11,
+        "ui": {
+          "keys": 1,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_moves-game_id": {
+        "id": "column-game_moves-game_id",
+        "tableId": "table-game_moves",
+        "name": "game_id",
+        "comment": "FK → games.id",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 2,
+          "widthName": 60,
+          "widthComment": 79,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_moves-player_id": {
+        "id": "column-game_moves-player_id",
+        "tableId": "table-game_moves",
+        "name": "player_id",
+        "comment": "FK → users.id",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 2,
+          "widthName": 60,
+          "widthComment": 72,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_moves-color": {
+        "id": "column-game_moves-color",
+        "tableId": "table-game_moves",
+        "name": "color",
+        "comment": "",
+        "dataType": "VARCHAR(10)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_moves-row_pos": {
+        "id": "column-game_moves-row_pos",
+        "tableId": "table-game_moves",
+        "name": "row_pos",
+        "comment": "",
+        "dataType": "INT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_moves-col": {
+        "id": "column-game_moves-col",
+        "tableId": "table-game_moves",
+        "name": "col",
+        "comment": "",
+        "dataType": "INT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_moves-move_number": {
+        "id": "column-game_moves-move_number",
+        "tableId": "table-game_moves",
+        "name": "move_number",
+        "comment": "",
+        "dataType": "INT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 78,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-game_moves-created_at": {
+        "id": "column-game_moves-created_at",
+        "tableId": "table-game_moves",
+        "name": "created_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-physical_game_records-id": {
+        "id": "column-physical_game_records-id",
+        "tableId": "table-physical_game_records",
+        "name": "id",
+        "comment": "",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 11,
+        "ui": {
+          "keys": 1,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-physical_game_records-game_id": {
+        "id": "column-physical_game_records-game_id",
+        "tableId": "table-physical_game_records",
+        "name": "game_id",
+        "comment": "FK → games.id; UNIQUE",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 12,
+        "ui": {
+          "keys": 2,
+          "widthName": 60,
+          "widthComment": 129,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-physical_game_records-replay": {
+        "id": "column-physical_game_records-replay",
+        "tableId": "table-physical_game_records",
+        "name": "replay",
+        "comment": "",
+        "dataType": "JSON",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-physical_game_records-created_at": {
+        "id": "column-physical_game_records-created_at",
+        "tableId": "table-physical_game_records",
+        "name": "created_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "CURRENT_TIMESTAMP(6)",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 135
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-items-id": {
+        "id": "column-items-id",
+        "tableId": "table-items",
+        "name": "id",
+        "comment": "",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 11,
+        "ui": {
+          "keys": 1,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-items-name": {
+        "id": "column-items-name",
+        "tableId": "table-items",
+        "name": "name",
+        "comment": "",
+        "dataType": "VARCHAR(100)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 81,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-items-item_type": {
+        "id": "column-items-item_type",
+        "tableId": "table-items",
+        "name": "item_type",
+        "comment": "",
+        "dataType": "VARCHAR(50)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-items-description": {
+        "id": "column-items-description",
+        "tableId": "table-items",
+        "name": "description",
+        "comment": "",
+        "dataType": "VARCHAR(500)",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 0,
+          "widthName": 61,
+          "widthComment": 60,
+          "widthDataType": 81,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-items-item_config": {
+        "id": "column-items-item_config",
+        "tableId": "table-items",
+        "name": "item_config",
+        "comment": "",
+        "dataType": "JSON",
+        "default": "",
+        "options": 0,
+        "ui": {
+          "keys": 0,
+          "widthName": 64,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-items-default_grant": {
+        "id": "column-items-default_grant",
+        "tableId": "table-items",
+        "name": "default_grant",
+        "comment": "",
+        "dataType": "BOOLEAN",
+        "default": "FALSE",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 72,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-items-created_at": {
+        "id": "column-items-created_at",
+        "tableId": "table-items",
+        "name": "created_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "CURRENT_TIMESTAMP(6)",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 135
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-user_items-id": {
+        "id": "column-user_items-id",
+        "tableId": "table-user_items",
+        "name": "id",
+        "comment": "",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 11,
+        "ui": {
+          "keys": 1,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-user_items-user_id": {
+        "id": "column-user_items-user_id",
+        "tableId": "table-user_items",
+        "name": "user_id",
+        "comment": "FK → users.id",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 2,
+          "widthName": 60,
+          "widthComment": 72,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-user_items-item_id": {
+        "id": "column-user_items-item_id",
+        "tableId": "table-user_items",
+        "name": "item_id",
+        "comment": "FK → items.id",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 2,
+          "widthName": 60,
+          "widthComment": 73,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-user_items-acquired_at": {
+        "id": "column-user_items-acquired_at",
+        "tableId": "table-user_items",
+        "name": "acquired_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "CURRENT_TIMESTAMP(6)",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 63,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 135
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-user_active_items-id": {
+        "id": "column-user_active_items-id",
+        "tableId": "table-user_active_items",
+        "name": "id",
+        "comment": "",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 11,
+        "ui": {
+          "keys": 1,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-user_active_items-user_id": {
+        "id": "column-user_active_items-user_id",
+        "tableId": "table-user_active_items",
+        "name": "user_id",
+        "comment": "FK → users.id",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 2,
+          "widthName": 60,
+          "widthComment": 72,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-user_active_items-item_type": {
+        "id": "column-user_active_items-item_type",
+        "tableId": "table-user_active_items",
+        "name": "item_type",
+        "comment": "",
+        "dataType": "VARCHAR(50)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-user_active_items-item_id": {
+        "id": "column-user_active_items-item_id",
+        "tableId": "table-user_active_items",
+        "name": "item_id",
+        "comment": "FK → items.id",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 2,
+          "widthName": 60,
+          "widthComment": 73,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-friendships-id": {
+        "id": "column-friendships-id",
+        "tableId": "table-friendships",
+        "name": "id",
+        "comment": "",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 11,
+        "ui": {
+          "keys": 1,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-friendships-requester_id": {
+        "id": "column-friendships-requester_id",
+        "tableId": "table-friendships",
+        "name": "requester_id",
+        "comment": "FK → users.id",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 2,
+          "widthName": 67,
+          "widthComment": 72,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-friendships-addressee_id": {
+        "id": "column-friendships-addressee_id",
+        "tableId": "table-friendships",
+        "name": "addressee_id",
+        "comment": "FK → users.id",
+        "dataType": "BIGINT",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 2,
+          "widthName": 70,
+          "widthComment": 72,
+          "widthDataType": 60,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-friendships-status": {
+        "id": "column-friendships-status",
+        "tableId": "table-friendships",
+        "name": "status",
+        "comment": "",
+        "dataType": "VARCHAR(20)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 75,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-friendships-created_at": {
+        "id": "column-friendships-created_at",
+        "tableId": "table-friendships",
+        "name": "created_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 60,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "column-friendships-updated_at": {
+        "id": "column-friendships-updated_at",
+        "tableId": "table-friendships",
+        "name": "updated_at",
+        "comment": "",
+        "dataType": "DATETIME(6)",
+        "default": "",
+        "options": 8,
+        "ui": {
+          "keys": 0,
+          "widthName": 62,
+          "widthComment": 60,
+          "widthDataType": 69,
+          "widthDefault": 60
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      }
+    },
+    "relationshipEntities": {
+      "relationship-1-rooms-host_id": {
+        "id": "relationship-1-rooms-host_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 2,
+        "start": {
+          "tableId": "table-users",
+          "columnIds": [
+            "column-users-id"
+          ],
+          "x": 613.3355,
+          "y": 999.1053,
+          "direction": 2
+        },
+        "end": {
+          "tableId": "table-rooms",
+          "columnIds": [
+            "column-rooms-host_id"
+          ],
+          "x": 904.5395,
+          "y": 999.2697,
+          "direction": 1
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-2-games-room_id": {
+        "id": "relationship-2-games-room_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 2,
+        "start": {
+          "tableId": "table-rooms",
+          "columnIds": [
+            "column-rooms-id"
+          ],
+          "x": 1161.5394999999999,
+          "y": 827.2697,
+          "direction": 4
+        },
+        "end": {
+          "tableId": "table-games",
+          "columnIds": [
+            "column-games-room_id"
+          ],
+          "x": 1196.921,
+          "y": 723.4078999999999,
+          "direction": 8
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-3-games-black_player_id": {
+        "id": "relationship-3-games-black_player_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 1,
+        "start": {
+          "tableId": "table-users",
+          "columnIds": [
+            "column-users-id"
+          ],
+          "x": 613.3355,
+          "y": 663.1053,
+          "direction": 2
+        },
+        "end": {
+          "tableId": "table-games",
+          "columnIds": [
+            "column-games-black_player_id"
+          ],
+          "x": 903.421,
+          "y": 436.74123333333335,
+          "direction": 1
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-4-games-white_player_id": {
+        "id": "relationship-4-games-white_player_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 1,
+        "start": {
+          "tableId": "table-users",
+          "columnIds": [
+            "column-users-id"
+          ],
+          "x": 613.3355,
+          "y": 775.1053,
+          "direction": 2
+        },
+        "end": {
+          "tableId": "table-games",
+          "columnIds": [
+            "column-games-white_player_id"
+          ],
+          "x": 903.421,
+          "y": 551.4079,
+          "direction": 1
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-5-games-winner_id": {
+        "id": "relationship-5-games-winner_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 1,
+        "start": {
+          "tableId": "table-users",
+          "columnIds": [
+            "column-users-id"
+          ],
+          "x": 613.3355,
+          "y": 887.1053,
+          "direction": 2
+        },
+        "end": {
+          "tableId": "table-games",
+          "columnIds": [
+            "column-games-winner_id"
+          ],
+          "x": 903.421,
+          "y": 666.0745666666667,
+          "direction": 1
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-6-game_players-room_id": {
+        "id": "relationship-6-game_players-room_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 2,
+        "start": {
+          "tableId": "table-rooms",
+          "columnIds": [
+            "column-rooms-id"
+          ],
+          "x": 1161.5394999999999,
+          "y": 1171.2696999999998,
+          "direction": 8
+        },
+        "end": {
+          "tableId": "table-game_players",
+          "columnIds": [
+            "column-game_players-room_id"
+          ],
+          "x": 1144.9673,
+          "y": 1256.3882,
+          "direction": 4
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-7-game_players-user_id": {
+        "id": "relationship-7-game_players-user_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 2,
+        "start": {
+          "tableId": "table-users",
+          "columnIds": [
+            "column-users-id"
+          ],
+          "x": 613.3355,
+          "y": 1111.1053000000002,
+          "direction": 2
+        },
+        "end": {
+          "tableId": "table-game_players",
+          "columnIds": [
+            "column-game_players-user_id"
+          ],
+          "x": 897.9673,
+          "y": 1392.3882,
+          "direction": 1
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-8-game_moves-game_id": {
+        "id": "relationship-8-game_moves-game_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 2,
+        "start": {
+          "tableId": "table-games",
+          "columnIds": [
+            "column-games-id"
+          ],
+          "x": 1196.921,
+          "y": 379.4079,
+          "direction": 4
+        },
+        "end": {
+          "tableId": "table-game_moves",
+          "columnIds": [
+            "column-game_moves-game_id"
+          ],
+          "x": 1140.4278,
+          "y": 286.1252,
+          "direction": 8
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-9-game_moves-player_id": {
+        "id": "relationship-9-game_moves-player_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 2,
+        "start": {
+          "tableId": "table-users",
+          "columnIds": [
+            "column-users-id"
+          ],
+          "x": 522.3355,
+          "y": 607.1053,
+          "direction": 4
+        },
+        "end": {
+          "tableId": "table-game_moves",
+          "columnIds": [
+            "column-game_moves-player_id"
+          ],
+          "x": 905.4278,
+          "y": 162.1252,
+          "direction": 1
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-10-physical_game_records-game_id": {
+        "id": "relationship-10-physical_game_records-game_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 2,
+        "start": {
+          "tableId": "table-games",
+          "columnIds": [
+            "column-games-id"
+          ],
+          "x": 1490.421,
+          "y": 551.4078999999999,
+          "direction": 2
+        },
+        "end": {
+          "tableId": "table-physical_game_records",
+          "columnIds": [
+            "column-physical_game_records-game_id"
+          ],
+          "x": 1671.0526,
+          "y": 549.6843,
+          "direction": 1
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-11-user_items-user_id": {
+        "id": "relationship-11-user_items-user_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 2,
+        "start": {
+          "tableId": "table-users",
+          "columnIds": [
+            "column-users-id"
+          ],
+          "x": 203.8355,
+          "y": 1167.1053000000002,
+          "direction": 8
+        },
+        "end": {
+          "tableId": "table-user_items",
+          "columnIds": [
+            "column-user_items-user_id"
+          ],
+          "x": 291.6316,
+          "y": 1420,
+          "direction": 4
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-12-user_items-item_id": {
+        "id": "relationship-12-user_items-item_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 2,
+        "start": {
+          "tableId": "table-items",
+          "columnIds": [
+            "column-items-id"
+          ],
+          "x": 261.9473,
+          "y": 1741.579,
+          "direction": 4
+        },
+        "end": {
+          "tableId": "table-user_items",
+          "columnIds": [
+            "column-user_items-item_id"
+          ],
+          "x": 291.6316,
+          "y": 1572,
+          "direction": 8
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-13-user_active_items-user_id": {
+        "id": "relationship-13-user_active_items-user_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 2,
+        "start": {
+          "tableId": "table-users",
+          "columnIds": [
+            "column-users-id"
+          ],
+          "x": 476.8355,
+          "y": 1167.1053000000002,
+          "direction": 8
+        },
+        "end": {
+          "tableId": "table-user_active_items",
+          "columnIds": [
+            "column-user_active_items-user_id"
+          ],
+          "x": 762.2106,
+          "y": 1800.1052,
+          "direction": 1
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-14-user_active_items-item_id": {
+        "id": "relationship-14-user_active_items-item_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 2,
+        "start": {
+          "tableId": "table-items",
+          "columnIds": [
+            "column-items-id"
+          ],
+          "x": 524.9473,
+          "y": 1853.579,
+          "direction": 2
+        },
+        "end": {
+          "tableId": "table-user_active_items",
+          "columnIds": [
+            "column-user_active_items-item_id"
+          ],
+          "x": 762.2106,
+          "y": 1876.1052,
+          "direction": 1
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-15-friendships-requester_id": {
+        "id": "relationship-15-friendships-requester_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 2,
+        "start": {
+          "tableId": "table-users",
+          "columnIds": [
+            "column-users-id"
+          ],
+          "x": 158.3355,
+          "y": 607.1053,
+          "direction": 4
+        },
+        "end": {
+          "tableId": "table-friendships",
+          "columnIds": [
+            "column-friendships-requester_id"
+          ],
+          "x": 146.875,
+          "y": 340.7566,
+          "direction": 8
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      },
+      "relationship-16-friendships-addressee_id": {
+        "id": "relationship-16-friendships-addressee_id",
+        "identification": false,
+        "relationshipType": 16,
+        "startRelationshipType": 2,
+        "start": {
+          "tableId": "table-users",
+          "columnIds": [
+            "column-users-id"
+          ],
+          "x": 340.3355,
+          "y": 607.1053,
+          "direction": 4
+        },
+        "end": {
+          "tableId": "table-friendships",
+          "columnIds": [
+            "column-friendships-addressee_id"
+          ],
+          "x": 374.375,
+          "y": 340.7566,
+          "direction": 8
+        },
+        "meta": {
+          "updateAt": 1784546277469,
+          "createAt": 1784546277469
+        }
+      }
+    },
+    "indexEntities": {},
+    "indexColumnEntities": {},
+    "memoEntities": {}
+  }
+}
