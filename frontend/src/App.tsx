@@ -23,6 +23,7 @@ import FriendsPage from '@/pages/FriendsPage';
 import GameGuidePage from '@/pages/GameGuidePage';
 import TermsPage from '@/pages/TermsPage';
 import PrivacyPolicyPage from '@/pages/PrivacyPolicyPage';
+import LicensesPage from '@/pages/LicensesPage';
 
 const Layout = () => {
   useAuth();
@@ -47,6 +48,7 @@ const router = createBrowserRouter([
       { path: '/register', element: <RegisterPage /> },
       { path: '/terms', element: <TermsPage /> },
       { path: '/privacy', element: <PrivacyPolicyPage /> },
+      { path: '/licenses', element: <LicensesPage /> },
       { path: '/verify-email', element: <VerifyEmailPage /> },
       { path: '/email-sent', element: <EmailSentPage /> },
       {

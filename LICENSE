@@ -1,0 +1,41 @@
+MIT License
+
+Copyright (c) 2026 김종민
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## 적용 범위 (Scope)
+
+위 MIT License 는 이 저장소의 **소스 코드**에만 적용됩니다.
+아래 항목은 적용 대상이 아니며, 별도의 조건을 따릅니다.
+
+- **배경음악** (`frontend/public/audio/`)
+  Pixabay Content License 로 제공되는 제3자 저작물입니다. 저작권은 각 원저작자에게
+  있으며, 재사용·재배포 조건은 Pixabay 약관을 따릅니다. 출처는 `docs/music-from.md`
+  를 참고하세요.
+
+- **게임 에셋** — 이미지, 바둑판/바둑알 스킨, 착수음 등 시각·청각 리소스
+
+- **서비스 명칭 및 브랜딩** — "도파민 오목 / Dopamin Omok" 명칭과 관련 표기
+
+The MIT License above applies to the source code of this repository only.
+Audio, images, game assets, and the service name are excluded and are subject
+to their own terms; see `docs/music-from.md` for third-party audio credits.
