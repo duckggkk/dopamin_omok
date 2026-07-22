@@ -7,6 +7,8 @@ import com.dopamin.omok.game.application.port.in.GetPhysicalReplayUseCase;
 import com.dopamin.omok.global.common.response.ApiResponse;
 import com.dopamin.omok.global.security.principal.AuthUser;
 import com.dopamin.omok.user.domain.UserRole;
+
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -25,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
+//Mockito기반 테스트 선언
 @ExtendWith(MockitoExtension.class)
 class GameHistoryControllerTest {
 
@@ -38,6 +41,7 @@ class GameHistoryControllerTest {
     private GetPhysicalReplayUseCase getPhysicalReplayUseCase;
 
     @Test
+    @DisplayName("공개 전적 조회: 받은 페이징 조건을 그대로 위임하고 결과를 감싸서 반환한다")
     void getPublicGamesDelegatesRequestValuesAndWrapsPage() {
         GameHistoryController controller = new GameHistoryController(
                 getMyGamesUseCase,
