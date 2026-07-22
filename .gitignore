@@ -6,6 +6,11 @@ backend/*.log
 backend/logs/
 application-local.yml
 
+# JVM 크래시 덤프 (운영 서버 로그를 내려받을 때 딸려오기 쉬움)
+hs_err_pid*.log
+replay_pid*.log
+*.hprof
+
 # Node (루트 dev 스크립트용 concurrently 등)
 /node_modules/
 
@@ -14,12 +19,20 @@ frontend/node_modules/
 frontend/dist/
 frontend/.env.local
 frontend/.env.production
+frontend/coverage/
+
+# 린트 / 타입 검사 캐시
+.eslintcache
+*.tsbuildinfo
 
 # IDE
 .idea/
 *.iml
 .vscode/
+*.code-workspace
 *.DS_Store
+Thumbs.db
+desktop.ini
 
 # Env (예시 파일은 커밋, 실제 값 파일은 제외)
 .env
@@ -33,11 +46,14 @@ deploy/maintenance/maintenance.on
 # Docker
 mysql/data/
 
+# 관측 스택 볼륨 (grafana/loki/prometheus 를 bind mount 로 띄울 경우)
+deploy/**/data/
+
 # Claude Code
 .claude/
 
 # Internal docs (설계 문서, 외부 공개 불필요)
-docs/
+docs-private/
 
 # 개인 공부 노트 (학습용 — 저장소에 올리지 않음)
 study/
