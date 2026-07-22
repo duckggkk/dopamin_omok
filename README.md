@@ -76,7 +76,7 @@
 | Realtime | Spring WebSocket, STOMP, 서버 틱 기반 상태 동기화 |
 | Data | MySQL 8, Redis 7, Flyway |
 | Frontend | React 18, TypeScript 5, Vite 6, Zustand, Axios, STOMP.js, CSS Modules |
-| Test | JUnit 5, Spring Boot Test, H2, MySQL 선택형 벤치마크 |
+| Test | JUnit 5, Spring Boot Test, H2, MySQL 선택형 벤치마크, Vitest, Testing Library |
 | Infra | Docker Compose, Nginx, Caddy, GHCR, GitHub Actions |
 | Observability | Actuator, Micrometer, Prometheus, Grafana, Loki, Promtail |
 
@@ -163,10 +163,12 @@ docker compose -f docker-compose.dev.yml up --build
 cd backend
 ./gradlew test
 
-# Frontend: TypeScript 검사와 프로덕션 번들 생성
+# Frontend
 cd frontend
 npm ci
-npm run build
+npm run lint      # ESLint (flat config)
+npm run test      # Vitest — 규칙 엔진·AI·토큰 저장소·전적·터치 UI 훅
+npm run build     # TypeScript 검사 + 프로덕션 번들 생성
 ```
 
 Windows PowerShell에서는 백엔드 테스트를 `./gradlew test` 대신 `.\gradlew.bat test`로 실행할 수 있습니다.

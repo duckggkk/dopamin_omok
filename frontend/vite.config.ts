@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
@@ -33,5 +34,10 @@ export default defineConfig({
         rewrite: (path) => `/api${path}`,
       },
     },
+  },
+  // 테스트는 브라우저 API(localStorage/matchMedia)를 쓰는 코드가 있어 jsdom 환경에서 돌린다.
+  test: {
+    environment: 'jsdom',
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 })
