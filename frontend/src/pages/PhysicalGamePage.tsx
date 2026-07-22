@@ -502,7 +502,6 @@ const PhysicalGamePage = () => {
     };
     raf = requestAnimationFrame(render);
     return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myColor]);
 
   // 언마운트 타이머 정리

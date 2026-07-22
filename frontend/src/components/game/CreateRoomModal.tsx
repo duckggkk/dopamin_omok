@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CreateRoomOptions } from '@/api/game';
+import { CreateRoomOptions, DEFAULT_ROOM_OPTIONS } from '@/api/game';
 import { GameType, OmokRule, TimeLimit, ByoyomiOption } from '@/types';
 import styles from './CreateRoomModal.module.css';
 
@@ -27,14 +27,6 @@ const BYOYOMI_LABELS: Record<ByoyomiOption, string> = {
   TEN_SEC: '10초',
   FIFTEEN_SEC: '15초',
   THIRTY_SEC: '30초',
-};
-
-export const DEFAULT_ROOM_OPTIONS: CreateRoomOptions = {
-  gameType: 'CLASSIC',
-  omokRule: 'FREESTYLE',
-  ranked: true,
-  timeLimit: 'UNLIMITED',
-  byoyomiOption: 'NONE',
 };
 
 interface Props {

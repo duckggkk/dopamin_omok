@@ -9,7 +9,7 @@ import { useCosmetics } from '@/hooks/useCosmetics';
 import { useStoneSoundPlayer } from '@/hooks/useStoneSoundPlayer';
 import { useToast } from '@/contexts/ToastContext';
 import OmokBoard from '@/components/game/OmokBoard';
-import { winEffectClass } from '@/components/game/GameResultOverlay';
+import { winEffectClass } from '@/components/game/winEffect';
 import styles from './AiGamePage.module.css';
 import gameStyles from './GamePage.module.css';
 

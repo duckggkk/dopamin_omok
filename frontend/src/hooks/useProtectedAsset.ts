@@ -85,6 +85,9 @@ export function useProtectedAsset(
       .catch(() => { if (!cancelled) setUrl(null); });
 
     return () => { cancelled = true; };
+    // url 은 '이미 받아온 키면 건너뛴다' 가드에서만 읽는다. 의존성에 넣으면 fetch 실패(setUrl(null))
+    // 직후 가드가 풀리면서 무한 재요청이 되므로 의도적으로 제외한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemType, assetKey]);
 
   return url;

@@ -131,6 +131,8 @@ const PlazaPage = () => {
   const activeDirRef = useRef<Direction | null>(null);
 
   const chat = useChat();
+  // 콜백 의존성으로 쓰려고 미리 꺼낸다 — chat 객체 전체를 의존하면 매 렌더마다 콜백이 새로 만들어진다
+  const { onChatMessage } = chat;
   const [chatActive, setChatActive] = useState(false);
   const chatInputRef = useRef<HTMLInputElement>(null);
   // 아바타 꾸미기 팝업. 열려 있는 동안엔 월드 입력(이동/채팅 열기)을 막는다.
@@ -197,8 +199,8 @@ const PlazaPage = () => {
         expiresAt: performance.now() + BUBBLE_MS,
       };
     }
-    chat.onChatMessage(res);
-  }, [chat.onChatMessage]);
+    onChatMessage(res);
+  }, [onChatMessage]);
 
   const { sendInput, sendChat, sendAppearance } = usePlazaSocket({
     channelId: joinInfo?.channelId ?? null,

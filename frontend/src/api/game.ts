@@ -16,7 +16,8 @@ export interface WaitingRoomFilter {
   recommended?: boolean;
 }
 
-const DEFAULT_ROOM_OPTIONS: CreateRoomOptions = {
+/** 방 생성 기본값. 방 만들기 UI 초기값도 이 값을 공유한다(CreateRoomModal). */
+export const DEFAULT_ROOM_OPTIONS: CreateRoomOptions = {
   gameType: 'CLASSIC',
   omokRule: 'FREESTYLE',
   ranked: true,

@@ -8,7 +8,7 @@ import { shopApi } from '@/api/shop';
 import { GameInfo, PublicUser, RelationInfo, StatMode, User, Inventory, ShopItem, ItemType } from '@/types';
 import GameRecordViewer from '@/components/game/GameRecordViewer';
 import ItemPreview from '@/components/shop/ItemPreview';
-import { ITEM_TYPE_META } from './ShopPage';
+import { ITEM_TYPE_META } from '@/constants/itemMeta';
 import ModeTabs from '@/components/common/ModeTabs';
 import { pickStats, totalStats } from '@/utils/stats';
 import styles from './ProfilePage.module.css';

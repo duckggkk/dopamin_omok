@@ -5,6 +5,7 @@ import { ShopInfo, Inventory, GachaResult, ShopItem, ItemType } from '@/types';
 import ItemPreview from '@/components/shop/ItemPreview';
 import PreviewBoard from '@/components/shop/PreviewBoard';
 import { useStoneSoundPlayer } from '@/hooks/useStoneSoundPlayer';
+import { ITEM_TYPE_META } from '@/constants/itemMeta';
 import { DEFAULT_BLACK_STONE } from '@/utils/stoneSkin';
 import styles from './ShopPage.module.css';
 
@@ -35,17 +36,6 @@ const DEFAULT_ITEMS: Partial<Record<ItemType, ShopItem>> = {
   },
 };
 
-// 타입별 표시 메타 (아이콘/카테고리 라벨). 새 코스메틱 타입 추가 시 여기 한 줄만 추가.
-// 프로필의 '내 아이템'(종류별 묶음)에서도 같은 라벨을 쓰므로 export 한다.
-export const ITEM_TYPE_META: Record<ItemType, { icon: string; label: string }> = {
-  DEFEAT_MESSAGE: { icon: '💬', label: '패배 문구' },
-  DEFEAT_EFFECT: { icon: '🔥', label: '승패 이펙트' },
-  BOARD_SKIN: { icon: '🎨', label: '바둑판 스킨' },
-  STONE_SOUND: { icon: '🔊', label: '착수음' },
-  STONE_SKIN: { icon: '⚫', label: '바둑알 스킨' },
-  STONE_EFFECT: { icon: '✨', label: '착수 효과' },
-  CHARACTER_SKIN: { icon: '🧙', label: '피지컬 캐릭터' },
-};
 const COMING_SOON_TYPES = new Set<ItemType>(['DEFEAT_EFFECT']);
 const INVENTORY_TYPES = (Object.keys(ITEM_TYPE_META) as ItemType[])
   .filter((type) => !COMING_SOON_TYPES.has(type));
