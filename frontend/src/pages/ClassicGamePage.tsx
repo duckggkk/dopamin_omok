@@ -196,29 +196,43 @@ const ClassicGamePage = () => {
   // 초기 방/기보 로드
   useEffect(() => {
     const load = async () => {
+      let loadedRoom: Room | null = null;
       try {
         const roomRes = await gameApi.getRoom(roomCode!);
-        if (roomRes.data.data) {
-          setRoom(roomRes.data.data);
-          if (roomRes.data.data.currentGame) {
-            const movesRes = await gameApi.getGameMoves(roomCode!);
-            if (movesRes.data.data) {
-              const existingMoves = movesRes.data.data;
-              setMoves(existingMoves);
-              const newBoard = createEmptyBoard();
-              existingMoves.forEach((m) => {
-                newBoard[m.row][m.col] = m.color;
-              });
-              setBoard(newBoard);
-              if (existingMoves.length > 0) {
-                const last = existingMoves[existingMoves.length - 1];
-                setLastMove({ row: last.row, col: last.col });
-              }
-            }
+        loadedRoom = roomRes.data.data ?? null;
+        if (loadedRoom) setRoom(loadedRoom);
+      } catch {
+        navigate('/lobby'); // 방 자체를 못 불러왔을 때만 로비로 — 이땐 room 이 없어 이탈 가드도 잠잠하다
+        setIsLoading(false);
+        return;
+      }
+
+      // 기보는 '진행 중인' 게임에만 남아 있다(서버는 IN_PROGRESS 만 조회 → 끝난 게임은 404).
+      // 방 정보의 currentGame 은 끝난 게임도 들고 있으므로, 상태를 보고 골라 불러야 한다.
+      // 이걸 안 가리면 한 판 둔 방에 다시 들어올 때마다 404 → 로비로 이동 → 이탈 가드가
+      // 가로채 "방을 나가시겠습니까?" 가 뜬다(방에 들어오자마자).
+      if (loadedRoom?.currentGame?.status !== 'IN_PROGRESS') {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const movesRes = await gameApi.getGameMoves(roomCode!);
+        const existingMoves = movesRes.data.data;
+        if (existingMoves) {
+          setMoves(existingMoves);
+          const newBoard = createEmptyBoard();
+          existingMoves.forEach((m) => {
+            newBoard[m.row][m.col] = m.color;
+          });
+          setBoard(newBoard);
+          if (existingMoves.length > 0) {
+            const last = existingMoves[existingMoves.length - 1];
+            setLastMove({ row: last.row, col: last.col });
           }
         }
       } catch {
-        navigate('/lobby');
+        // 기보를 못 불러와도 방에는 남는다 — 착수는 웹소켓으로 계속 들어온다.
       } finally {
         setIsLoading(false);
       }
