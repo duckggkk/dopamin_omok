@@ -37,6 +37,7 @@ desktop.ini
 # Env (예시 파일은 커밋, 실제 값 파일은 제외)
 .env
 .env.prod
+.env.prod.bak    # 배포 시 CD 가 IMAGE_* 를 갱신하기 전에 남기는 백업(시크릿 포함)
 *.env.local
 
 # 운영 산출물 (서버에서 생성됨 — 커밋 금지)
