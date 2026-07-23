@@ -4,12 +4,24 @@ name: Deploy (prod)
 #   1) 백엔드/프론트 이미지를 빌드해 GHCR 에 push
 #   2) 서버에 SSH 접속해 점검 모드 배포(deploy.sh) 실행
 # CI 가 실패하면 배포는 트리거되지 않는다(= 테스트 통과해야만 배포).
+#
+# ⚠️ 보안: workflow_run 은 "base 저장소 컨텍스트"에서 실행된다.
+#   즉 이 워크플로는 시크릿 전체와 쓰기 권한 토큰을 갖는다.
+#   반면 트리거가 되는 CI 는 fork 의 PR 에서도 실행되므로,
+#   아무 가드 없이 workflow_run.head_sha 를 체크아웃하면
+#   외부인의 코드가 운영에 배포된다(GitHub 이 경고하는 "pwn request" 패턴).
+#
+#   on.workflow_run 의 branches 필터는 방어가 되지 않는다.
+#   그 필터는 "트리거한 실행의 head 브랜치 이름"만 보는데,
+#   fork 에도 main 브랜치가 그대로 복사되므로 외부인이 그냥 통과한다.
+#
+#   따라서 아래 GUARD 조건으로 직접 차단한다(자세한 내용은 각 항목 주석 참고).
 
 on:
   workflow_run:
     workflows: ["CI"]          # ci.yml 의 name 과 일치해야 함
     types: [completed]
-    branches: [main]
+    branches: [main]           # 1차 필터일 뿐 — 실제 방어는 아래 GUARD 가 한다
   workflow_dispatch:            # 필요 시 수동 배포
 
 concurrency:
@@ -19,50 +31,72 @@ concurrency:
 jobs:
   build-and-push:
     name: Build & Push images (GHCR)
-    # 수동 실행이거나, CI 가 성공한 경우에만 진행
+    # ── GUARD ────────────────────────────────────────────────────────────────
+    # 수동 실행(workflow_dispatch)은 저장소 쓰기 권한자만 누를 수 있으므로 허용.
+    # 자동 실행은 아래 4개를 "모두" 만족할 때만 진행한다.
+    #   1) conclusion == 'success'          : CI(테스트)가 통과했는가
+    #   2) event == 'push'                  : PR 이 아니라 "push" 로 발생한 CI 인가
+    #        → fork PR 의 CI 는 event 가 'pull_request' 라 여기서 걸린다.
+    #        → main 브랜치에 push 할 수 있는 사람은 저장소 협업자뿐이다.
+    #   3) head_repository == 저장소 자신    : fork 가 아니라 이 저장소의 코드인가
+    #        → 2번을 통과하더라도 한 번 더 막는 심층 방어.
+    #   4) head_branch == 'main'            : main 이 맞는가
     if: >-
       ${{ github.event_name == 'workflow_dispatch' ||
-          github.event.workflow_run.conclusion == 'success' }}
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.event == 'push' &&
+           github.event.workflow_run.head_repository.full_name == github.repository &&
+           github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
     env:
-      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
       OWNER_REPO: ${{ github.repository }}   # GHCR 경로는 소문자여야 함(저장소명이 소문자라 가정)
     steps:
-      - uses: actions/checkout@v4
+      - name: Resolve deploy SHA
+        id: resolve
+        run: echo "sha=${{ github.event.workflow_run.head_sha || github.sha }}" >> "$GITHUB_OUTPUT"
+
+      # ⚠️ 서드파티 Action 은 태그(v4)가 아니라 커밋 SHA 로 고정한다.
+      #   태그는 작성자가 언제든 다른 커밋으로 옮길 수 있어(supply chain),
+      #   시크릿을 가진 이 워크플로에서는 SHA 고정이 필수다.
+      #   버전 갱신 시 주석의 태그와 SHA 를 함께 바꿀 것.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ steps.resolve.outputs.sha }}
+          persist-credentials: false
 
       # 운영 서버가 x86(amd64, 4 vCPU)이라 amd64 단일 아키텍처만 빌드한다.
       # → arm64 크로스 빌드(QEMU 에뮬레이션) 불필요: 빌드가 빠르고, Node/Gradle 의
       #   QEMU "illegal instruction" 크래시도 발생하지 않는다.
       #   (나중에 ARM 서버로 옮기면 platforms 에 linux/arm64 를 다시 넣고,
       #    각 Dockerfile builder 단계에 FROM --platform=$BUILDPLATFORM 를 붙이면 됨)
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & push backend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: ./backend
           platforms: linux/amd64   # 운영 서버가 x86(4 vCPU) — amd64만 빌드(QEMU 불필요, 빠름)
           push: true
           tags: |
             ghcr.io/${{ env.OWNER_REPO }}/backend:latest
-            ghcr.io/${{ env.OWNER_REPO }}/backend:${{ env.SHA }}
+            ghcr.io/${{ env.OWNER_REPO }}/backend:${{ steps.resolve.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Build & push frontend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: ./frontend
           platforms: linux/amd64   # 운영 서버가 x86(4 vCPU) — amd64만 빌드(QEMU 불필요, 빠름)
@@ -73,7 +107,7 @@ jobs:
             VITE_GOOGLE_LOGIN_ENABLED=${{ vars.VITE_GOOGLE_LOGIN_ENABLED || 'false' }}
           tags: |
             ghcr.io/${{ env.OWNER_REPO }}/frontend:latest
-            ghcr.io/${{ env.OWNER_REPO }}/frontend:${{ env.SHA }}
+            ghcr.io/${{ env.OWNER_REPO }}/frontend:${{ steps.resolve.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -81,20 +115,31 @@ jobs:
     name: Deploy to server (maintenance window)
     needs: build-and-push
     runs-on: ubuntu-latest
-    # GitHub > Settings > Environments > production 에 "Required reviewers" 를 걸면
-    # 자동배포 대신 수동 승인 게이트로 바꿀 수 있음(선택).
+    # ⚠️ GitHub > Settings > Environments > production 에 "Required reviewers" 를 반드시 설정할 것.
+    #   위 GUARD 로 외부 코드 유입은 막았지만, 승인 게이트는 코드로 강제할 수 없는
+    #   저장소 설정이다. 마지막 안전장치이므로 비워두지 말 것.
     environment: production
     steps:
       - name: SSH deploy
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1
+        env:
+          DEPLOY_SHA: ${{ needs.build-and-push.outputs.sha }}
+          REPO: ${{ github.repository }}
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
           port: ${{ secrets.PROD_SSH_PORT }}   # 비워두면 22
+          envs: DEPLOY_SHA,REPO
           script: |
             set -e
             cd /opt/dopamin-omok
             git fetch --all --prune
             git reset --hard origin/main        # 서버는 인프라 파일(compose/Caddyfile/스크립트)만 최신화
+            # 방금 빌드한 "그 커밋"의 이미지를 정확히 지정해 배포한다.
+            # :latest 로 배포하면 어떤 커밋이 떠 있는지 알 수 없고 롤백도 불가능하다
+            # (dev-log 20260716 'latest 태그와 조용한 장애' 참고).
+            # 셸 환경변수는 --env-file(.env.prod) 값보다 우선하므로 그대로 덮어쓴다.
+            export IMAGE_BACKEND="ghcr.io/${REPO}/backend:${DEPLOY_SHA}"
+            export IMAGE_FRONTEND="ghcr.io/${REPO}/frontend:${DEPLOY_SHA}"
             bash deploy/scripts/deploy.sh

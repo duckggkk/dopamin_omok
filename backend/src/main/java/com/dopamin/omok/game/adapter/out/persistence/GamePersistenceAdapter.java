@@ -27,6 +27,11 @@ public class GamePersistenceAdapter implements LoadGamePort, SaveGamePort {
     }
 
     @Override
+    public Optional<Game> findActiveGameByRoomCodeForUpdate(String roomCode) {
+        return gameJpaRepository.findActiveGameByRoomCodeForUpdate(roomCode);
+    }
+
+    @Override
     public Optional<Game> findLatestGameByRoomCode(String roomCode) {
         return gameJpaRepository.findLatestGameByRoomCode(roomCode);
     }

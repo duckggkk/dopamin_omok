@@ -13,6 +13,16 @@
 {$DOMAIN} {
 	encode gzip zstd
 
+	# ── HSTS ────────────────────────────────────────────────────────────
+	# 브라우저가 이 도메인을 앞으로 1년간 https 로만 접속하게 강제한다.
+	# 사용자가 주소창에 http:// 를 직접 입력하거나 오래된 http 링크를 눌러도
+	# 요청이 나가기 "전에" 브라우저가 https 로 바꾸므로, 쿠키가 평문으로 새는
+	# 첫 요청 자체가 사라진다(Secure 플래그와 짝을 이루는 방어).
+	#
+	# preload 는 넣지 않는다 — 브라우저 preload 목록에 등재되면 해제가 매우 오래 걸려
+	# 도메인 운영 방식을 바꾸기 어려워진다.
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
 	# ── 점검 모드 ─────────────────────────────────────────────────────────
 	@maintenance file {
 		root /maintenance

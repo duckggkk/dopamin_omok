@@ -35,6 +35,18 @@ spring:
           auth: true
           starttls:
             enable: true
+            # enable 만 두면 서버가 STARTTLS 를 광고하지 않을 때 "평문으로 폴백"한다.
+            # 중간자가 서버 응답에서 STARTTLS 광고를 지우면 SMTP AUTH 계정정보가
+            # 그대로 평문으로 나가므로, TLS 로 올리지 못하면 아예 실패시킨다.
+            required: true
+          ssl:
+            # CVE-2026-40992 대응.
+            # Spring Boot 의 Mail 자동설정은 TLS 소켓만 붙이고 인증서의 호스트명 검증
+            # (mail.smtp.ssl.checkserveridentity)을 켜지 않는다. 영향 범위는
+            # 3.4.0–3.4.16 / 3.5.0–3.5.14 / 4.0.0–4.0.6 이고 이 프로젝트는 3.4.1 이다.
+            # 이 값을 직접 설정한 애플리케이션은 영향을 받지 않는다(Spring 공식 권고).
+            # 끄여 있으면 다른 호스트용 인증서를 제시하는 중간자를 걸러내지 못한다.
+            checkserveridentity: true
 
 app:
   shop:

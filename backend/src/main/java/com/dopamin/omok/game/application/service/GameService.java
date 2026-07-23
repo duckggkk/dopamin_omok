@@ -47,7 +47,10 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
     @Override
     @Transactional
     public GameMoveResponse placeStone(String roomCode, Long userId, int row, int col) {
-        Game game = findActiveGame(roomCode);
+        // 행 잠금으로 조회한다 — 아래의 "수순 조회 → 중복/턴 검사 → moveNumber 계산 → 저장"
+        // 구간이 같은 게임에 대해 동시에 실행되면 안 되기 때문이다.
+        // (STOMP clientInboundChannel 은 스레드 풀이라 같은 세션의 두 메시지도 동시 처리될 수 있다)
+        Game game = findActiveGameForUpdate(roomCode);
         Room room = loadRoomPort.findByRoomCode(roomCode)
                 .orElseThrow(() -> new OmokException(ErrorCode.ROOM_NOT_FOUND));
 
@@ -115,7 +118,8 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
     @Override
     @Transactional
     public GameResponse surrender(String roomCode, Long userId) {
-        Game game = findActiveGame(roomCode);
+        // 착수와 동시에 들어오면 승패가 두 번 기록될 수 있으므로 같은 락을 쓴다.
+        Game game = findActiveGameForUpdate(roomCode);
 
         if (!game.isParticipant(userId)) {
             throw new OmokException(ErrorCode.NOT_GAME_PARTICIPANT);
@@ -221,6 +225,17 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
 
     private Game findActiveGame(String roomCode) {
         return loadGamePort.findActiveGameByRoomCode(roomCode)
+                .orElseThrow(() -> new OmokException(ErrorCode.GAME_NOT_FOUND));
+    }
+
+    /**
+     * 게임 상태를 바꾸는 경로(착수·기권)용 조회. games 행을 잠근 채로 가져온다.
+     * <p>
+     * 락을 기다리는 동안 상대가 먼저 이겨서 게임이 끝났다면 IN_PROGRESS 조건에 걸려
+     * 결과가 비어 있으므로, 그대로 GAME_NOT_FOUND 로 거절된다.
+     */
+    private Game findActiveGameForUpdate(String roomCode) {
+        return loadGamePort.findActiveGameByRoomCodeForUpdate(roomCode)
                 .orElseThrow(() -> new OmokException(ErrorCode.GAME_NOT_FOUND));
     }
 

@@ -34,6 +34,16 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     private static final Pattern GAME_APP_PATTERN = Pattern.compile("^/app/game/([^/]+)/[^/]+$");
     private static final Pattern PHYSICAL_APP_PATTERN = Pattern.compile("^/app/physical/([^/]+)/[^/]+$");
     private static final Pattern PLAZA_PATTERN = Pattern.compile("^/(?:topic|app)/plaza/([^/]+)(?:/.*)?$");
+    /**
+     * 광장 채널 ID 는 서버(PlazaSessionManager.allocate)가 {@code plaza-<번호>} 형식으로만 발급한다.
+     * 클라이언트가 임의 문자열을 보내 채널을 무한 생성하지 못하도록 여기서 형식부터 막는다.
+     * <p>
+     * 실제 "그 채널이 존재하는지"는 {@code PlazaSessionManager} 가 검증한다.
+     * 여기서 PlazaSessionManager 를 주입하면
+     * WebSocketConfig → JwtChannelInterceptor → PlazaSessionManager → PlazaEventPublisher
+     * → SimpMessagingTemplate → (WebSocketConfig) 로 순환 참조가 생기기 때문이다.
+     */
+    private static final Pattern PLAZA_CHANNEL_ID_PATTERN = Pattern.compile("^plaza-\\d{1,9}$");
 
     private final JwtAuthenticator jwtAuthenticator;
     private final LoadRoomPort loadRoomPort;
@@ -60,9 +70,11 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                     ? authHeader.substring(JwtAuthConstants.BEARER_PREFIX.length())
                     : null;
 
-            // CONNECT 단계에서 유효한 JWT(서명 + tokenVersion 일치)가 없으면 연결 자체를 거부한다.
+            // CONNECT 단계에서 유효한 JWT(서명 + 만료)가 없으면 연결 자체를 거부한다.
             // 미인증 클라이언트가 임의의 방 토픽(/topic/room/{code})을 구독해
-            // 타인의 수순·채팅을 열람하는 것을 차단한다(로그아웃 토큰도 거부).
+            // 타인의 수순·채팅을 열람하는 것을 차단한다.
+            // 단 tokenVersion 은 검사하지 않으므로(JwtAuthenticator 주석 참고)
+            // 로그아웃 직후의 토큰이라도 만료 전이면 통과한다.
             UsernamePasswordAuthenticationToken authentication = jwtAuthenticator.authenticate(token)
                     .orElseThrow(() -> {
                         log.warn("WebSocket CONNECT 거부 — 유효한 인증 토큰 없음");
@@ -107,7 +119,17 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         }
 
         Matcher plaza = PLAZA_PATTERN.matcher(destination);
-        if (plaza.matches() || destination.startsWith("/user/")) {
+        if (plaza.matches()) {
+            // 채널 ID 형식이 서버 발급 규칙과 다르면 거부한다.
+            // (방/피지컬과 달리 광장은 누구나 입장 가능하므로 멤버십 검증은 하지 않지만,
+            //  임의 채널명으로 세션을 만들어내는 것은 막아야 한다)
+            if (!PLAZA_CHANNEL_ID_PATTERN.matcher(plaza.group(1)).matches()) {
+                throw reject("허용되지 않은 광장 채널입니다.");
+            }
+            return;
+        }
+
+        if (destination.startsWith("/user/")) {
             return;
         }
 

@@ -105,11 +105,51 @@ public class PlazaSessionManager {
 
     // ===================== 생명주기 =====================
 
+    /**
+     * 광장 입장. 채널은 {@link #allocate()} 가 만든 것만 사용할 수 있다.
+     * <p>
+     * 예전에는 여기서 {@code computeIfAbsent} 로 채널을 만들었는데,
+     * channelId 가 클라이언트가 정하는 {@code @DestinationVariable} 이라
+     * 임의 문자열로 채널을 무한 생성하고 정원(channelCapacity)까지 우회할 수 있었다.
+     */
     public void join(String channelId, String sessionId, Long userId,
                      String publicId, String nickname, PlazaAppearance appearance) {
-        Channel c = channels.computeIfAbsent(channelId, Channel::new);
+        // 1) 서버가 발급하지 않은 채널이면 입장 불가(클라가 채널을 만들어내지 못하게).
+        Channel c = channels.get(channelId);
+        if (c == null) {
+            log.debug("광장 입장 거부 — 존재하지 않는 채널: channel={} user={}", channelId, userId);
+            return;
+        }
+
+        // 2) 같은 세션이 다른 채널에 남아 있으면 먼저 퇴장시킨다.
+        //    sessionIndex 는 세션당 1칸이라, 정리하지 않으면 이전 채널의 players 에
+        //    영구히 남는 '유령'이 생긴다(연결이 끊겨도 마지막 채널에서만 제거되므로).
+        //    데드락을 피하려고 c.lock 을 잡기 "전에" 처리한다.
+        if (sessionId != null) {
+            Member prev = sessionIndex.get(sessionId);
+            if (prev != null && !prev.channelId().equals(channelId)) {
+                leave(prev.channelId(), prev.userId());
+            }
+        }
+
         c.lock.lock();
         try {
+            // 3) 락을 잡는 사이 cleanupIfEmpty 가 이 채널을 제거했을 수 있다.
+            //    제거된 Channel 객체에 넣으면 아무도 못 보는 유령이 되므로 다시 확인한다.
+            if (channels.get(channelId) != c) {
+                log.debug("광장 입장 거부 — 대기 중 정리된 채널: channel={}", channelId);
+                return;
+            }
+
+            // 4) 정원 검사. allocate() 에만 있고 join() 에 없으면
+            //    클라가 채널명을 직접 지정해 정원을 통째로 무력화할 수 있다.
+            //    이미 들어와 있는 유저의 재입장(새로고침 등)은 정원과 무관하게 허용한다.
+            if (!c.players.containsKey(userId) && c.players.size() >= props.channelCapacity()) {
+                log.debug("광장 입장 거부 — 정원 초과: channel={} ({}/{}명)",
+                        channelId, c.players.size(), props.channelCapacity());
+                return;
+            }
+
             int margin = props.spawnMargin();
             int x = randomBetween(margin, props.worldWidth() - margin);
             int y = randomBetween(margin, props.worldHeight() - margin);

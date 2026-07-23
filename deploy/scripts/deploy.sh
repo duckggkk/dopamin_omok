@@ -31,6 +31,19 @@ trap on_error ERR
 
 [ -f .env.prod ] || { echo -e "${c_err}.env.prod 가 없습니다. .env.prod.example 를 복사해 채우세요.${c_off}"; exit 1; }
 
+# 어떤 이미지가 뜨는지 배포 로그에 남긴다.
+# CI 배포는 IMAGE_BACKEND/IMAGE_FRONTEND 를 커밋 SHA 태그로 export 해서 넘긴다
+# (셸 환경변수가 --env-file 값보다 우선). 수동 실행 시에는 .env.prod 값이 쓰인다.
+# :latest 로 뜨면 어떤 커밋인지 추적할 수 없으므로 경고한다
+# (dev-log 20260716 'latest 태그와 조용한 장애' 참고).
+resolved_images=$($COMPOSE config --images 2>/dev/null | grep -E "/(backend|frontend):" || true)
+log "0/6  배포 대상 이미지"
+echo "${resolved_images:-  (확인 실패 — compose config 를 읽지 못했습니다)}"
+if echo "$resolved_images" | grep -q ':latest$'; then
+  echo -e "${c_err}⚠ :latest 태그로 배포합니다 — 어떤 커밋이 떠 있는지 추적할 수 없고 롤백도 어렵습니다.${c_off}"
+  echo -e "${c_err}  .env.prod 의 IMAGE_BACKEND/IMAGE_FRONTEND 를 커밋 SHA 태그로 바꾸세요.${c_off}"
+fi
+
 log "1/6  점검 모드 ON"
 mkdir -p "$(dirname "$FLAG")"
 touch "$FLAG"
