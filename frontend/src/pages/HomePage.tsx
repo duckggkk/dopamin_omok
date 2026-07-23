@@ -5,7 +5,7 @@ import { userApi } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/contexts/ToastContext';
 import { getApiErrorMessage } from '@/utils/error';
-import { GameInfo, RankingEntry } from '@/types';
+import { GameSummary, RankingEntry } from '@/types';
 import CreateRoomModal from '@/components/game/CreateRoomModal';
 import GameRecordViewer from '@/components/game/GameRecordViewer';
 import styles from './HomePage.module.css';
@@ -60,10 +60,10 @@ const HomePage = () => {
   const [joinCode, setJoinCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [recent, setRecent] = useState<GameInfo[] | null>(null);
+  const [recent, setRecent] = useState<GameSummary[] | null>(null);
   const [topRanking, setTopRanking] = useState<RankingEntry[] | null>(null);
   // 최근 전적에서 선택한 대국 — 기보(일반)/리플레이(피지컬) 다시보기 모달
-  const [kifuGame, setKifuGame] = useState<GameInfo | null>(null);
+  const [kifuGame, setKifuGame] = useState<GameSummary | null>(null);
 
   useEffect(() => {
     gameApi.getMyGames(0, 5).then((res) => setRecent(res.data.data?.content ?? [])).catch(() => setRecent([]));
@@ -122,13 +122,13 @@ const HomePage = () => {
     }
   };
 
-  const resultOf = (g: GameInfo): { label: string; cls: string } => {
+  const resultOf = (g: GameSummary): { label: string; cls: string } => {
     if (g.status === 'IN_PROGRESS') return { label: '진행 중', cls: styles.rOngoing };
     if (g.status === 'DRAW') return { label: '무', cls: styles.rDraw };
     if (g.winner?.id === user.id) return { label: '승', cls: styles.rWin };
     return { label: '패', cls: styles.rLoss };
   };
-  const opponentOf = (g: GameInfo) =>
+  const opponentOf = (g: GameSummary) =>
     (g.blackPlayer?.id === user.id ? g.whitePlayer : g.blackPlayer)?.nickname ?? '상대';
 
   return (

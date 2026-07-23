@@ -215,8 +215,11 @@ const Navbar = () => {
             </>
           ) : isGuest ? (
             <>
-              <span className={styles.guestTag}>🎮 게스트</span>
-              <Link to="/register" className={styles.registerBtn}>회원가입</Link>
+              <span className={styles.guestTag}>🎮<span className={styles.guestTagText}>게스트</span></span>
+              <Link to="/register" className={styles.registerBtn}>
+                <span className={styles.registerLong}>회원가입</span>
+                <span className={styles.registerShort}>가입</span>
+              </Link>
               <button onClick={handleLogout} className={styles.logoutBtn} title="나가기" aria-label="나가기">
                 <IconDoor />
               </button>
@@ -224,7 +227,10 @@ const Navbar = () => {
           ) : (
             <>
               <Link to="/login" className={styles.navItem}>로그인</Link>
-              <Link to="/register" className={styles.registerBtn}>회원가입</Link>
+              <Link to="/register" className={styles.registerBtn}>
+                <span className={styles.registerLong}>회원가입</span>
+                <span className={styles.registerShort}>가입</span>
+              </Link>
             </>
           )}
 

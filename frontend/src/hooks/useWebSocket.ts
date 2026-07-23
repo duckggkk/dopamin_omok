@@ -154,6 +154,15 @@ export const useWebSocket = ({
     [roomCode],
   );
 
+  // 방장이 두 참가자의 흑/백을 맞바꾼다(대기 중에만). 서버가 검증 후 방 상태를 브로드캐스트한다.
+  const sendSwapColors = useCallback(() => {
+    if (!clientRef.current?.connected) return;
+    clientRef.current.publish({
+      destination: `/app/game/${roomCode}/swap-colors`,
+      body: '{}',
+    });
+  }, [roomCode]);
+
   // 피지컬 오목: 단일 입력 엔드포인트로 전송(direction 은 MOVE_START 일 때만 의미)
   const sendPhysicalInput = useCallback(
     (type: PhysicalInputType, direction?: PhysicalDirection) => {
@@ -186,6 +195,7 @@ export const useWebSocket = ({
     sendStart,
     sendChat,
     sendChangeSkin,
+    sendSwapColors,
     sendPhysicalInput,
     sendPhysicalSurrender,
     isConnected: isConnectedRef,

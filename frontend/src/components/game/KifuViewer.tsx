@@ -1,13 +1,13 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { gameApi } from '@/api/game';
-import { ApiResponse, Board, GameInfo, GameMove } from '@/types';
+import { ApiResponse, Board, GameSummary, GameMove } from '@/types';
 import { AxiosResponse } from 'axios';
 import { createEmptyBoard } from '@/constants/board';
 import OmokBoard from './OmokBoard';
 import styles from './KifuViewer.module.css';
 
 interface Props {
-  game: GameInfo;
+  game: GameSummary;
   onClose: () => void;
   loadMoves?: (gameId: number) => Promise<AxiosResponse<ApiResponse<GameMove[]>>>;
 }

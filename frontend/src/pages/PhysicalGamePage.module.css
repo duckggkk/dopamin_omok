@@ -232,7 +232,7 @@
 .waitDesc b { color: var(--gold-bright); }
 .inviteText { font-size: 0.85rem; color: var(--text-faint); margin: 0 0 8px; }
 
-.copyBtn, .readyOff, .readyOn, .startBtn {
+.copyBtn, .readyOff, .readyOn, .startBtn, .swapBtn {
   width: 100%;
   border: none;
   border-radius: var(--r-sm);
@@ -244,6 +244,9 @@
   transition: filter var(--t-fast, 0.15s) ease, transform var(--t-fast, 0.15s) ease;
 }
 .copyBtn { background: var(--surface-3); color: var(--text); border: 1px solid var(--border-strong); }
+/* 흑백 교체 — 방장 전용 보조 동작이라 시작 버튼보다 조용한 톤 */
+.swapBtn { background: var(--surface-3); color: var(--text); border: 1px solid var(--border-strong); font-size: 0.9rem; }
+.swapBtn:hover { border-color: var(--gold-soft-border); color: var(--gold-bright); }
 .readyOff { background: var(--gold-grad); color: var(--text-on-gold, #2a1c05); }
 .readyOn { background: var(--surface-3); color: var(--text); border: 1px solid var(--gold-soft-border); }
 .startBtn { background: var(--gold-grad); color: var(--text-on-gold, #2a1c05); }

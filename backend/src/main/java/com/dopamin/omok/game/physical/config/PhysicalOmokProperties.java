@@ -31,7 +31,7 @@ public record PhysicalOmokProperties(
 ) {
     public PhysicalOmokProperties {
         // 설정 누락 시(예: 테스트 프로파일) 안전한 기본값으로 보정 — 게임이 0ms 쿨다운/0 크기로 깨지지 않게 함.
-        if (boardSize <= 0) boardSize = 14;
+        if (boardSize <= 0) boardSize = 15;
         if (winCount <= 0) winCount = 5;
         if (targetScore <= 0) targetScore = 3;
         if (moveCooldownMs <= 0) moveCooldownMs = 140;

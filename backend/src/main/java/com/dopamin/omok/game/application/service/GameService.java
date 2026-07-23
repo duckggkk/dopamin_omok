@@ -28,7 +28,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
-        GetGameUseCase, GetGameMovesUseCase, GetMyGamesUseCase, GetPhysicalReplayUseCase {
+        GetGameMovesUseCase, GetMyGamesUseCase, GetPhysicalReplayUseCase {
 
     private final LoadRoomPort loadRoomPort;
     private final SaveRoomPort saveRoomPort;
@@ -93,10 +93,10 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
 
         if (win) {
             game.finish(player);
-            updateWinLoss(game, player, room.isRanked());
+            updateWinLoss(game, player);
         } else if (gameEngine.isBoardFull(board)) {
             game.draw();
-            recordDraw(game, room.isRanked());
+            recordDraw(game);
         } else {
             game.switchTurn();
         }
@@ -125,19 +125,13 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         User winner = (loserColor == StoneColor.BLACK) ? game.getWhitePlayer() : game.getBlackPlayer();
 
         game.finish(winner);
-        updateWinLoss(game, winner, game.getRoom().isRanked());
+        updateWinLoss(game, winner);
         saveGamePort.save(game);
 
         loadRoomPort.findByRoomCode(roomCode).ifPresent(room -> {
             room.waitForNextGame(); //방대기전환
         });
 
-        return GameResponse.from(game);
-    }
-
-    @Override
-    public GameResponse getGame(String roomCode) {
-        Game game = findActiveGame(roomCode);
         return GameResponse.from(game);
     }
 
@@ -192,9 +186,9 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
     }
 
     @Override
-    public Page<GameResponse> getMyGames(Long userId, Pageable pageable) {
+    public Page<GameSummaryResponse> getMyGames(Long userId, Pageable pageable) {
         return loadGamePort.findCompletedByUserId(userId, pageable)
-                .map(GameResponse::from);
+                .map(GameSummaryResponse::from);
     }
 
     @Override
@@ -219,7 +213,7 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         if (timedOut) {
             User winner = game.getOpponent(userId);
             game.finish(winner);
-            updateWinLoss(game, winner, room.isRanked());
+            updateWinLoss(game, winner);
             saveGamePort.save(game);
             throw new OmokException(ErrorCode.PLAYER_TIMEOUT);
         }
@@ -248,8 +242,8 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         return game;
     }
 
-    private void updateWinLoss(Game game, User winner, boolean ranked) {
-        if (!ranked) return; // 캐주얼: 레이팅·전적 미반영(대국 기록은 저장된다)
+    private void updateWinLoss(Game game, User winner) {
+        if (!game.isRated()) return; // 봇·게스트 대국: 기록만 남기고 레이팅·전적 미반영
         User loser = winner.getId().equals(game.getBlackPlayer().getId())
                 ? game.getWhitePlayer()
                 : game.getBlackPlayer();
@@ -259,8 +253,8 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         EloRating.applyResult(winner, loser, false);
     }
 
-    private void recordDraw(Game game, boolean ranked) {
-        if (!ranked) return; // 캐주얼: 미반영
+    private void recordDraw(Game game) {
+        if (!game.isRated()) return; // 봇·게스트 대국: 미반영
         User black = game.getBlackPlayer();
         User white = game.getWhitePlayer();
         black.recordDraw();

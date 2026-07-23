@@ -12,6 +12,7 @@ import com.dopamin.omok.game.application.port.in.PlaceStoneUseCase;
 import com.dopamin.omok.game.application.port.in.ReadyGameUseCase;
 import com.dopamin.omok.game.application.port.in.StartGameUseCase;
 import com.dopamin.omok.game.application.port.in.SurrenderUseCase;
+import com.dopamin.omok.game.application.port.in.SwapColorsUseCase;
 import com.dopamin.omok.game.application.port.out.LoadGamePlayerPort;
 import com.dopamin.omok.game.application.port.out.LoadRoomPort;
 import com.dopamin.omok.game.application.port.out.RoomEventPublisherPort;
@@ -49,6 +50,7 @@ public class GameWebSocketController {
     private final ReadyGameUseCase readyGameUseCase;
     private final StartGameUseCase startGameUseCase;
     private final ChangeStoneSkinUseCase changeStoneSkinUseCase;
+    private final SwapColorsUseCase swapColorsUseCase;
     private final LoadRoomPort loadRoomPort;
     private final LoadGamePlayerPort loadGamePlayerPort;
     private final WebSocketSessionRegistry sessionRegistry;
@@ -143,6 +145,24 @@ public class GameWebSocketController {
             changeStoneSkinUseCase.changeStoneSkin(roomCode, userId, request.itemId());
         } catch (Exception e) {
             log.warn("WebSocket change-skin error for room {}: {}", roomCode, e.getMessage());
+        }
+    }
+
+    @MessageMapping("/game/{roomCode}/swap-colors")
+    public void handleSwapColors(
+            @DestinationVariable String roomCode,
+            SimpMessageHeaderAccessor headerAccessor) {
+        Long userId = extractUserId(headerAccessor);
+        registerSession(headerAccessor, roomCode, userId);
+        if (userId == null) {
+            log.warn("Unauthenticated swap-colors for room {}", roomCode);
+            return;
+        }
+        try {
+            // 방장 여부/대기 상태 검증은 유스케이스가 하고, 성공 시 방 상태를 양쪽에 브로드캐스트한다.
+            swapColorsUseCase.swapColors(roomCode, userId);
+        } catch (Exception e) {
+            log.warn("WebSocket swap-colors error for room {}: {}", roomCode, e.getMessage());
         }
     }
 

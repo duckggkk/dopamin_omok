@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { GameInfo, PhysicalReplay, PhysicalMotionFrame, StoneColor, StoneStyle, CharacterStyle } from '@/types';
+import { GameSummary, PhysicalReplay, PhysicalMotionFrame, StoneColor, StoneStyle, CharacterStyle } from '@/types';
 import { drawBoardBase, drawStone, drawCrater, drawCharacter, drawItemDrop } from '@/utils/physicalCanvas';
 import styles from './PhysicalVideoReplayViewer.module.css';
 
 interface Props {
-  game: GameInfo;
+  game: GameSummary;
   replay: PhysicalReplay;
   onClose: () => void;
 }

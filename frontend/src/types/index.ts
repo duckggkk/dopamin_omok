@@ -68,9 +68,8 @@ export interface User {
   totalGames: number;
   classicRating: number;
   physicalRating: number;
-  classic: ModeStats;   // 일반 오목 랭크 전적
-  physical: ModeStats;  // 피지컬 오목 랭크 전적
-  casual: ModeStats;    // 캐주얼(일반) 전적 — 랭크와 분리 집계(레이팅 무관)
+  classic: ModeStats;   // 일반 오목 전적
+  physical: ModeStats;  // 피지컬 오목 전적
   currency: number;
   titles: TitleInfo[];  // 획득한 칭호
   profilePrivate: boolean;
@@ -90,7 +89,6 @@ export interface PublicUser {
   physicalRating: number;
   classic: ModeStats | null;   // 프로필 조회 시 채워짐(게임/방 응답에선 null)
   physical: ModeStats | null;
-  casual: ModeStats | null;    // 캐주얼(일반) 전적 — 프로필 조회 시 채워짐
   titles: TitleInfo[];         // 획득한 칭호
   profilePrivate: boolean;
   createdAt: string;
@@ -162,6 +160,26 @@ export interface GameInfo {
   winnerDefeatEffect: string | null;
 }
 
+/** 전적 목록/다시보기용 요약. 상대의 레이팅·전적·칭호는 담기지 않는다(프로필 조회로만 볼 수 있다). */
+export interface GameSummary {
+  id: number;
+  gameNumber: number;
+  status: GameStatus;
+  gameType: GameType;
+  ranked: boolean;
+  blackPlayer: PlayerSummary | null;
+  whitePlayer: PlayerSummary | null;
+  winner: PlayerSummary | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+export interface PlayerSummary {
+  id: string; // UUID (publicId)
+  nickname: string;
+  profileImageUrl: string | null;
+}
+
 export interface Room {
   id: number;
   roomCode: string;
@@ -169,7 +187,7 @@ export interface Room {
   status: RoomStatus;
   gameType: GameType;
   omokRule: OmokRule;
-  ranked: boolean;       // true=랭크전(회원 전용), false=캐주얼(비회원 참가 가능)
+  ranked: boolean;       // 방 목록 라벨용(랭크/캐주얼). 레이팅 반영은 회원 대 회원이면 양쪽 다 동일
   timeLimit: TimeLimit;
   byoyomiOption: ByoyomiOption;
   maxSpectators: number;
@@ -179,17 +197,14 @@ export interface Room {
   createdAt: string;
 }
 
+/** 착수 한 수. 한 판에 수백 개가 오가므로 매 수마다 반복될 값(방 코드·착수자 UUID 등)은 담지 않는다. */
 export interface GameMove {
-  id: number;
-  roomCode: string;
-  playerId: string; // UUID (publicId) — 다른 식별자와 일관
   playerNickname: string;
   color: StoneColor;
   row: number;
   col: number;
-  moveNumber: number;
+  moveNumber: number; // 판 안에서 유일 — 목록 key 로도 쓴다
   soundAssetKey: string | null; // 이 수를 둔 사람의 장착 착수음(없으면 null)
-  createdAt: string;
 }
 
 export interface ChatMessage {

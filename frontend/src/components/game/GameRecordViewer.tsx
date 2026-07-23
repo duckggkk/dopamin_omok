@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { gameApi } from '@/api/game';
-import { ApiResponse, GameInfo, GameMove, PhysicalReplay } from '@/types';
+import { ApiResponse, GameSummary, GameMove, PhysicalReplay } from '@/types';
 import { AxiosResponse } from 'axios';
 import KifuViewer from './KifuViewer';
 import PhysicalReplayViewer from './PhysicalReplayViewer';
@@ -8,7 +8,7 @@ import PhysicalVideoReplayViewer from './PhysicalVideoReplayViewer';
 import styles from './PhysicalReplayViewer.module.css';
 
 interface Props {
-  game: GameInfo;
+  game: GameSummary;
   onClose: () => void;
   loadReplay?: (gameId: number) => Promise<AxiosResponse<ApiResponse<PhysicalReplay | null>>>;
   loadMoves?: (gameId: number) => Promise<AxiosResponse<ApiResponse<GameMove[]>>>;

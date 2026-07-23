@@ -13,7 +13,7 @@ const MoveHistory = ({ moves }: MoveHistoryProps) => (
         .reverse()
         .slice(0, 20)
         .map((m) => (
-          <div key={m.id} className={styles.moveItem}>
+          <div key={m.moveNumber} className={styles.moveItem}>
             <span className={m.color === 'BLACK' ? styles.blackDot : styles.whiteDot} />
             <span>
               {m.moveNumber}. {m.playerNickname}

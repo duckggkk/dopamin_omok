@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { GameInfo, PhysicalReplay } from '@/types';
+import { GameSummary, PhysicalReplay } from '@/types';
 import styles from './PhysicalReplayViewer.module.css';
 
 interface Props {
-  game: GameInfo;
+  game: GameSummary;
   replay: PhysicalReplay;
   onClose: () => void;
 }

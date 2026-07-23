@@ -9,9 +9,9 @@ import com.dopamin.omok.user.application.dto.ModeStats;
  */
 public interface LoadUserGameStatsPort {
 
-    /** 해당 모드(일반/피지컬)의 랭크전 승/패/무를 게임 기록에서 집계한다. */
+    /**
+     * 해당 모드(일반/피지컬)의 승/패/무를 게임 기록에서 집계한다.
+     * 방의 랭크/캐주얼 표시와 무관하게 회원 대 회원 대국을 모두 센다(봇·게스트 대국 제외).
+     */
     ModeStats statsByMode(Long userId, GameType mode);
-
-    /** 캐주얼(일반) 전적의 승/패/무를 게임 기록에서 집계한다(모드 구분 없이 합산, 레이팅 무관). */
-    ModeStats casualStats(Long userId);
 }

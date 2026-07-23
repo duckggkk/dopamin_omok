@@ -208,7 +208,7 @@ const PhysicalGamePage = () => {
   const snapshotRef = useRef<PhysicalSnapshot | null>(null);
   const prevSnapRef = useRef<PhysicalSnapshot | null>(null);
   const myColorRef = useRef<StoneColor | null>(null);
-  const lastBoardSizeRef = useRef(14); // 스냅샷이 없을 때(로딩/종료 후) 빈 판을 그릴 크기
+  const lastBoardSizeRef = useRef(15); // 스냅샷이 없을 때(로딩/종료 후) 빈 판을 그릴 크기
   const roomStatusRef = useRef<string | undefined>(undefined); // 렌더 게이트: IN_PROGRESS 가 아니면 빈 판
   const renderPosRef = useRef<Record<string, { x: number; y: number }>>({});
   // 진행 중인 라인 제거(득점) 특수효과들 — scoreEventId 증가 시 추가되고, 렌더 루프가 만료된 것을 제거한다.
@@ -320,7 +320,7 @@ const PhysicalGamePage = () => {
 
   const noop = useCallback(() => {}, []);
 
-  const { sendChat, sendReady, sendStart, sendPhysicalInput, sendPhysicalSurrender } = useWebSocket({
+  const { sendChat, sendReady, sendStart, sendSwapColors, sendPhysicalInput, sendPhysicalSurrender } = useWebSocket({
     roomCode: roomCode!,
     onMove: noop,
     onRoomStatus: handleRoomStatus,
@@ -779,6 +779,13 @@ const PhysicalGamePage = () => {
                 )}
                 {isHost && playerRolePlayer && (
                   <>
+                    <button
+                      className={styles.swapBtn}
+                      onClick={() => sendSwapColors()}
+                      title="두 사람의 흑/백을 맞바꿉니다 (대기 중에만 가능)"
+                    >
+                      ⇄ 흑백 바꾸기
+                    </button>
                     {sameStoneSkin && (
                       <p className={styles.skinConflict}>
                         같은 바둑알 스킨은 혼동을 막기 위해 시작할 수 없습니다.

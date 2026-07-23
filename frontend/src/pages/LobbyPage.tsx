@@ -321,7 +321,7 @@ const LobbyPage = () => {
           </div>
 
           <div className={styles.sideCard}>
-            <h3 className={styles.sideTitle}>랭크 전적</h3>
+            <h3 className={styles.sideTitle}>내 전적</h3>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
               <ModeTabs value={statMode} onChange={setStatMode} />
             </div>
@@ -331,11 +331,6 @@ const LobbyPage = () => {
               <div className={styles.statItem}><b>{myStats.draws}</b><span>무</span></div>
               <div className={styles.statItem}><b className={styles.rate}>{myStats.winRate}%</b><span>승률</span></div>
             </div>
-            {user?.casual && user.casual.totalGames > 0 && (
-              <p style={{ textAlign: 'center', color: 'var(--text-faint)', fontSize: '0.8rem', marginTop: 10 }}>
-                😌 캐주얼 {user.casual.wins}승 {user.casual.losses}패 {user.casual.draws}무
-              </p>
-            )}
           </div>
 
         </aside>

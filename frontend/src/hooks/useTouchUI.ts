@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-const useMediaQuery = (query: string) => {
+export const useMediaQuery = (query: string) => {
   const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
   useEffect(() => {
     const mq = window.matchMedia(query);
@@ -26,3 +26,9 @@ export const useTouchUI = () => {
   const narrow = useMediaQuery(NARROW);
   return coarse || narrow;
 };
+
+/**
+ * 대국 페이지가 '세로 1열'로 접히는 구간(GamePage.module.css 의 1024px 브레이크포인트와 동일).
+ * 이 구간에선 사이드바가 보드 아래로 내려가므로, 준비/시작 같은 조작은 보드 위로 올려 붙인다.
+ */
+export const useStackedGameLayout = () => useMediaQuery('(max-width: 1024px)');

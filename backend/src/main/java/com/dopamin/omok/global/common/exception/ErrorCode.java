@@ -44,6 +44,7 @@ public enum ErrorCode {
     PLAYER_NOT_READY(HttpStatus.BAD_REQUEST, "상대방이 아직 준비 완료하지 않았습니다."),
     DUPLICATE_STONE_SKIN(HttpStatus.BAD_REQUEST, "두 플레이어가 같은 바둑알 스킨을 장착해 게임을 시작할 수 없습니다."),
     STONE_SKIN_CHANGE_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "대기 중에만 바둑알 스킨을 바꿀 수 있습니다."),
+    COLOR_SWAP_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "대기 중에만 흑/백을 바꿀 수 있습니다."),
     ROOM_RANKED_MEMBERS_ONLY(HttpStatus.FORBIDDEN, "랭크 대국은 회원만 참가할 수 있습니다. 회원가입 후 이용해주세요."),
     GUEST_FORBIDDEN(HttpStatus.FORBIDDEN, "게스트는 이용할 수 없는 기능입니다. 회원가입 후 이용해주세요."),
 

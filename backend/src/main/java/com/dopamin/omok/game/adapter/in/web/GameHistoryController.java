@@ -1,7 +1,6 @@
 package com.dopamin.omok.game.adapter.in.web;
 
 import com.dopamin.omok.game.application.dto.GameMoveResponse;
-import com.dopamin.omok.game.application.dto.GameResponse;
 import com.dopamin.omok.game.application.dto.GameSummaryResponse;
 import com.dopamin.omok.game.application.port.in.GetGameMovesUseCase;
 import com.dopamin.omok.game.application.port.in.GetMyGamesUseCase;
@@ -31,11 +30,12 @@ public class GameHistoryController {
     private final GetGameMovesUseCase getGameMovesUseCase;
     private final GetPhysicalReplayUseCase getPhysicalReplayUseCase;
 
+    /** 내 전적 목록 — 상대의 레이팅·전적·칭호까지 딸려가지 않도록 요약 형태로 내려준다. */
     @GetMapping("/games/my")
-    public ResponseEntity<ApiResponse<Page<GameResponse>>> getMyGames(
+    public ResponseEntity<ApiResponse<Page<GameSummaryResponse>>> getMyGames(
             @AuthenticationPrincipal AuthUser userDetails,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<GameResponse> response = getMyGamesUseCase.getMyGames(userDetails.id(), pageable);
+        Page<GameSummaryResponse> response = getMyGamesUseCase.getMyGames(userDetails.id(), pageable);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -67,6 +67,7 @@ public class GameHistoryController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    //기보 보기, 다른사람도 볼수있음
     @GetMapping("/users/{publicId}/games/{gameId}/moves")
     public ResponseEntity<ApiResponse<List<GameMoveResponse>>> getPublicGameMoves(
             @AuthenticationPrincipal AuthUser userDetails,

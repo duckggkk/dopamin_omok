@@ -38,7 +38,8 @@ interface Props {
 }
 
 const CreateRoomModal = ({ initialGameType = 'CLASSIC', busy = false, onConfirm, onClose }: Props) => {
-  // 랭크전은 아직 준비 중(추후 추가 예정)이라 방 생성은 항상 캐주얼로 고정한다.
+  // 방 생성은 항상 캐주얼로 고정. 랭크/캐주얼은 방 목록에 붙는 라벨일 뿐이고,
+  // 레이팅·전적은 회원끼리 둔 대국이면 어느 쪽이든 똑같이 반영된다(Game.isRated).
   const [options, setOptions] = useState<CreateRoomOptions>({
     ...DEFAULT_ROOM_OPTIONS,
     gameType: initialGameType,
@@ -85,7 +86,7 @@ const CreateRoomModal = ({ initialGameType = 'CLASSIC', busy = false, onConfirm,
               onClick={() => setOptions((o) => ({ ...o, ranked: false }))}
             >
               <span className={styles.typeName}>😌 캐주얼</span>
-              <span className={styles.typeDesc}>부담 없이 · 미반영</span>
+              <span className={styles.typeDesc}>회원 대국은 레이팅 반영</span>
             </button>
             {/* 랭크전은 아직 준비 중 — 비활성 표시 + hover 시 '추후 추가예정입니다' 툴팁(native title). */}
             <button

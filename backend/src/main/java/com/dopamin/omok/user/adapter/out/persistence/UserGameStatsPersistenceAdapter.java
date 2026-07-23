@@ -5,7 +5,9 @@ import com.dopamin.omok.game.domain.GameType;
 import com.dopamin.omok.game.domain.QGame;
 import com.dopamin.omok.user.application.dto.ModeStats;
 import com.dopamin.omok.user.application.port.out.LoadUserGameStatsPort;
+import com.dopamin.omok.user.domain.UserRole;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.EnumPath;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -28,20 +30,17 @@ public class UserGameStatsPersistenceAdapter implements LoadUserGameStatsPort {
     @Override
     public ModeStats statsByMode(Long userId, GameType mode) {
         QGame g = QGame.game;
-        // 랭크전(room.ranked=true)만 집계 — 전적/랭킹은 랭크 기록이다. 캐주얼은 casualStats 로 분리.
+        // 방의 랭크/캐주얼 표시는 보지 않는다 — 회원 대 회원 대국이면 모두 전적에 들어간다.
+        // 제외 대상은 Game.isRated() 의 레이팅 반영 규칙과 같게 유지한다(봇 연습·게스트 대국).
         BooleanExpression base = g.room.gameType.eq(mode)
-                .and(g.room.ranked.isTrue())
-                .and(g.blackPlayer.id.eq(userId).or(g.whitePlayer.id.eq(userId)));
+                .and(g.blackPlayer.id.eq(userId).or(g.whitePlayer.id.eq(userId)))
+                .and(ratedPlayer(g.blackPlayer.role))
+                .and(ratedPlayer(g.whitePlayer.role));
         return aggregate(userId, base);
     }
 
-    @Override
-    public ModeStats casualStats(Long userId) {
-        QGame g = QGame.game;
-        // 캐주얼(room.ranked=false) 전적 — 모드(일반/피지컬) 구분 없이 합산(캐주얼은 레이팅이 없음).
-        BooleanExpression base = g.room.ranked.isFalse()
-                .and(g.blackPlayer.id.eq(userId).or(g.whitePlayer.id.eq(userId)));
-        return aggregate(userId, base);
+    private BooleanExpression ratedPlayer(EnumPath<UserRole> role) {
+        return role.ne(UserRole.BOT).and(role.ne(UserRole.GUEST));
     }
 
     private ModeStats aggregate(Long userId, BooleanExpression base) {

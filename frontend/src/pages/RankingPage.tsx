@@ -7,7 +7,7 @@ import ModeTabs from '@/components/common/ModeTabs';
 import styles from './RankingPage.module.css';
 
 const SUBTITLES: Record<StatMode, string> = {
-  TOTAL: '통합 승수 기준 상위 플레이어 — 한 판이라도 둔 플레이어만 집계됩니다.',
+  TOTAL: '통합 승수 기준 상위 플레이어 — 회원 간 대국은 랭크·캐주얼 구분 없이 모두 집계됩니다.',
   CLASSIC: '일반 오목 레이팅 기준 상위 플레이어',
   PHYSICAL: '피지컬 오목 레이팅 기준 상위 플레이어',
 };

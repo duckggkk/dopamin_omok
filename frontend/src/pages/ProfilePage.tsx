@@ -5,7 +5,7 @@ import { userApi } from '@/api/auth';
 import { gameApi } from '@/api/game';
 import { friendApi } from '@/api/friend';
 import { shopApi } from '@/api/shop';
-import { GameInfo, PublicUser, RelationInfo, StatMode, User, Inventory, ShopItem, ItemType } from '@/types';
+import { GameSummary, PublicUser, RelationInfo, StatMode, User, Inventory, ShopItem, ItemType } from '@/types';
 import GameRecordViewer from '@/components/game/GameRecordViewer';
 import ItemPreview from '@/components/shop/ItemPreview';
 import { ITEM_TYPE_META } from '@/constants/itemMeta';
@@ -45,12 +45,12 @@ const ProfilePage = () => {
   const [success, setSuccess] = useState('');
   const [profileError, setProfileError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [recent, setRecent] = useState<GameInfo[] | null>(null);
+  const [recent, setRecent] = useState<GameSummary[] | null>(null);
   const [recentPage, setRecentPage] = useState(0);
   const [recentTotalPages, setRecentTotalPages] = useState(1);
   const [recentLast, setRecentLast] = useState(true);
   const [inventory, setInventory] = useState<Inventory | null>(null);
-  const [kifuGame, setKifuGame] = useState<GameInfo | null>(null);
+  const [kifuGame, setKifuGame] = useState<GameSummary | null>(null);
   const [relation, setRelation] = useState<RelationInfo | null>(null);
   const [relBusy, setRelBusy] = useState(false);
   const [statMode, setStatMode] = useState<StatMode>('TOTAL');
@@ -199,13 +199,13 @@ const ProfilePage = () => {
     }
   };
 
-  const resultOf = (g: GameInfo): { label: string; cls: string } => {
+  const resultOf = (g: GameSummary): { label: string; cls: string } => {
     if (g.status === 'IN_PROGRESS') return { label: '진행 중', cls: styles.rOngoing };
     if (g.status === 'DRAW') return { label: '무', cls: styles.rDraw };
     if (g.winner?.id === profile.id) return { label: '승', cls: styles.rWin };
     return { label: '패', cls: styles.rLoss };
   };
-  const opponentOf = (g: GameInfo) =>
+  const opponentOf = (g: GameSummary) =>
     (g.blackPlayer?.id === profile.id ? g.whitePlayer : g.blackPlayer)?.nickname ?? '상대';
 
   const recordViewer = kifuGame && (
@@ -321,13 +321,6 @@ const ProfilePage = () => {
             <div className={styles.rateDraw} style={{ flex: stats.draws }} />
             <div className={styles.rateLoss} style={{ flex: stats.losses }} />
           </div>
-        )}
-
-        {/* 캐주얼(일반) 전적 — 위 탭 전적은 랭크전 기준, 캐주얼은 레이팅과 무관하게 따로 집계 */}
-        {profile.casual && profile.casual.totalGames > 0 && (
-          <p style={{ textAlign: 'center', color: 'var(--text-faint)', fontSize: '0.82rem', marginTop: 10 }}>
-            😌 캐주얼 전적 {profile.casual.wins}승 {profile.casual.losses}패 {profile.casual.draws}무
-          </p>
         )}
 
         {!isOwnProfile && relation && relation.relation !== 'SELF' && (

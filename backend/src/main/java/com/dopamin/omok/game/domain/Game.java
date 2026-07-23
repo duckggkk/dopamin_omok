@@ -136,4 +136,18 @@ public class Game {
         if (whitePlayer != null && whitePlayer.getId().equals(userId)) return blackPlayer;
         return null;
     }
+
+    /**
+     * 레이팅·전적에 반영할 대국인지. 회원 대 회원 대국만 반영한다.
+     *
+     * 방의 '랭크/캐주얼' 표시는 판단에 쓰지 않는다 — 그 값은 방 목록에 붙는 라벨일 뿐이고,
+     * 반영 여부는 누가 뒀는지로만 정한다. 봇(AI 연습)과 게스트는 레이팅을 오염시키므로 제외한다.
+     */
+    public boolean isRated() {
+        return isRatedPlayer(blackPlayer) && isRatedPlayer(whitePlayer);
+    }
+
+    private static boolean isRatedPlayer(User user) {
+        return user != null && !user.isBot() && !user.isGuest();
+    }
 }

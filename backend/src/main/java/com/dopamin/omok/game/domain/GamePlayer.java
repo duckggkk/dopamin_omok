@@ -73,12 +73,13 @@ public class GamePlayer {
                 .build();
     }
 
-    public static GamePlayer createPlayer(Room room, User user) {
+    /** 참가자 색은 호출부가 정한다 — 방장이 흑백을 바꿨을 수 있어 백 고정 배정이 불가능하다. */
+    public static GamePlayer createPlayer(Room room, User user, StoneColor color) {
         return GamePlayer.builder()
                 .room(room)
                 .user(user)
                 .role(PlayerRole.PLAYER)
-                .color(StoneColor.WHITE)
+                .color(color)
                 .remainingSeconds(room.getTimeLimit().getSeconds())
                 .build();
     }

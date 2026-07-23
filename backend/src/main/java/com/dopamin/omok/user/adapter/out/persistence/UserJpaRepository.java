@@ -26,15 +26,23 @@ public interface UserJpaRepository extends JpaRepository<User, Long> {
 
     boolean existsByNickname(String nickname);
 
-    @Query("SELECT u FROM User u WHERE (u.wins + u.losses + u.draws) > 0 "
+    /**
+     * 랭킹에 오를 자격 — 한 판이라도 둔 회원. 게스트(익명)와 AI 봇 계정은 순위에서 제외한다.
+     * 대국의 '랭크/캐주얼' 표시는 보지 않는다(모든 회원 대국이 레이팅에 반영되므로).
+     */
+    String RANKABLE = "(u.wins + u.losses + u.draws) > 0 "
+            + "AND u.role <> com.dopamin.omok.user.domain.UserRole.GUEST "
+            + "AND u.role <> com.dopamin.omok.user.domain.UserRole.BOT ";
+
+    @Query("SELECT u FROM User u WHERE " + RANKABLE
             + "ORDER BY u.wins DESC, u.losses ASC, u.id ASC")
     List<User> findRanked(Pageable pageable);
 
-    @Query("SELECT u FROM User u WHERE (u.wins + u.losses + u.draws) > 0 "
+    @Query("SELECT u FROM User u WHERE " + RANKABLE
             + "ORDER BY u.classicRating DESC, u.id ASC")
     List<User> findRankedByClassicRating(Pageable pageable);
 
-    @Query("SELECT u FROM User u WHERE (u.wins + u.losses + u.draws) > 0 "
+    @Query("SELECT u FROM User u WHERE " + RANKABLE
             + "ORDER BY u.physicalRating DESC, u.id ASC")
     List<User> findRankedByPhysicalRating(Pageable pageable);
 

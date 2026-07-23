@@ -8,6 +8,7 @@ import { useCosmetics } from '@/hooks/useCosmetics';
 import { useStoneSoundPlayer } from '@/hooks/useStoneSoundPlayer';
 import { useLeaveGuard } from '@/hooks/useLeaveGuard';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
+import { useStackedGameLayout } from '@/hooks/useTouchUI';
 import { areSameStoneSkin } from '@/utils/stoneSkin';
 import OmokBoard from '@/components/game/OmokBoard';
 import PlayerCard from '@/components/game/PlayerCard';
@@ -54,6 +55,8 @@ const ClassicGamePage = () => {
   const { boardSkinConfig } = useCosmetics();
   const playStoneSound = useStoneSoundPlayer();
   const chat = useChat();
+  // 좁은 화면에선 사이드바가 보드 아래로 내려가므로, 대기 중 조작 패널만 보드 위로 올려 붙인다.
+  const stacked = useStackedGameLayout();
 
   // 플레이어 파생
   const myPlayer = room?.players.find((p) => p.userId === user?.id) ?? null;
@@ -123,7 +126,7 @@ const ClassicGamePage = () => {
     [navigate],
   );
 
-  const { sendMove, sendSurrender, sendReady, sendStart, sendChat, sendChangeSkin } = useWebSocket({
+  const { sendMove, sendSurrender, sendReady, sendStart, sendChat, sendChangeSkin, sendSwapColors } = useWebSocket({
     roomCode: roomCode!,
     onMove: handleMove,
     onRoomStatus: handleRoomStatus,
@@ -294,6 +297,56 @@ const ClassicGamePage = () => {
     }
   };
 
+  // 대기 중 조작(초대 코드 / 흑백 교체 / 준비 / 시작).
+  // 인스턴스는 하나만 만들고, 넓은 화면이면 사이드바에 / 좁은 화면이면 상태 메시지 바로 아래(보드 위)에 붙인다.
+  const waitingPanel = room.status === 'WAITING' ? (
+    <div className={styles.waitingPanel}>
+      {!playerRolePlayer && isHost && (
+        <>
+          <p className={styles.inviteText}>방 코드를 공유하여 상대방을 초대하세요</p>
+          <button
+            onClick={() => navigator.clipboard.writeText(room.roomCode)}
+            className={styles.copyBtn}
+          >
+            코드 복사
+          </button>
+        </>
+      )}
+      {isPlayerRole && (
+        <button
+          onClick={() => sendReady()}
+          className={myPlayer?.ready ? styles.readyBtnOn : styles.readyBtnOff}
+        >
+          {myPlayer?.ready ? '준비 취소' : '준비'}
+        </button>
+      )}
+      {isHost && playerRolePlayer && (
+        <>
+          <button
+            onClick={() => sendSwapColors()}
+            className={styles.swapBtn}
+            title="두 사람의 흑/백을 맞바꿉니다 (대기 중에만 가능)"
+          >
+            ⇄ 흑백 바꾸기
+          </button>
+          {sameStoneSkin && (
+            <p className={styles.skinConflict}>
+              같은 바둑알 스킨은 혼동을 막기 위해 시작할 수 없습니다.
+            </p>
+          )}
+          <button
+            onClick={() => sendStart()}
+            disabled={!playerRolePlayer.ready || sameStoneSkin}
+            className={styles.startBtn}
+            title={sameStoneSkin ? '상대와 다른 바둑알 스킨을 장착해야 시작할 수 있습니다.' : undefined}
+          >
+            시작
+          </button>
+        </>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className={styles.container}>
       {closedMessage && (
@@ -348,6 +401,8 @@ const ClassicGamePage = () => {
 
         <div className={styles.boardWrapper}>
           <p className={styles.status}>{statusMessage}</p>
+          {/* 좁은 화면: 준비/시작을 안내 문구 바로 아래(보드 위)에 붙여 한 덩어리로 보이게 한다 */}
+          {stacked && waitingPanel}
           {graceNotice && <p className={styles.graceNotice}>{graceNotice}</p>}
           {moveNotice && <p className={styles.graceNotice}>⚠️ {moveNotice}</p>}
           <OmokBoard
@@ -374,47 +429,8 @@ const ClassicGamePage = () => {
           <p className={styles.moveCount}>수: {moves.length}</p>
         </div>
 
-        {/* 초대 + 준비/시작 버튼 (WAITING 상태) */}
-        {room.status === 'WAITING' && (
-          <div className={styles.waitingPanel}>
-            {!playerRolePlayer && isHost && (
-              <>
-                <p className={styles.inviteText}>방 코드를 공유하여 상대방을 초대하세요</p>
-                <button
-                  onClick={() => navigator.clipboard.writeText(room.roomCode)}
-                  className={styles.copyBtn}
-                >
-                  코드 복사
-                </button>
-              </>
-            )}
-            {isPlayerRole && (
-              <button
-                onClick={() => sendReady()}
-                className={myPlayer?.ready ? styles.readyBtnOn : styles.readyBtnOff}
-              >
-                {myPlayer?.ready ? '준비 취소' : '준비'}
-              </button>
-            )}
-            {isHost && playerRolePlayer && (
-              <>
-                {sameStoneSkin && (
-                  <p className={styles.skinConflict}>
-                    같은 바둑알 스킨은 혼동을 막기 위해 시작할 수 없습니다.
-                  </p>
-                )}
-                <button
-                  onClick={() => sendStart()}
-                  disabled={!playerRolePlayer.ready || sameStoneSkin}
-                  className={styles.startBtn}
-                  title={sameStoneSkin ? '상대와 다른 바둑알 스킨을 장착해야 시작할 수 있습니다.' : undefined}
-                >
-                  시작
-                </button>
-              </>
-            )}
-          </div>
-        )}
+        {/* 초대 + 흑백교체 + 준비/시작 (WAITING 상태) — 좁은 화면에선 위쪽 보드 옆으로 올라간다 */}
+        {!stacked && waitingPanel}
 
         {/* 기권 버튼 */}
         {isInProgress && myColor && (

@@ -1,10 +1,10 @@
 import apiClient from './client';
-import { ApiResponse, Room, GameInfo, GameMove, PageResponse, ByoyomiOption, GameType, OmokRule, TimeLimit, PhysicalReplay } from '@/types';
+import { ApiResponse, Room, GameSummary, GameMove, PageResponse, ByoyomiOption, GameType, OmokRule, TimeLimit, PhysicalReplay } from '@/types';
 
 export interface CreateRoomOptions {
   gameType: GameType;
   omokRule: OmokRule;
-  ranked: boolean;       // true=랭크전(회원 전용), false=캐주얼
+  ranked: boolean;       // 방 목록 라벨용(랭크/캐주얼). 레이팅 반영 여부는 이 값이 아니라 참가자로 정해진다
   timeLimit: TimeLimit;
   byoyomiOption: ByoyomiOption;
 }
@@ -69,20 +69,12 @@ export const gameApi = {
   getRoom: (roomCode: string) =>
     apiClient.get<ApiResponse<Room>>(`/rooms/${roomCode}`),
 
-  getGame: (roomCode: string) =>
-    apiClient.get<ApiResponse<GameInfo>>(`/rooms/${roomCode}/game`),
-
+  // 실시간 플레이(착수/기권/게임 조회)는 전부 WebSocket(useWebSocket)으로 처리한다.
   getGameMoves: (roomCode: string) =>
     apiClient.get<ApiResponse<GameMove[]>>(`/rooms/${roomCode}/game/moves`),
 
-  placeStone: (roomCode: string, row: number, col: number) =>
-    apiClient.post<ApiResponse<GameMove>>(`/rooms/${roomCode}/game/moves`, { row, col }),
-
-  surrender: (roomCode: string) =>
-    apiClient.post<ApiResponse<GameInfo>>(`/rooms/${roomCode}/game/surrender`),
-
   getMyGames: (page = 0, size = 10) =>
-    apiClient.get<ApiResponse<PageResponse<GameInfo>>>('/games/my', {
+    apiClient.get<ApiResponse<PageResponse<GameSummary>>>('/games/my', {
       params: { page, size },
     }),
 
@@ -95,7 +87,7 @@ export const gameApi = {
     apiClient.get<ApiResponse<PhysicalReplay | null>>(`/games/${gameId}/physical-replay`),
 
   getUserGames: (userId: string, page = 0, size = 10) =>
-    apiClient.get<ApiResponse<PageResponse<GameInfo>>>(`/users/${userId}/games`, {
+    apiClient.get<ApiResponse<PageResponse<GameSummary>>>(`/users/${userId}/games`, {
       params: { page, size },
     }),
 

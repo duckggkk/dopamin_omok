@@ -20,6 +20,7 @@
   display: flex;
   align-items: center;
   gap: 20px;
+  min-width: 0; /* 폭이 모자랄 때 자식이 줄어들 수 있게 — 바깥으로 흘러넘침 방지 */
 }
 
 /* ---- 로고 ---- */
@@ -29,6 +30,9 @@
   gap: 11px;
   text-decoration: none;
   transition: transform var(--t-fast) var(--ease);
+  /* 우측 액션(가입/로그아웃 등)을 밀어내지 않도록, 부족하면 로고 쪽이 먼저 줄어든다 */
+  min-width: 0;
+  overflow: hidden;
 }
 .logo:hover { transform: translateY(-1px); }
 .logoStones { display: inline-flex; align-items: center; }
@@ -89,6 +93,7 @@
   align-items: center;
   gap: 12px;
   margin-left: auto;
+  flex-shrink: 0; /* 가입/로그아웃 등 액션은 항상 온전히 보이게 */
 }
 
 .currencyBadge {
@@ -232,8 +237,12 @@
   font-size: 0.9rem;
   box-shadow: var(--shadow-sm), var(--ring-top);
   transition: all var(--t-fast) var(--ease);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .registerBtn:hover { filter: brightness(1.07); transform: translateY(-1px); }
+/* 좁은 화면에선 '회원가입' → '가입' 으로 줄여 상단 바가 넘치지 않게 한다 */
+.registerShort { display: none; }
 
 /* ---- 모바일 햄버거 ---- */
 .hamburger {
@@ -295,8 +304,16 @@
   .navbar { padding: 0 14px; }
   .right { gap: 8px; }
   .currencyBadge { padding: 6px 10px; }
+  /* 상단 바가 넘치지 않게 '회원가입' → '가입' 으로 줄인다 */
+  .registerLong { display: none; }
+  .registerShort { display: inline; }
+  .registerBtn { padding: 8px 13px; }
+  .guestTag { padding: 6px 10px; font-size: 0.8rem; }
 }
-/* 아주 좁은 화면: 로고 텍스트 생략 */
+/* 아주 좁은 화면: 로고 텍스트 생략 + 게스트 배지는 아이콘만 남겨 폭 확보
+   (::first-letter는 flex 컨테이너에 적용되지 않아 텍스트를 span으로 분리해 숨긴다) */
 @media (max-width: 400px) {
   .logoText { display: none; }
+  .guestTag { gap: 0; padding: 6px 9px; }
+  .guestTagText { display: none; }
 }

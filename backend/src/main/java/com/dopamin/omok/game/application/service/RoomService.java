@@ -45,7 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Transactional(readOnly = true)
 public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, SpectateRoomUseCase,
         LeaveRoomUseCase, RequestRematchUseCase, GetRoomUseCase, ReadyGameUseCase, StartGameUseCase,
-        ChangeStoneSkinUseCase, StartAiPracticeUseCase, StartPhysicalSandboxUseCase {
+        ChangeStoneSkinUseCase, SwapColorsUseCase, StartAiPracticeUseCase, StartPhysicalSandboxUseCase {
 
     /** 피지컬 AI 연습 상대 봇 계정 식별용 이메일(V33 마이그레이션으로 시드). */
     private static final String AI_BOT_EMAIL = "ai-practice-bot@dopamin.local";
@@ -112,7 +112,11 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         loadGamePlayerPort.findByRoomIdAndUserId(room.getId(), userId)
                 .ifPresent(deleteGamePlayerPort::delete);
 
-        GamePlayer player = GamePlayer.createPlayer(room, user);
+        // 방장이 흑백을 바꾼 뒤 참가자가 나갔다 새로 올 수 있으므로, 항상 방장 색의 반대를 배정한다.
+        GamePlayer host = loadGamePlayerPort.findByRoomIdAndRole(room.getId(), PlayerRole.HOST)
+                .stream().findFirst().orElseThrow();
+        StoneColor joinColor = (host.getColor() == StoneColor.BLACK) ? StoneColor.WHITE : StoneColor.BLACK;
+        GamePlayer player = GamePlayer.createPlayer(room, user, joinColor);
         saveGamePlayerPort.save(player);
 
         RoomResponse response = buildRoomResponse(room, null);
@@ -247,7 +251,10 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         room.startGame();
         saveRoomPort.save(room);
 
-        Game game = Game.start(room, host.getUser(), player.getUser());
+        // 흑/백은 GamePlayer.color 로 정한다 — 방장이 색을 바꿨을 수 있으므로 host=흑으로 가정하지 않는다.
+        GamePlayer black = host.getColor() == StoneColor.BLACK ? host : player;
+        GamePlayer white = (black == host) ? player : host;
+        Game game = Game.start(room, black.getUser(), white.getUser());
         saveGamePort.save(game);
 
         // 피지컬 모드: 메모리 실시간 세션을 기동(클래식 Game 행은 결과 기록용으로 공유).
@@ -278,7 +285,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
 
         GamePlayer host = GamePlayer.createHost(room, user);       // 흑(선) = 사람
         saveGamePlayerPort.save(host);
-        GamePlayer botPlayer = GamePlayer.createPlayer(room, bot);  // 백 = 봇
+        GamePlayer botPlayer = GamePlayer.createPlayer(room, bot, StoneColor.WHITE);  // 백 = 봇
         botPlayer.markReady();                                      // 봇은 항상 준비 완료
         saveGamePlayerPort.save(botPlayer);
 
@@ -338,6 +345,30 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         return response;
     }
 
+    @Override
+    @Transactional
+    public RoomResponse swapColors(String roomCode, Long userId) {
+        Room room = findRoom(roomCode);
+
+        if (!room.isHost(userId)) throw new OmokException(ErrorCode.ROOM_NOT_HOST);
+        // 대기 중에만 — 진행 중에 색이 바뀌면 착수 판정/기보/피지컬 세션이 전부 어긋난다.
+        if (!room.isWaiting()) throw new OmokException(ErrorCode.COLOR_SWAP_NOT_AVAILABLE);
+
+        List<GamePlayer> participants = loadGamePlayerPort.findByRoomId(room.getId()).stream()
+                .filter(GamePlayer::isParticipant).toList();
+        // 두 참가자가 모두 있을 때만 맞바꾼다 — 프론트도 이때만 버튼을 노출한다.
+        if (participants.size() < 2) throw new OmokException(ErrorCode.NOT_ENOUGH_PLAYERS);
+
+        participants.forEach(gp -> {
+            gp.swapColor();
+            saveGamePlayerPort.save(gp);
+        });
+
+        RoomResponse response = buildRoomResponse(room, null);
+        roomEventPublisherPort.publishStatus(roomCode, response);
+        return response;
+    }
+
     /**
      * 피지컬 오목이 '승자 확정'으로 종료(5목/기권)됐을 때 세션 매니저가 발행하는 이벤트를 수신해
      * 결과를 영속화한다. 연결 끊김/방장 퇴장은 아래 메서드들이 이미 직접 처리하므로 이 경로로 오지 않는다.
@@ -354,8 +385,8 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         User loser = game.getOpponent(winnerId);
 
         game.finish(winner);
-        // 랭크 방 + 사람 대국일 때만 레이팅·전적 반영(캐주얼/봇 대국은 기록만 남기고 미집계)
-        if (game.getRoom().isRanked() && !isBotGame(game)) {
+        // 회원 대 회원 대국만 레이팅·전적 반영(봇·게스트 대국은 기록만 남기고 미집계)
+        if (game.isRated()) {
             winner.recordWin();
             if (loser != null) {
                 loser.recordLoss();
@@ -487,8 +518,8 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
                 User loser = game.getBlackPlayer().getId().equals(hostId)
                         ? game.getBlackPlayer() : game.getWhitePlayer();
                 game.finish(winner);
-                // 랭크 방 + 사람 대국만 레이팅·전적 반영(캐주얼/봇 제외)
-                if (room.isRanked() && !isBotGame(game)) {
+                // 회원 대 회원 대국만 레이팅·전적 반영(봇·게스트 제외)
+                if (game.isRated()) {
                     winner.recordWin();
                     loser.recordLoss();
                     EloRating.applyResult(winner, loser, room.getGameType() == GameType.PHYSICAL);
@@ -515,8 +546,8 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             User winner = game.getOpponent(loser.getId());
 
             game.finish(winner);
-            // 랭크 방 + 사람 대국만 레이팅·전적 반영(캐주얼/봇 제외)
-            if (room.isRanked() && !isBotGame(game)) {
+            // 회원 대 회원 대국만 레이팅·전적 반영(봇·게스트 제외)
+            if (game.isRated()) {
                 winner.recordWin();
                 loser.recordLoss();
                 EloRating.applyResult(winner, loser, room.getGameType() == GameType.PHYSICAL);
@@ -627,11 +658,6 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     }
 
     /** 한쪽이 봇이면 'AI 연습' 대국 → 레이팅·전적을 집계하지 않는다(결과 표시·리플레이는 정상). */
-    private boolean isBotGame(Game game) {
-        return (game.getBlackPlayer() != null && game.getBlackPlayer().isBot())
-                || (game.getWhitePlayer() != null && game.getWhitePlayer().isBot());
-    }
-
     private String generateUniqueRoomCode() {
         String code;
         do {

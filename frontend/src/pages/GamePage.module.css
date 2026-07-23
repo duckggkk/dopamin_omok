@@ -243,7 +243,9 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  /* 줄바꿈 대신 닉네임만 …로 잘리게 한다 — 카드 밖으로 흘러넘치지 않게 */
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 .playerProfileLink {
   color: inherit;
@@ -254,10 +256,16 @@
   margin: 0;
   font: inherit;
   cursor: pointer;
+  /* 긴 닉네임은 카드 폭에 맞춰 … 처리 */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .playerProfileLink:hover { color: var(--gold-bright); text-decoration: underline; }
 .playerLabel { color: var(--text-faint); font-size: 0.8rem; margin: 2px 0 0; }
 
+/* 배지들은 줄어들지 않는다 — 닉네임만 …로 잘리고 '나'/'방장' 표시는 항상 보이게 */
 .badgeMe {
   background: var(--info-soft);
   color: var(--info);
@@ -267,6 +275,7 @@
   padding: 2px 7px;
   border-radius: var(--r-pill);
   letter-spacing: 0.5px;
+  flex-shrink: 0;
 }
 .badgeHost {
   background: var(--gold-soft);
@@ -277,6 +286,7 @@
   padding: 2px 7px;
   border-radius: var(--r-pill);
   letter-spacing: 0.5px;
+  flex-shrink: 0;
 }
 .readyOn {
   background: var(--success-soft);
@@ -287,6 +297,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .readyOff {
   background: rgba(150, 140, 120, 0.08);
@@ -296,6 +307,7 @@
   padding: 4px 9px;
   font-size: 0.75rem;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .turnIndicator {
@@ -424,6 +436,21 @@
   transition: all var(--t-fast) var(--ease);
 }
 .readyBtnOn:hover { filter: brightness(0.94); }
+
+/* 흑백 교체 — 방장 전용 보조 동작이라 시작 버튼보다 한 단계 조용한 톤 */
+.swapBtn {
+  background: var(--surface-3);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  padding: 10px;
+  cursor: pointer;
+  width: 100%;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition: all var(--t-fast) var(--ease);
+}
+.swapBtn:hover { background: var(--border-strong); border-color: var(--gold-soft-border); color: var(--gold-bright); }
 
 .startBtn {
   background: var(--gold-grad);
@@ -744,6 +771,13 @@
   .container { padding: 12px 8px 40px; }
   .playerCard { padding: 10px 13px; gap: 10px; }
   .status { font-size: 0.98rem; }
+  /* 카드 2개가 한 줄에 들어가야 하므로 요소를 더 줄인다(닉네임은 …로 잘림) */
+  .playersRow { gap: 8px; }
+  .playersRow .playerCard { padding: 9px 10px; gap: 8px; }
+  .playersRow .stoneBlack, .playersRow .stoneWhite { width: 24px; height: 24px; }
+  .playersRow .playerName { font-size: 0.88rem; }
+  .playersRow .playerLabel { font-size: 0.72rem; }
+  .playersRow .readyOn, .playersRow .readyOff { padding: 3px 6px; font-size: 0.68rem; }
   .chatMessages { height: 200px; }
   .moveList { max-height: 220px; }
   .overlayContent { padding: 24px 26px; margin: 0 16px; }

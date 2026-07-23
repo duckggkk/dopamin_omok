@@ -26,10 +26,6 @@ public record GameResponse(
         return from(game, null, null);
     }
 
-    public static GameResponse from(Game game, String winnerDefeatMessage) {
-        return from(game, winnerDefeatMessage, null);
-    }
-
     public static GameResponse from(Game game, String winnerDefeatMessage, String winnerDefeatEffect) {
         return new GameResponse(
                 game.getId(),
