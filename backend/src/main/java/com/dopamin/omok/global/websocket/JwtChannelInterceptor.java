@@ -33,7 +33,9 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     private static final Pattern ROOM_TOPIC_PATTERN = Pattern.compile("^/topic/room/([^/]+)(?:/.*)?$");
     private static final Pattern GAME_APP_PATTERN = Pattern.compile("^/app/game/([^/]+)/[^/]+$");
     private static final Pattern PHYSICAL_APP_PATTERN = Pattern.compile("^/app/physical/([^/]+)/[^/]+$");
-    private static final Pattern PLAZA_PATTERN = Pattern.compile("^/(?:topic|app)/plaza/([^/]+)(?:/.*)?$");
+    // 광장은 SUBSCRIBE(/topic)와 SEND(/app)의 허용 규칙이 다르므로 패턴을 분리한다.
+    private static final Pattern PLAZA_TOPIC_PATTERN = Pattern.compile("^/topic/plaza/([^/]+)(?:/.*)?$");
+    private static final Pattern PLAZA_APP_PATTERN = Pattern.compile("^/app/plaza/([^/]+)/[^/]+$");
     /**
      * 광장 채널 ID 는 서버(PlazaSessionManager.allocate)가 {@code plaza-<번호>} 형식으로만 발급한다.
      * 클라이언트가 임의 문자열을 보내 채널을 무한 생성하지 못하도록 여기서 형식부터 막는다.
@@ -84,27 +86,71 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             accessor.setUser(authentication);
         }
 
-        if (StompCommand.SUBSCRIBE.equals(accessor.getCommand()) || StompCommand.SEND.equals(accessor.getCommand())) {
-            authorizeDestination(accessor);
+        if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+            authorizeSubscribe(accessor);
+        } else if (StompCommand.SEND.equals(accessor.getCommand())) {
+            authorizeSend(accessor);
         }
         return message;
     }
 
-    // 받는사람 검증
-    private void authorizeDestination(StompHeaderAccessor accessor) {
+    /**
+     * SUBSCRIBE(구독) 인가 — "무엇을 받아볼 수 있는가"를 검증한다.
+     * <p>
+     * 허용 목록(그 외는 전부 거부):
+     * <ul>
+     *   <li>{@code /topic/room/{code}/...} — 그 방의 멤버(플레이어·관전자)만</li>
+     *   <li>{@code /topic/plaza/{channelId}/...} — 서버 발급 형식의 채널 ID만</li>
+     *   <li>{@code /user/...} — 본인 전용 큐(Spring 이 세션별로 격리해주므로 안전)</li>
+     * </ul>
+     */
+    private void authorizeSubscribe(StompHeaderAccessor accessor) {
         String destination = accessor.getDestination();
-        if (destination == null) return;
-
-        Long userId = extractUserId(accessor);
-        if (userId == null) {
-            throw new MessagingException("WebSocket 인증이 필요합니다.");
+        if (destination == null) {
+            // STOMP 스펙상 SUBSCRIBE 프레임엔 destination 이 필수 — 없으면 비정상 프레임이므로 거부
+            throw reject("SUBSCRIBE destination 이 없습니다.");
         }
+
+        Long userId = requireUserId(accessor);
 
         Matcher roomTopic = ROOM_TOPIC_PATTERN.matcher(destination);
         if (roomTopic.matches()) {
             requireRoomMember(roomTopic.group(1), userId);
             return;
         }
+
+        Matcher plazaTopic = PLAZA_TOPIC_PATTERN.matcher(destination);
+        if (plazaTopic.matches()) {
+            // 채널 ID 형식이 서버 발급 규칙과 다르면 거부한다.
+            // (방/피지컬과 달리 광장은 누구나 입장 가능하므로 멤버십 검증은 하지 않지만,
+            //  임의 채널명으로 세션을 만들어내는 것은 막아야 한다)
+            requirePlazaChannelFormat(plazaTopic.group(1));
+            return;
+        }
+
+        if (destination.startsWith("/user/")) {
+            return;
+        }
+
+        throw reject("허용되지 않은 구독 destination 입니다.");
+    }
+
+    /**
+     * SEND(전송) 인가 — "무엇을 보낼 수 있는가"를 검증한다.
+     * <p>
+     * 클라이언트의 SEND 는 반드시 {@code /app/**}(= @MessageMapping 컨트롤러)로만 들어와야 한다.
+     * {@code /topic/**}, {@code /queue/**}, {@code /user/**} 로의 직접 SEND 를 허용하면
+     * 컨트롤러의 검증/게임 규칙을 건너뛰고 브로커를 통해 구독자 전원에게
+     * 위조 메시지(가짜 게임 종료, 닉네임 사칭 채팅 등)를 뿌릴 수 있기 때문에 전부 거부한다.
+     * (Spring Security 공식 문서도 브로커 destination 으로의 직접 SEND 차단을 권고)
+     */
+    private void authorizeSend(StompHeaderAccessor accessor) {
+        String destination = accessor.getDestination();
+        if (destination == null) {
+            throw reject("SEND destination 이 없습니다.");
+        }
+
+        Long userId = requireUserId(accessor);
 
         Matcher gameApp = GAME_APP_PATTERN.matcher(destination);
         if (gameApp.matches()) {
@@ -118,23 +164,27 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             return;
         }
 
-        Matcher plaza = PLAZA_PATTERN.matcher(destination);
-        if (plaza.matches()) {
-            // 채널 ID 형식이 서버 발급 규칙과 다르면 거부한다.
-            // (방/피지컬과 달리 광장은 누구나 입장 가능하므로 멤버십 검증은 하지 않지만,
-            //  임의 채널명으로 세션을 만들어내는 것은 막아야 한다)
-            if (!PLAZA_CHANNEL_ID_PATTERN.matcher(plaza.group(1)).matches()) {
-                throw reject("허용되지 않은 광장 채널입니다.");
-            }
+        Matcher plazaApp = PLAZA_APP_PATTERN.matcher(destination);
+        if (plazaApp.matches()) {
+            requirePlazaChannelFormat(plazaApp.group(1));
             return;
         }
 
-        if (destination.startsWith("/user/")) {
-            return;
-        }
+        // 위 화이트리스트에 없는 모든 SEND 는 거부 — /topic, /queue, /user 직접 전송 차단 포함
+        throw reject("허용되지 않은 전송 destination 입니다.");
+    }
 
-        if (destination.startsWith("/topic/") || destination.startsWith("/app/")) {
-            throw new MessagingException("허용되지 않은 WebSocket destination 입니다.");
+    private Long requireUserId(StompHeaderAccessor accessor) {
+        Long userId = extractUserId(accessor);
+        if (userId == null) {
+            throw reject("WebSocket 인증이 필요합니다.");
+        }
+        return userId;
+    }
+
+    private void requirePlazaChannelFormat(String channelId) {
+        if (!PLAZA_CHANNEL_ID_PATTERN.matcher(channelId).matches()) {
+            throw reject("허용되지 않은 광장 채널입니다.");
         }
     }
 

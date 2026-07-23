@@ -1,0 +1,30 @@
+# Docker 빌드 컨텍스트에서 제외할 파일 목록.
+# Dockerfile 의 COPY src/ src/ 가 리소스 전체를 이미지에 넣으므로,
+# 로컬 전용 시크릿(application-local.yml)이 jar 안(BOOT-INF/classes)에
+# 패키징되어 GHCR 로 푸시되는 것을 여기서 원천 차단한다.
+# (application-local.yml 은 .gitignore 로 커밋은 이미 막혀 있지만,
+#  로컬에서 docker build 할 때는 파일이 존재하므로 별도 방어가 필요)
+
+# ── 시크릿 ──────────────────────────────────────────────────────
+**/application-local.yml
+*.env
+.env*
+
+# ── 빌드 산출물 / 캐시 (이미지 안에서 새로 빌드하므로 불필요) ──
+build/
+bin/
+.gradle/
+
+# ── 로그 / 크래시 덤프 ─────────────────────────────────────────
+*.log
+logs/
+hs_err_pid*.log
+replay_pid*.log
+*.hprof
+
+# ── IDE / OS ───────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.DS_Store
+Thumbs.db

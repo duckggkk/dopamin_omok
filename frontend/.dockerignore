@@ -1,0 +1,23 @@
+# Docker 빌드 컨텍스트에서 제외할 파일 목록.
+# Dockerfile 의 COPY . . 이 컨텍스트 전체를 복사하므로,
+# 로컬 환경 파일(.env.local 등)이 Vite 빌드에 섞여 들어가거나
+# node_modules/dist 가 컨텍스트 전송을 느리게 만드는 것을 막는다.
+
+# ── 로컬 환경 파일 (빌드타임 값은 Dockerfile ARG/ENV 로만 주입) ──
+.env
+.env.*
+
+# ── 의존성 / 빌드 산출물 (이미지 안에서 npm ci 로 새로 설치) ──
+node_modules/
+dist/
+coverage/
+
+# ── 캐시 ───────────────────────────────────────────────────────
+.eslintcache
+*.tsbuildinfo
+
+# ── IDE / OS ───────────────────────────────────────────────────
+.idea/
+.vscode/
+*.DS_Store
+Thumbs.db
