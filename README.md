@@ -1,4 +1,4 @@
-# 도파민 오목 (Dopamin Omok)
+# 도파민 오목 (Dopamin Omok) 2026.05 ~ 
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-dopaminomok.store-2ea44f?style=for-the-badge)](https://dopaminomok.store)
 [![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
@@ -14,19 +14,20 @@
 > 회원끼리 둔 대국은 어느 쪽이든 레이팅과 전적에 반영됩니다(AI 연습과 게스트 대국은 제외).
 > 상점의 재화 충전은 실제 결제가 연결되지 않은 데모 기능입니다.
 
+
+## 개발 기록
+구현 과정에서 마주친 문제와 판단 근거를 [dev-log/](dev-log/) 에 정리해 두었습니다.
+JWT 검증 구조 변경, Redis 도입에 따른 책임 분리, 쿼리 최적화, `latest` 태그로 인한
+배포 장애 분석 등을 다룹니다.
+
+
 ## 화면
 
-<!-- 스크린샷을 docs/screenshots/ 에 넣고 아래 주석을 해제하세요.
-     권장: 각 1200px 내외 PNG, 피지컬 오목은 움직임이 보이도록 GIF.
 
 | 클래식 오목 | 피지컬 오목 |
 |---|---|
-| ![클래식 오목](docs/screenshots/classic.png) | ![피지컬 오목](docs/screenshots/physical.gif) |
+| ![클래식 오목](docs/screenshots/classic.webp) | ![피지컬 오목](docs/screenshots/physical.webp) |
 
-| 만남의 광장 | 상점 |
-|---|---|
-| ![만남의 광장](docs/screenshots/plaza.png) | ![상점](docs/screenshots/shop.png) |
--->
 
 ## 주요 기능
 
@@ -200,11 +201,6 @@ Windows PowerShell에서는 백엔드 테스트를 `./gradlew test` 대신 `.\gr
 - Google OAuth는 운영 환경변수 설정 시 사용할 수 있습니다.
 - 서비스는 스피드 베타 단계이므로 데이터 초기화나 기능 변경이 발생할 수 있습니다.
 
-## 개발 기록
-
-구현 과정에서 마주친 문제와 판단 근거를 [dev-log/](dev-log/) 에 정리해 두었습니다.
-JWT 검증 구조 변경, Redis 도입에 따른 책임 분리, 쿼리 최적화, `latest` 태그로 인한
-배포 장애 분석 등을 다룹니다.
 
 ## 라이선스
 
