@@ -3,6 +3,8 @@ package com.dopamin.omok.game.domain;
 import com.dopamin.omok.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -31,12 +33,17 @@ public class Game {
     @Column(nullable = false)
     private Integer gameNumber;
 
+    // 플레이어/승자 FK 는 운영 DB(V1)와 동일하게 SET NULL — 계정이 하드 삭제돼도(게스트 정리 등)
+    // 대국 행은 남긴다. @OnDelete 는 테스트(H2, 엔티티로 스키마 생성)가 운영과 같은
+    // FK 동작을 갖게 하는 DDL 힌트다.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "black_player_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private User blackPlayer;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "white_player_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private User whitePlayer;
 
     @Enumerated(EnumType.STRING)
@@ -49,6 +56,7 @@ public class Game {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "winner_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private User winner;
 
     @CreatedDate

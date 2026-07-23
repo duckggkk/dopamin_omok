@@ -30,6 +30,9 @@ public enum ErrorCode {
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
     NICKNAME_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
     PROFILE_PRIVATE(HttpStatus.FORBIDDEN, "비공개 프로필입니다."),
+    WITHDRAW_PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다."),
+    WITHDRAW_GUEST_NOT_ALLOWED(HttpStatus.FORBIDDEN, "게스트 계정은 탈퇴 대상이 아닙니다. 로그아웃하면 이용이 종료됩니다."),
+    WITHDRAW_IN_ACTIVE_GAME(HttpStatus.CONFLICT, "진행 중인 방·대국이 있습니다. 방에서 나온 뒤 탈퇴해주세요."),
 
     // Room
     ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "방을 찾을 수 없습니다."),

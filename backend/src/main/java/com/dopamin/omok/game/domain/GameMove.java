@@ -3,6 +3,8 @@ package com.dopamin.omok.game.domain;
 import com.dopamin.omok.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -37,8 +39,14 @@ public class GameMove {
     @JoinColumn(name = "game_id", nullable = false)
     private Game game;
 
+    /**
+     * 착수자. 계정이 하드 삭제되면(게스트 정리 등) DB 가 SET NULL 로 비운다(V38) —
+     * 기보는 상대방의 기록이기도 하므로 착수자가 사라져도 수는 남긴다.
+     * 돌 색은 color 컬럼에 직접 저장돼 있어 착수자 없이도 재생에 문제없다.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "player_id", nullable = false)
+    @JoinColumn(name = "player_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private User player;
 
     @Enumerated(EnumType.STRING)

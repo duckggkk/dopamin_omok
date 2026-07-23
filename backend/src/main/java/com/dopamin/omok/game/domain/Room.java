@@ -3,6 +3,8 @@ package com.dopamin.omok.game.domain;
 import com.dopamin.omok.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -26,8 +28,15 @@ public class Room {
     @Column(nullable = false, unique = true, length = 10)
     private String roomCode;
 
+    /**
+     * 방장. 계정이 하드 삭제되면(게스트 정리 등) DB 가 SET NULL 로 비운다(V38) —
+     * 방·대국 기록은 상대방의 것이기도 하므로 방장이 사라져도 남긴다.
+     * 살아 있는(WAITING/IN_PROGRESS) 방의 방장은 항상 존재한다
+     * (게스트 정리가 활성 방 참가자를 건너뛰기 때문). null 은 닫힌 방에서만 가능하다.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "host_id", nullable = false)
+    @JoinColumn(name = "host_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private User host;
 
     @Enumerated(EnumType.STRING)

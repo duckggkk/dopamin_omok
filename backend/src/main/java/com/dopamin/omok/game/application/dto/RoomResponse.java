@@ -40,7 +40,9 @@ public record RoomResponse(
         return new RoomResponse(
                 room.getId(),
                 room.getRoomCode(),
-                PublicUserResponse.from(room.getHost()),
+                // 살아 있는 방의 방장은 항상 존재한다(게스트 정리가 활성 방 참가자를 건너뜀).
+                // null 은 닫힌 방을 조회한 경우뿐(정리된 게스트 방장, V38 SET NULL) — NPE 대신 null 로 내린다.
+                room.getHost() != null ? PublicUserResponse.from(room.getHost()) : null,
                 room.getStatus(),
                 room.getGameType(),
                 room.getOmokRule(),

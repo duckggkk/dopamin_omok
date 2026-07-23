@@ -16,6 +16,7 @@ import com.dopamin.omok.auth.domain.RefreshToken;
 import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.common.exception.OmokException;
 import com.dopamin.omok.global.security.jwt.JwtProvider;
+import com.dopamin.omok.user.application.port.out.CheckUserExistsPort;
 import com.dopamin.omok.user.application.port.out.DeleteUserPort;
 import com.dopamin.omok.user.application.port.out.LoadUserPort;
 import com.dopamin.omok.user.application.port.out.SaveUserPort;
@@ -36,6 +37,7 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
         VerifyEmailUseCase, ResendVerificationEmailUseCase, GuestLoginUseCase, CleanupGuestAccountsUseCase {
 
     private final LoadUserPort loadUserPort;
+    private final CheckUserExistsPort checkUserExistsPort;
     private final SaveUserPort saveUserPort;
     private final DeleteUserPort deleteUserPort;
     private final LoadRefreshTokenPort loadRefreshTokenPort;
@@ -75,11 +77,14 @@ public class AuthService implements RegisterUseCase, LoginUseCase, RefreshTokenU
         return deleteUserPort.deleteGuestsCreatedBefore(cutoff);
     }
 
-    /** "게스트####"(1000~9999) 닉네임을 생성하되 중복이면 재시도, 끝내 충돌하면 UUID 조각으로 사실상 유일화한다. */
+    /**
+     * "게스트####"(1000~9999) 닉네임을 생성하되 중복이면 재시도, 끝내 충돌하면 UUID 조각으로 사실상 유일화한다.
+     * 중복 판정은 탈퇴 회원까지 포함해야 UNIQUE 제약과 어긋나지 않는다(CheckUserExistsPort).
+     */
     private String generateUniqueGuestNickname() {
         for (int i = 0; i < 10; i++) {
             String candidate = "게스트" + (1000 + ThreadLocalRandom.current().nextInt(9000));
-            if (loadUserPort.findByNickname(candidate).isEmpty()) {
+            if (!checkUserExistsPort.existsByNickname(candidate)) {
                 return candidate;
             }
         }

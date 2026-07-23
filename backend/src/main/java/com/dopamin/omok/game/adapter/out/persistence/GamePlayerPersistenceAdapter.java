@@ -38,6 +38,11 @@ public class GamePlayerPersistenceAdapter implements LoadGamePlayerPort, SaveGam
     }
 
     @Override
+    public boolean existsInActiveRoom(Long userId) {
+        return gamePlayerJpaRepository.existsInActiveRoom(userId);
+    }
+
+    @Override
     public GamePlayer save(GamePlayer gamePlayer) {
         return gamePlayerJpaRepository.save(gamePlayer);
     }

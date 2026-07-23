@@ -13,8 +13,10 @@ public interface DeleteUserPort {
 
     /**
      * cutoff 이전에 생성된 게스트(GUEST) 계정을 일괄 삭제하고 삭제 건수를 반환한다.
-     * games FK는 ON DELETE SET NULL 이라 대국 행은 남고(상대=null), game_moves·game_players·
-     * 보유 아이템 등은 ON DELETE CASCADE 로 함께 정리된다. (쌓이는 익명 계정 청소용)
+     * 대국 기록(방·대국·기보)은 SET NULL(V1·V38)로 남고 사람 칸만 비워지며,
+     * game_players·보유 아이템만 CASCADE 로 함께 정리된다.
+     * 활성 방(대기·진행 중)에 참가 중인 게스트는 건너뛴다 — 진행 중인 판이 깨지지 않도록.
+     * (쌓이는 익명 계정 청소용. 세부 규칙은 UserJpaRepository.deleteGuestsCreatedBefore 참고)
      */
     int deleteGuestsCreatedBefore(LocalDateTime cutoff);
 }

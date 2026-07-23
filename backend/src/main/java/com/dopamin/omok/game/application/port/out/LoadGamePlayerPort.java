@@ -11,4 +11,7 @@ public interface LoadGamePlayerPort {
     List<GamePlayer> findByRoomId(Long roomId);
     List<GamePlayer> findByRoomIdAndRole(Long roomId, PlayerRole role);
     int countSpectatorsByRoomId(Long roomId);
+
+    /** 아직 닫히지 않은 방(대기·진행 중)에 참가 중인지 여부. 회원 탈퇴 차단 판정에 쓴다. */
+    boolean existsInActiveRoom(Long userId);
 }

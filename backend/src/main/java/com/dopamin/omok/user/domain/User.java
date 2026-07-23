@@ -92,6 +92,16 @@ public class User {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    /**
+     * 탈퇴 시각. null 이면 활성 회원이다.
+     * <p>
+     * 탈퇴는 행 삭제가 아니라 <b>익명화</b>로 처리한다({@link #anonymize()}). 사용자를 물리 삭제하면
+     * rooms→games 로 이어지는 ON DELETE CASCADE 때문에 <b>상대방의 대국 기록까지</b> 함께 지워지기
+     * 때문이다(V37 마이그레이션 주석 참고).
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @Builder
     private User(String email, String password, String nickname,
                  UserRole role, AuthProvider provider, String providerId,
@@ -202,6 +212,35 @@ public class User {
     /** 비회원(게스트) 계정 여부. 멤버 전용 기능 차단·랭크전 제외 판단에 쓴다. */
     public boolean isGuest() {
         return this.role == UserRole.GUEST;
+    }
+
+    /** 탈퇴한 계정 여부. 활성 사용자 조회는 모두 이 값이 false 인 행만 돌려준다. */
+    public boolean isDeleted() {
+        return this.deletedAt != null;
+    }
+
+    /**
+     * 탈퇴 처리 — 행은 남기고 <b>개인정보만 파기</b>한다.
+     * <p>
+     * 이메일·닉네임은 UNIQUE 제약이 걸려 있으므로 지우는 대신 충돌하지 않는 값으로 덮어쓴다.
+     * 원래 이메일이 비워지므로 <b>같은 이메일로 다시 가입할 수 있다</b>.
+     * 반대로 새 닉네임({@code 탈퇴한사용자_<id>})은 유니크 검사에서 계속 '사용 중'으로 잡혀야
+     * 다른 사람이 그 이름을 가져가 과거 기보의 탈퇴자를 사칭하는 일이 없다
+     * ({@code CheckUserExistsPort} 가 탈퇴 행까지 포함해 검사하는 이유).
+     * <p>
+     * 전적·레이팅 컬럼은 남긴다 — 상대방 대국 기록의 무결성에 쓰이는 값이라 지우면 안 된다.
+     * 개인을 식별하는 값이 아니므로 파기 대상도 아니다.
+     */
+    public void anonymize(LocalDateTime now) {
+        this.email = "deleted_" + this.publicId + "@deleted.local";
+        this.nickname = "탈퇴한사용자_" + this.id;
+        this.password = null;
+        this.profileImageUrl = null;
+        this.providerId = null;
+        this.emailVerified = false;   // 로그인 경로의 2차 방어선
+        this.profilePrivate = true;   // 프로필 조회 경로의 2차 방어선
+        this.deletedAt = now;
+        incrementTokenVersion();      // 발급된 refresh token 재사용 차단
     }
 
     /** null-safe 싱글플레이 AI 클리어 단계 조회(과거 데이터/직렬화 경로에서도 항상 0 이상). */

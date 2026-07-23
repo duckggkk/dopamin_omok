@@ -74,6 +74,8 @@ public class SecurityConfig {
                         // 랭크 방 생성/참가 차단은 RoomService 가 역할 기반으로 선별 처리한다(게스트=캐주얼 강제, 랭크 참가 거부).
                         // 프로필 수정(닉네임/이미지 등)은 멤버만.
                         .requestMatchers(HttpMethod.PATCH, "/users/me").hasAnyRole(UserRole.USER.name(), UserRole.ADMIN.name())
+                        // 회원 탈퇴도 멤버만. 게스트는 탈퇴 대상이 아니다(로그아웃하면 끝, 스케줄러가 정리).
+                        .requestMatchers(HttpMethod.DELETE, "/users/me").hasAnyRole(UserRole.USER.name(), UserRole.ADMIN.name())
 
                         // 그 외 모든 요청은 인증 필요. 게임/방 조회도 로그인 후에만 접근(프론트 동작과 일치).
                         .anyRequest().authenticated()

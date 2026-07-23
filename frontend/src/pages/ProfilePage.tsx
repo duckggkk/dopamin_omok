@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, FormEvent } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { userApi } from '@/api/auth';
 import { gameApi } from '@/api/game';
@@ -14,6 +14,9 @@ import { pickStats, totalStats } from '@/utils/stats';
 import styles from './ProfilePage.module.css';
 
 const RECENT_PAGE_SIZE = 10;
+
+// 소셜 로그인 계정은 확인할 비밀번호가 없으므로, 대신 이 문구를 그대로 입력하게 한다.
+const WITHDRAW_CONFIRM_PHRASE = '탈퇴합니다';
 
 type ProfileView = User | PublicUser;
 
@@ -34,7 +37,8 @@ const isUser = (profile: ProfileView): profile is User => 'email' in profile;
 
 const ProfilePage = () => {
   const { userId } = useParams<{ userId?: string }>();
-  const { user, setUser } = useAuthStore();
+  const { user, setUser, logout } = useAuthStore();
+  const navigate = useNavigate();
   const isOwnProfile = !userId || userId === user?.id;
 
   const [profile, setProfile] = useState<ProfileView | null>(isOwnProfile ? user : null);
@@ -54,6 +58,11 @@ const ProfilePage = () => {
   const [relation, setRelation] = useState<RelationInfo | null>(null);
   const [relBusy, setRelBusy] = useState(false);
   const [statMode, setStatMode] = useState<StatMode>('TOTAL');
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawPassword, setWithdrawPassword] = useState('');
+  const [withdrawPhrase, setWithdrawPhrase] = useState('');
+  const [withdrawError, setWithdrawError] = useState('');
+  const [withdrawBusy, setWithdrawBusy] = useState(false);
 
   // 다시보기 목록 페이지 로드(본인=내 게임 / 타인=공개 게임). 페이징으로 예전 기록까지 넘겨볼 수 있다.
   const loadRecent = useCallback((page: number) => {
@@ -144,6 +153,35 @@ const ProfilePage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 이메일 가입 계정만 비밀번호가 있다. 소셜 계정은 확인 문구 입력으로 대신한다.
+  const isLocalAccount = user.provider === 'LOCAL';
+  const withdrawReady = isLocalAccount
+    ? withdrawPassword.length > 0
+    : withdrawPhrase.trim() === WITHDRAW_CONFIRM_PHRASE;
+
+  // 회원 탈퇴 — 성공하면 서버에서 계정이 익명화되므로 남은 토큰을 즉시 버리고 홈으로 돌아간다.
+  const handleWithdraw = async (e: FormEvent) => {
+    e.preventDefault();
+    setWithdrawError('');
+    setWithdrawBusy(true);
+    try {
+      await userApi.withdraw(isLocalAccount ? withdrawPassword : undefined);
+      logout();
+      navigate('/', { replace: true });
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setWithdrawError(axiosErr.response?.data?.message ?? '탈퇴 처리에 실패했습니다.');
+      setWithdrawBusy(false);
+    }
+  };
+
+  const closeWithdraw = () => {
+    setWithdrawOpen(false);
+    setWithdrawPassword('');
+    setWithdrawPhrase('');
+    setWithdrawError('');
   };
 
   if (profileError) {
@@ -446,6 +484,76 @@ const ProfilePage = () => {
           </div>
         )}
       </div>
+
+      {/* 게스트는 탈퇴 대상이 아니다 — 로그아웃하면 이용이 끝나고 오래된 계정은 서버가 정리한다. */}
+      {isOwnProfile && !user.guest && (
+        <div className={styles.card}>
+          <h2 className={styles.sectionTitle}>계정 관리</h2>
+          <div className={styles.dangerZone}>
+            <div className={styles.dangerText}>
+              <p className={styles.dangerTitle}>회원 탈퇴</p>
+              <p className={styles.sectionHint}>
+                계정 정보(이메일·프로필)가 삭제되고 다시 로그인할 수 없게 됩니다. 되돌릴 수 없어요.
+              </p>
+            </div>
+            <button className={styles.dangerBtn} onClick={() => setWithdrawOpen(true)}>
+              회원 탈퇴
+            </button>
+          </div>
+        </div>
+      )}
+
+      {withdrawOpen && (
+        <div className={styles.modalOverlay} onClick={closeWithdraw}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.modalTitle}>정말 탈퇴하시겠어요?</h3>
+            <ul className={styles.modalList}>
+              <li>이메일·프로필 정보가 삭제되고 <strong>다시 로그인할 수 없습니다.</strong></li>
+              <li>보유한 돌·아이템은 모두 사라지며 복구되지 않습니다.</li>
+              <li>
+                이미 끝난 대국 기록은 <strong>상대방의 전적을 위해 남습니다.</strong>
+                단, 내 이름은 &lsquo;탈퇴한 사용자&rsquo;로 표시됩니다.
+              </li>
+              <li>진행 중인 방·대국이 있으면 먼저 나와야 탈퇴할 수 있습니다.</li>
+            </ul>
+
+            <form onSubmit={handleWithdraw} className={styles.modalForm}>
+              {isLocalAccount ? (
+                <label className={styles.modalField}>
+                  <span>비밀번호를 입력해 본인을 확인해주세요</span>
+                  <input
+                    type="password"
+                    value={withdrawPassword}
+                    onChange={(e) => setWithdrawPassword(e.target.value)}
+                    autoComplete="current-password"
+                    autoFocus
+                  />
+                </label>
+              ) : (
+                <label className={styles.modalField}>
+                  <span>확인을 위해 <strong>{WITHDRAW_CONFIRM_PHRASE}</strong> 를 입력해주세요</span>
+                  <input
+                    type="text"
+                    value={withdrawPhrase}
+                    onChange={(e) => setWithdrawPhrase(e.target.value)}
+                    placeholder={WITHDRAW_CONFIRM_PHRASE}
+                    autoFocus
+                  />
+                </label>
+              )}
+              {withdrawError && <p className={styles.error}>{withdrawError}</p>}
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.cancelBtn} onClick={closeWithdraw} disabled={withdrawBusy}>
+                  취소
+                </button>
+                <button type="submit" className={styles.dangerBtn} disabled={!withdrawReady || withdrawBusy}>
+                  {withdrawBusy ? '처리 중...' : '탈퇴하기'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {recordViewer}
     </div>

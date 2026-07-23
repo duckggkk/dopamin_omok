@@ -8,7 +8,7 @@ import com.dopamin.omok.auth.domain.PendingRegistration;
 import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.common.exception.OmokException;
 import com.dopamin.omok.global.event.UserRegisteredEvent;
-import com.dopamin.omok.user.application.port.out.LoadUserPort;
+import com.dopamin.omok.user.application.port.out.CheckUserExistsPort;
 import com.dopamin.omok.user.application.port.out.SaveUserPort;
 import com.dopamin.omok.user.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class EmailVerificationService {
 
-    private final LoadUserPort loadUserPort;
+    private final CheckUserExistsPort checkUserExistsPort;
     private final SaveUserPort saveUserPort;
     private final SavePendingRegistrationPort savePendingRegistrationPort;
     private final LoadPendingRegistrationPort loadPendingRegistrationPort;
@@ -42,10 +42,13 @@ public class EmailVerificationService {
      * 이미 가입을 마친(=users 에 존재) 이메일/닉네임이거나, 인증 진행 중(Redis 대기)인 이메일/닉네임이면 막는다.
      */
     public void startRegistration(String email, String encodedPassword, String nickname) {
-        if (loadUserPort.findByEmail(email).isPresent()) {
+        // 중복 검사는 탈퇴 회원까지 포함해서 본다(CheckUserExistsPort).
+        // - 이메일: 탈퇴 시 익명 주소로 덮어쓰므로 원래 이메일은 여기서 걸리지 않는다 → 재가입 가능.
+        // - 닉네임: 익명화된 '탈퇴한사용자_<id>' 는 계속 점유 상태로 남아 사칭/UNIQUE 충돌을 막는다.
+        if (checkUserExistsPort.existsByEmail(email)) {
             throw new OmokException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
-        if (loadUserPort.findByNickname(nickname).isPresent()) {
+        if (checkUserExistsPort.existsByNickname(nickname)) {
             throw new OmokException(ErrorCode.NICKNAME_ALREADY_EXISTS);
         }
         // 인증 진행 중인(아직 회원이 되지 않은) 사람이 같은 이메일/닉네임을 선점하고 있으면 막는다.

@@ -30,7 +30,9 @@ public record GameMoveResponse(
 
     public static GameMoveResponse from(GameMove move, String soundAssetKey) {
         return new GameMoveResponse(
-                move.getPlayer().getNickname(),
+                // 착수자는 하드 삭제로 null 일 수 있다(V38 SET NULL — 정리된 게스트).
+                // 회원 탈퇴는 소프트 삭제라 행이 남으므로 여기 걸리지 않는다(익명 닉네임으로 표시).
+                move.getPlayer() != null ? move.getPlayer().getNickname() : "게스트",
                 move.getColor(),
                 move.getRow(),
                 move.getCol(),

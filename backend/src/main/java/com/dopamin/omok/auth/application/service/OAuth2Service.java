@@ -7,6 +7,7 @@ import com.dopamin.omok.auth.domain.GoogleUserInfo;
 import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.common.exception.OmokException;
 import com.dopamin.omok.global.event.UserRegisteredEvent;
+import com.dopamin.omok.user.application.port.out.CheckUserExistsPort;
 import com.dopamin.omok.user.application.port.out.DeleteUserPort;
 import com.dopamin.omok.user.application.port.out.LoadUserPort;
 import com.dopamin.omok.user.application.port.out.SaveUserPort;
@@ -41,6 +42,7 @@ public class OAuth2Service implements OAuth2LoginUseCase {
 
     private final GoogleOAuthPort googleOAuthPort;
     private final LoadUserPort loadUserPort;
+    private final CheckUserExistsPort checkUserExistsPort;
     private final SaveUserPort saveUserPort;
     private final DeleteUserPort deleteUserPort;
     private final TokenIssuer tokenIssuer;
@@ -106,12 +108,13 @@ public class OAuth2Service implements OAuth2LoginUseCase {
             base = base.substring(0, NICKNAME_BASE_MAX);
         }
 
-        if (loadUserPort.findByNickname(base).isEmpty()) {
+        // 중복 판정은 탈퇴 회원까지 포함해야 UNIQUE 제약과 어긋나지 않는다(CheckUserExistsPort).
+        if (!checkUserExistsPort.existsByNickname(base)) {
             return base;
         }
         for (int i = 0; i < 20; i++) {
             String candidate = base + ThreadLocalRandom.current().nextInt(1000, 10000);
-            if (loadUserPort.findByNickname(candidate).isEmpty()) {
+            if (!checkUserExistsPort.existsByNickname(candidate)) {
                 return candidate;
             }
         }

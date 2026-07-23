@@ -37,4 +37,11 @@ export const userApi = {
 
   getRanking: (limit = 20, mode: StatMode = 'TOTAL') =>
     apiClient.get<ApiResponse<RankingEntry[]>>('/users/ranking', { params: { limit, mode } }),
+
+  // 회원 탈퇴 — 계정은 익명화되고 대국 기록은 남는다(되돌릴 수 없음).
+  // 일반 가입 계정은 비밀번호 확인이 필요하고, 구글 로그인 계정은 생략한다.
+  withdraw: (password?: string) =>
+    apiClient.delete<ApiResponse<void>>('/users/me', {
+      data: password ? { password } : {},
+    }),
 };

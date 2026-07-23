@@ -8,7 +8,7 @@ import com.dopamin.omok.auth.domain.PendingRegistration;
 import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.common.exception.OmokException;
 import com.dopamin.omok.global.event.UserRegisteredEvent;
-import com.dopamin.omok.user.application.port.out.LoadUserPort;
+import com.dopamin.omok.user.application.port.out.CheckUserExistsPort;
 import com.dopamin.omok.user.application.port.out.SaveUserPort;
 import com.dopamin.omok.user.domain.User;
 import org.junit.jupiter.api.DisplayName;
@@ -36,7 +36,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class EmailVerificationServiceTest {
 
-    @Mock private LoadUserPort loadUserPort;
+    // 중복 검사는 탈퇴 회원까지 포함해야 하므로 LoadUserPort 가 아니라 CheckUserExistsPort 를 쓴다.
+    @Mock private CheckUserExistsPort checkUserExistsPort;
     @Mock private SaveUserPort saveUserPort;
     @Mock private SavePendingRegistrationPort savePendingRegistrationPort;
     @Mock private LoadPendingRegistrationPort loadPendingRegistrationPort;
@@ -60,8 +61,8 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("가입 시작: RDS에 User를 만들지 않고 Redis 가입 대기만 올린 뒤 인증 메일을 보낸다")
     void startRegistration_savesPendingAndSendsMail_noUserInserted() {
-        when(loadUserPort.findByEmail(EMAIL)).thenReturn(Optional.empty());
-        when(loadUserPort.findByNickname(NICKNAME)).thenReturn(Optional.empty());
+        when(checkUserExistsPort.existsByEmail(EMAIL)).thenReturn(false);
+        when(checkUserExistsPort.existsByNickname(NICKNAME)).thenReturn(false);
         when(loadPendingRegistrationPort.findByEmail(EMAIL)).thenReturn(Optional.empty());
         when(loadPendingRegistrationPort.isNicknameReserved(NICKNAME)).thenReturn(false);
 
@@ -76,7 +77,7 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("가입 시작: 이미 가입을 마친 이메일이면 막는다")
     void startRegistration_emailTakenInDb() {
-        when(loadUserPort.findByEmail(EMAIL)).thenReturn(Optional.of(mock(User.class)));
+        when(checkUserExistsPort.existsByEmail(EMAIL)).thenReturn(true);
 
         assertThatThrownBy(() -> service.startRegistration(EMAIL, ENCODED_PW, NICKNAME))
                 .isInstanceOfSatisfying(OmokException.class,
@@ -87,8 +88,8 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("가입 시작: 이미 사용 중인 닉네임이면 막는다")
     void startRegistration_nicknameTakenInDb() {
-        when(loadUserPort.findByEmail(EMAIL)).thenReturn(Optional.empty());
-        when(loadUserPort.findByNickname(NICKNAME)).thenReturn(Optional.of(mock(User.class)));
+        when(checkUserExistsPort.existsByEmail(EMAIL)).thenReturn(false);
+        when(checkUserExistsPort.existsByNickname(NICKNAME)).thenReturn(true);
 
         assertThatThrownBy(() -> service.startRegistration(EMAIL, ENCODED_PW, NICKNAME))
                 .isInstanceOfSatisfying(OmokException.class,
@@ -98,8 +99,8 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("가입 시작: 인증 진행 중(Redis 대기)인 이메일이면 막는다")
     void startRegistration_emailPendingInRedis() {
-        when(loadUserPort.findByEmail(EMAIL)).thenReturn(Optional.empty());
-        when(loadUserPort.findByNickname(NICKNAME)).thenReturn(Optional.empty());
+        when(checkUserExistsPort.existsByEmail(EMAIL)).thenReturn(false);
+        when(checkUserExistsPort.existsByNickname(NICKNAME)).thenReturn(false);
         when(loadPendingRegistrationPort.findByEmail(EMAIL))
                 .thenReturn(Optional.of(pending(CODE, LocalDateTime.now().plusMinutes(3), 0)));
 
@@ -111,8 +112,8 @@ class EmailVerificationServiceTest {
     @Test
     @DisplayName("가입 시작: 인증 진행 중인 사람이 선점한 닉네임이면 막는다")
     void startRegistration_nicknameReservedInRedis() {
-        when(loadUserPort.findByEmail(EMAIL)).thenReturn(Optional.empty());
-        when(loadUserPort.findByNickname(NICKNAME)).thenReturn(Optional.empty());
+        when(checkUserExistsPort.existsByEmail(EMAIL)).thenReturn(false);
+        when(checkUserExistsPort.existsByNickname(NICKNAME)).thenReturn(false);
         when(loadPendingRegistrationPort.findByEmail(EMAIL)).thenReturn(Optional.empty());
         when(loadPendingRegistrationPort.isNicknameReserved(NICKNAME)).thenReturn(true);
 

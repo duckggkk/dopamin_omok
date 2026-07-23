@@ -8,6 +8,7 @@ import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.security.jwt.JwtAuthConstants;
 import com.dopamin.omok.global.security.jwt.JwtAuthenticator;
 import com.dopamin.omok.global.security.principal.AuthUser;
+import com.dopamin.omok.user.application.port.out.LoadUserPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
@@ -50,6 +51,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     private final JwtAuthenticator jwtAuthenticator;
     private final LoadRoomPort loadRoomPort;
     private final LoadGamePlayerPort loadGamePlayerPort;
+    private final LoadUserPort loadUserPort;
 
     
     // 모든 inbound STOMP 메시지를 받음
@@ -82,6 +84,17 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
                         log.warn("WebSocket CONNECT 거부 — 유효한 인증 토큰 없음");
                         return new MessagingException("WebSocket 인증에 실패했습니다.");
                     });
+
+            // 탈퇴한 계정 차단. JWT 검증은 stateless 라 탈퇴 직전에 발급된 access token 이
+            // 만료(30분)까지 살아 있는데, 광장(/plaza)은 REST 와 달리 DB 를 거치지 않고
+            // 토큰 claim 만으로 동작해서 탈퇴자가 옛 닉네임으로 돌아다닐 수 있다.
+            // CONNECT 는 소켓당 한 번뿐이라 여기서 한 번만 확인하면 WS 경로 전체가 막힌다.
+            if (authentication.getPrincipal() instanceof AuthUser user
+                    && loadUserPort.findById(user.id()).isEmpty()) {
+                log.warn("WebSocket CONNECT 거부 — 존재하지 않거나 탈퇴한 계정 userId={}", user.id());
+                throw new MessagingException("WebSocket 인증에 실패했습니다.");
+            }
+
             //WebSocket/STOMP 세션에 인증자 정보 세팅 (서버에)
             accessor.setUser(authentication);
         }

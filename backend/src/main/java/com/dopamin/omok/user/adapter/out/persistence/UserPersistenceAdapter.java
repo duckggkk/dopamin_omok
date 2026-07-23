@@ -19,24 +19,28 @@ public class UserPersistenceAdapter implements LoadUserPort, SaveUserPort, Check
 
     private final UserJpaRepository userJpaRepository;
 
+    // 아래 조회는 모두 '활성 사용자'만 돌려준다 — 탈퇴(deleted_at) 행은 보이지 않는다.
+    // 앱의 사용자 조회가 전부 이 어댑터를 지나므로, 여기서 한 번 막으면 로그인·방 참가·상점·
+    // 친구 등 모든 경로가 자동으로 탈퇴 계정을 거부한다(각 서비스는 USER_NOT_FOUND 로 실패).
+
     @Override
     public Optional<User> findById(Long userId) {
-        return userJpaRepository.findById(userId);
+        return userJpaRepository.findActiveById(userId);
     }
 
     @Override
     public Optional<User> findByEmail(String email) {
-        return userJpaRepository.findByEmail(email);
+        return userJpaRepository.findActiveByEmail(email);
     }
 
     @Override
     public Optional<User> findByNickname(String nickname) {
-        return userJpaRepository.findByNickname(nickname);
+        return userJpaRepository.findActiveByNickname(nickname);
     }
 
     @Override
     public Optional<User> findByPublicId(UUID publicId) {
-        return userJpaRepository.findByPublicId(publicId);
+        return userJpaRepository.findActiveByPublicId(publicId);
     }
 
     @Override

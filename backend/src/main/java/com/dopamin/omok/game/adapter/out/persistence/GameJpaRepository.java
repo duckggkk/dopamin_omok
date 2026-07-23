@@ -35,13 +35,19 @@ public interface GameJpaRepository extends JpaRepository<Game, Long> {
     Optional<Game> findLatestGameByRoomCode(@Param("roomCode") String roomCode);
 
     // AI 연습(봇 대국)은 기보/리플레이 다시보기에서 제외한다 — 어느 한쪽이라도 BOT 이면 빼낸다(레이팅·랭킹과 동일 취급).
-    // 완성된 대국은 흑·백이 항상 채워져 있으므로 role 비교만으로 충분하다.
-    @Query("SELECT g FROM Game g WHERE (g.blackPlayer.id = :userId OR g.whitePlayer.id = :userId) " +
+    //
+    // 플레이어는 명시적 LEFT JOIN 으로 붙인다. 상대가 하드 삭제되면(게스트 정리, V38 SET NULL)
+    // black/white 가 NULL 이 되는데, 암묵 경로(g.blackPlayer.role)는 INNER JOIN 으로 번역돼
+    // 그 대국이 결과에서 통째로 사라진다 — 내 기보 목록에서 지워진 게스트와의 판이 증발하는 버그.
+    // NULL 플레이어는 봇이 아니므로(봇 계정은 삭제되지 않는다) 목록에 남긴다.
+    @Query("SELECT g FROM Game g " +
+           "LEFT JOIN g.blackPlayer bp LEFT JOIN g.whitePlayer wp " +
+           "WHERE (bp.id = :userId OR wp.id = :userId) " +
            "AND g.status IN (com.dopamin.omok.game.domain.GameStatus.FINISHED, " +
            "com.dopamin.omok.game.domain.GameStatus.DRAW, " +
            "com.dopamin.omok.game.domain.GameStatus.ABANDONED) " +
-           "AND g.blackPlayer.role <> com.dopamin.omok.user.domain.UserRole.BOT " +
-           "AND g.whitePlayer.role <> com.dopamin.omok.user.domain.UserRole.BOT " +
+           "AND (bp IS NULL OR bp.role <> com.dopamin.omok.user.domain.UserRole.BOT) " +
+           "AND (wp IS NULL OR wp.role <> com.dopamin.omok.user.domain.UserRole.BOT) " +
            "ORDER BY g.createdAt DESC")
     Page<Game> findCompletedByUserId(@Param("userId") Long userId, Pageable pageable);
 }
