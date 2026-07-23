@@ -407,7 +407,9 @@
   padding: 14px 16px;
 }
 .dangerText { min-width: 0; }
-.dangerTitle { color: var(--danger); font-size: 0.95rem; font-weight: 800; margin-bottom: 2px; }
+.dangerTitle { color: var(--danger); font-size: 0.95rem; font-weight: 800; margin-bottom: 6px; }
+/* .sectionHint 와 달리 음수 마진을 쓰지 않는다 — 바로 위 제목과 겹치기 때문 */
+.dangerHint { font-size: 0.82rem; line-height: 1.5; color: var(--text-muted); }
 .dangerBtn {
   flex-shrink: 0;
   background: transparent;

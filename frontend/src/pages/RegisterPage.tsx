@@ -2,10 +2,13 @@ import { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '@/api/auth';
 import { getApiErrorMessage, getApiFieldErrors } from '@/utils/error';
+import GoogleLoginButton from '@/components/auth/GoogleLoginButton';
 import styles from './AuthPage.module.css';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  // 로그인 화면과 같은 스위치로 켠다 — 구글 콘솔 설정 전에는 양쪽 모두 버튼을 숨긴다.
+  const googleLoginEnabled = import.meta.env.VITE_GOOGLE_LOGIN_ENABLED === 'true';
   const [form, setForm] = useState({ email: '', password: '', nickname: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -85,6 +88,13 @@ const RegisterPage = () => {
             {isLoading ? '가입 중...' : '회원가입'}
           </button>
         </form>
+
+        {googleLoginEnabled && (
+          <>
+            <div className={styles.altDivider}>또는</div>
+            <GoogleLoginButton label="Google 계정으로 가입하기" />
+          </>
+        )}
 
         <p className={styles.footer}>
           가입하면 <Link to="/terms">이용약관</Link> 및 <Link to="/privacy">개인정보처리방침</Link>에

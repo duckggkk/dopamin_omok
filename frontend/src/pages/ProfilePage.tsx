@@ -169,7 +169,9 @@ const ProfilePage = () => {
     try {
       await userApi.withdraw(isLocalAccount ? withdrawPassword : undefined);
       logout();
-      navigate('/', { replace: true });
+      // 프로필은 PrivateRoute 안이라 로그아웃 즉시 화면이 사라진다.
+      // 작별 인사는 로그인 화면에서 띄운다(기존 verified·session_expired 안내와 같은 방식).
+      navigate('/login?reason=withdrawn', { replace: true });
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setWithdrawError(axiosErr.response?.data?.message ?? '탈퇴 처리에 실패했습니다.');
@@ -492,7 +494,8 @@ const ProfilePage = () => {
           <div className={styles.dangerZone}>
             <div className={styles.dangerText}>
               <p className={styles.dangerTitle}>회원 탈퇴</p>
-              <p className={styles.sectionHint}>
+              {/* sectionHint 는 섹션 제목에 붙이려고 음수 상단 마진을 쓰므로 여기선 전용 클래스를 쓴다 */}
+              <p className={styles.dangerHint}>
                 계정 정보(이메일·프로필)가 삭제되고 다시 로그인할 수 없게 됩니다. 되돌릴 수 없어요.
               </p>
             </div>
@@ -510,10 +513,6 @@ const ProfilePage = () => {
             <ul className={styles.modalList}>
               <li>이메일·프로필 정보가 삭제되고 <strong>다시 로그인할 수 없습니다.</strong></li>
               <li>보유한 돌·아이템은 모두 사라지며 복구되지 않습니다.</li>
-              <li>
-                이미 끝난 대국 기록은 <strong>상대방의 전적을 위해 남습니다.</strong>
-                단, 내 이름은 &lsquo;탈퇴한 사용자&rsquo;로 표시됩니다.
-              </li>
               <li>진행 중인 방·대국이 있으면 먼저 나와야 탈퇴할 수 있습니다.</li>
             </ul>
 

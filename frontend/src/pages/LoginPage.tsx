@@ -14,6 +14,7 @@ const LoginPage = () => {
   const [searchParams] = useSearchParams();
   const isJustVerified = searchParams.get('verified') === '1';
   const isSessionExpired = searchParams.get('reason') === 'session_expired';
+  const isWithdrawn = searchParams.get('reason') === 'withdrawn';
   const isOAuthError = searchParams.get('error') === 'oauth';
   // 구글 로그인 버튼 노출 여부 — 구글 콘솔 설정을 마친 뒤 VITE_GOOGLE_LOGIN_ENABLED=true 로 켠다.
   // (설정 전 운영에서 깨진 버튼이 보이지 않도록 기본은 숨김)
@@ -91,6 +92,12 @@ const LoginPage = () => {
         <p className={styles.subtitle}>도파민 오목에 오신 것을 환영합니다</p>
         {isJustVerified && (
           <p className={styles.notice}>이메일 인증이 완료되었습니다! 로그인해주세요.</p>
+        )}
+        {isWithdrawn && (
+          <p className={styles.notice}>
+            회원 탈퇴가 완료되었습니다.<br />
+            그동안 도파민 오목을 이용해주셔서 감사합니다.
+          </p>
         )}
         {isSessionExpired && (
           <p className={`${styles.notice} ${styles.noticeWarn}`}>
@@ -172,13 +179,9 @@ const LoginPage = () => {
 
         {googleLoginEnabled && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '20px 0', color: '#888', fontSize: '0.85rem' }}>
-              <span style={{ flex: 1, height: 1, background: '#333' }} />
-              또는
-              <span style={{ flex: 1, height: 1, background: '#333' }} />
-            </div>
+            <div className={styles.altDivider}>또는</div>
             <GoogleLoginButton />
-            <p style={{ marginTop: 12, fontSize: '0.78rem', color: '#888', textAlign: 'center', lineHeight: 1.5 }}>
+            <p className={styles.guestHint}>
               계속하면 <Link to="/terms">이용약관</Link> 및 <Link to="/privacy">개인정보처리방침</Link>에<br />동의하는 것으로 간주됩니다.
             </p>
           </>

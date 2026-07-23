@@ -95,6 +95,7 @@
 .notice {
   text-align: center;
   font-size: 0.9rem;
+  line-height: 1.55;   /* 두 줄짜리 안내(탈퇴 완료 등)에서 줄이 붙지 않도록 */
   border-radius: var(--r-sm);
   padding: 11px;
   margin-bottom: 10px;
@@ -164,6 +165,8 @@
   margin-top: 8px;
   line-height: 1.5;
 }
+.guestHint a { color: var(--gold); text-decoration: none; font-weight: 600; }
+.guestHint a:hover { text-decoration: underline; }
 
 .footer {
   text-align: center;

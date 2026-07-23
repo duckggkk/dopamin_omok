@@ -3,17 +3,20 @@ import styles from './GoogleLoginButton.module.css';
 /**
  * 구글 공식 로고(4색 G)를 단 "Google 계정으로 로그인" 버튼.
  * 클릭하면 백엔드 진입점(/api/auth/oauth2/google)으로 전체 페이지 이동한다.
+ *
+ * 로그인과 가입이 같은 흐름이라(처음 온 구글 계정이면 서버가 계정을 만든다) 회원가입 화면에서도
+ * 같은 버튼을 쓰고, 문구만 label 로 바꿔 단다.
  */
 const startGoogleLogin = () => {
   window.location.href = '/api/auth/oauth2/google';
 };
 
-const GoogleLoginButton = () => (
+const GoogleLoginButton = ({ label = 'Google 계정으로 로그인' }: { label?: string }) => (
   <button
     type="button"
     onClick={startGoogleLogin}
     className={styles.googleBtn}
-    aria-label="Google 계정으로 로그인"
+    aria-label={label}
   >
     <svg className={styles.icon} width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
       <path
@@ -33,7 +36,7 @@ const GoogleLoginButton = () => (
         d="M9 3.58c1.321 0 2.508.454 3.44 1.346l2.582-2.581C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"
       />
     </svg>
-    <span>Google 계정으로 로그인</span>
+    <span>{label}</span>
   </button>
 );
 
