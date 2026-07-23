@@ -132,6 +132,7 @@ const Navbar = () => {
           { to: '/', end: true, icon: <IconHome />, label: '홈' },
           { to: '/lobby', icon: <IconPlay />, label: '대국' },
           { to: '/plaza', icon: <IconPlaza />, label: '광장' },
+          { to: '/ranking', icon: <IconRank />, label: '랭킹' }, // 열람만 가능(참여는 회원 전용)
           { to: '/guide', icon: <IconGuide />, label: '게임 방법' },
         ]
       : [];
@@ -208,7 +209,12 @@ const Navbar = () => {
               </div>
 
               {inRoom && (
-                <button onClick={handleLeaveRoom} className={styles.logoutBtn} title="방 나가기" aria-label="방 나가기">
+                <button
+                  onClick={handleLeaveRoom}
+                  className={`${styles.logoutBtn} ${styles.leaveRoomBtn}`}
+                  title="방 나가기"
+                  aria-label="방 나가기"
+                >
                   <IconDoor />
                 </button>
               )}
@@ -216,13 +222,27 @@ const Navbar = () => {
           ) : isGuest ? (
             <>
               <span className={styles.guestTag}>🎮<span className={styles.guestTagText}>게스트</span></span>
-              <Link to="/register" className={styles.registerBtn}>
-                <span className={styles.registerLong}>회원가입</span>
-                <span className={styles.registerShort}>가입</span>
-              </Link>
-              <button onClick={handleLogout} className={styles.logoutBtn} title="나가기" aria-label="나가기">
-                <IconDoor />
-              </button>
+              {/* 방 안에서는 가입 유도보다 나가는 길이 먼저다 — 게스트도 회원과 같은 '방 나가기'를 준다. */}
+              {inRoom ? (
+                <button
+                  onClick={handleLeaveRoom}
+                  className={`${styles.logoutBtn} ${styles.leaveRoomBtn}`}
+                  title="방 나가기"
+                  aria-label="방 나가기"
+                >
+                  <IconDoor />
+                </button>
+              ) : (
+                <>
+                  <Link to="/register" className={styles.registerBtn}>
+                    <span className={styles.registerLong}>회원가입</span>
+                    <span className={styles.registerShort}>가입</span>
+                  </Link>
+                  <button onClick={handleLogout} className={styles.logoutBtn} title="나가기" aria-label="나가기">
+                    <IconDoor />
+                  </button>
+                </>
+              )}
             </>
           ) : (
             <>

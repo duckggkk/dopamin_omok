@@ -61,13 +61,13 @@ const router = createBrowserRouter([
           { path: '/lobby', element: <LobbyPage /> },
           { path: '/game/:gameId', element: <GamePage /> },
           { path: '/plaza', element: <PlazaPage /> }, // 게스트도 입장 가능(꾸미기만 차단)
+          { path: '/ranking', element: <RankingPage /> }, // 게스트도 열람 가능(조회 전용 — 서버도 GET을 막지 않는다)
           // 멤버(정식 회원) 전용 — 게스트는 MemberRoute에서 홈(/)으로 리다이렉트
           {
             element: <MemberRoute />,
             children: [
               { path: '/welcome', element: <WelcomePage /> },
               { path: '/friends', element: <FriendsPage /> },
-              { path: '/ranking', element: <RankingPage /> },
               { path: '/profile', element: <ProfilePage /> },
               { path: '/profile/:userId', element: <ProfilePage /> },
               { path: '/shop', element: <ShopPage /> },

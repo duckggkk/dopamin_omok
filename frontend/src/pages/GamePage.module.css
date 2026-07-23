@@ -504,18 +504,21 @@
 }
 .lobbyBtn:hover { filter: brightness(1.07); }
 
+/* 방 나가기 — 투명한 회색이라 사이드바에 묻혀 못 찾는다는 피드백이 있어 주황(warn)으로 세운다.
+   빨강(danger)은 기권이 이미 쓰고 있어, 되돌릴 수 있는 이탈과 돌이킬 수 없는 기권을 색으로 구분한다. */
 .leaveBtn {
-  background: transparent;
-  color: var(--text-muted);
-  border: 1px solid var(--border-strong);
+  background: var(--warn-soft);
+  color: var(--warn);
+  border: 1px solid var(--warn-border);
   border-radius: var(--r-sm);
-  padding: 10px;
+  padding: 11px;
   cursor: pointer;
   width: 100%;
   font-size: 0.9rem;
+  font-weight: 700;
   transition: all var(--t-fast) var(--ease);
 }
-.leaveBtn:hover { border-color: var(--text-muted); color: var(--text); }
+.leaveBtn:hover { background: var(--warn); color: var(--text-on-gold); }
 
 .spectatorPanel { padding: 14px 16px; }
 .panelTitle {

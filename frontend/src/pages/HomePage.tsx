@@ -1,11 +1,12 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { gameApi, CreateRoomOptions } from '@/api/game';
 import { userApi } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/contexts/ToastContext';
 import { getApiErrorMessage } from '@/utils/error';
 import { GameSummary, RankingEntry } from '@/types';
+import { GUEST_FORBIDDEN_MESSAGE } from '@/constants/guest';
 import CreateRoomModal from '@/components/game/CreateRoomModal';
 import GameRecordViewer from '@/components/game/GameRecordViewer';
 import styles from './HomePage.module.css';
@@ -73,6 +74,17 @@ const HomePage = () => {
   if (!user) return null;
 
   const winRate = user.totalGames > 0 ? Math.round((user.wins / user.totalGames) * 100) : 0;
+
+  // 프로필(전적)은 멤버 전용이라 게스트가 누르면 라우터가 말없이 홈으로 되돌린다.
+  // 그 침묵이 '버튼이 고장났다'로 읽히므로, 이동 대신 서버와 같은 안내를 띄운다.
+  const isGuest = !!user.guest;
+  const goProfile = () => {
+    if (isGuest) {
+      showToast(GUEST_FORBIDDEN_MESSAGE, 'info');
+      return;
+    }
+    navigate('/profile');
+  };
 
   const createRoom = async (options: CreateRoomOptions) => {
     setBusy(true);
@@ -225,18 +237,18 @@ const HomePage = () => {
           <span className={`${styles.statValue} ${styles.gold}`}>{winRate}%</span>
           <span className={styles.statLabel}>승률 ({user.wins}승 {user.losses}패)</span>
         </div>
-        <Link to="/profile" className={`${styles.statCard} ${styles.statLink}`}>
+        <button type="button" onClick={goProfile} className={`${styles.statCard} ${styles.statLink}`}>
           <span className={styles.statIcon}>👤</span>
           <span className={styles.statValue}>프로필</span>
           <span className={styles.statLabel}>전적·계정 관리 →</span>
-        </Link>
+        </button>
       </section>
 
       {/* ---- 최근 전적 ---- */}
       <section className={styles.recentCol}>
         <div className={styles.rankHead}>
           <h2 className={styles.colTitle}>최근 전적</h2>
-          <button className={styles.rankMore} onClick={() => navigate('/profile')}>전체 보기 →</button>
+          <button className={styles.rankMore} onClick={goProfile}>전체 보기 →</button>
         </div>
         <div className={styles.recentList}>
           {recent === null ? (

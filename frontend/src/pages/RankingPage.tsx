@@ -14,6 +14,7 @@ const SUBTITLES: Record<StatMode, string> = {
 
 const RankingPage = () => {
   const { user } = useAuthStore();
+  const isGuest = !!user?.guest;
   const [mode, setMode] = useState<StatMode>('TOTAL');
   const [ranking, setRanking] = useState<RankingEntry[] | null>(null);
 
@@ -33,6 +34,11 @@ const RankingPage = () => {
       <div className={styles.header}>
         <h1 className={styles.title}>랭킹</h1>
         <p className={styles.subtitle}>{SUBTITLES[mode]}</p>
+        {isGuest && (
+          <p className={styles.guestHint}>
+            랭킹에 이름을 올리려면 <Link to="/register">회원가입</Link>이 필요합니다.
+          </p>
+        )}
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
           <ModeTabs value={mode} onChange={setMode} />
         </div>
@@ -58,18 +64,26 @@ const RankingPage = () => {
           </div>
           {ranking.map((r) => {
             const isMe = r.userId === user?.id;
+            // 게스트는 순위표 열람만 — 프로필은 멤버 전용이라 링크를 걸면 눌러도 홈으로 튕긴다.
+            const player = (
+              <>
+                <span className={styles.avatar}>
+                  {r.profileImageUrl ? <img src={r.profileImageUrl} alt="" /> : r.nickname[0].toUpperCase()}
+                </span>
+                <span className={styles.name}>{r.nickname}</span>
+                {isMe && <span className={styles.meBadge}>나</span>}
+              </>
+            );
             return (
               <div key={r.userId} className={`${styles.row} ${isMe ? styles.me : ''}`}>
                 <span className={styles.cRank}>
                   <span className={`${styles.rankNum} ${medalClass(r.rank)}`}>{r.rank}</span>
                 </span>
-                <Link to={isMe ? '/profile' : `/profile/${r.userId}`} className={styles.cPlayer}>
-                  <span className={styles.avatar}>
-                    {r.profileImageUrl ? <img src={r.profileImageUrl} alt="" /> : r.nickname[0].toUpperCase()}
-                  </span>
-                  <span className={styles.name}>{r.nickname}</span>
-                  {isMe && <span className={styles.meBadge}>나</span>}
-                </Link>
+                {isGuest ? (
+                  <span className={styles.cPlayer}>{player}</span>
+                ) : (
+                  <Link to={isMe ? '/profile' : `/profile/${r.userId}`} className={styles.cPlayer}>{player}</Link>
+                )}
                 <span className={styles.cRecord}>
                   <b className={styles.w}>{r.wins}</b>승 <b className={styles.l}>{r.losses}</b>패 {r.draws}무
                 </span>

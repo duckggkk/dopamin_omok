@@ -16,6 +16,10 @@
 }
 .title::before { content: '🏆'; font-size: 1.5rem; }
 .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-top: 6px; }
+/* 게스트 안내 — 열람은 되지만 순위에는 오르지 않는 이유를 알려준다. */
+.guestHint { color: var(--text-faint); font-size: 0.84rem; margin-top: 8px; }
+.guestHint a { color: var(--gold); text-decoration: none; font-weight: 600; }
+.guestHint a:hover { text-decoration: underline; }
 
 .state { text-align: center; color: var(--text-faint); padding: 70px 0; }
 .stateIcon { font-size: 2.8rem; margin-bottom: 10px; opacity: 0.7; }
@@ -74,7 +78,8 @@
 .bronze { background: linear-gradient(160deg, #e3a875, #b06f3c); color: #3a2410; border-color: #edbf95; }
 
 .cPlayer { display: flex; align-items: center; gap: 11px; min-width: 0; color: inherit; text-decoration: none; }
-.cPlayer:hover .name { color: var(--gold-bright); }
+/* 게스트에게는 같은 칸이 <span>(프로필 이동 불가)이라 hover 강조를 주지 않는다. */
+a.cPlayer:hover .name { color: var(--gold-bright); }
 .avatar {
   width: 34px; height: 34px;
   border-radius: 50%;

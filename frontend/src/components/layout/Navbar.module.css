@@ -213,6 +213,15 @@
 }
 .logoutBtn:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
 
+/* 방 안에서만 뜨는 '방 나가기' — 문 아이콘 하나라 눈에 안 띈다는 피드백이 있어 주황(warn)으로 세운다.
+   옆의 로그아웃(빨강 호버)과 색으로 구분되어 잘못 누르는 것도 줄인다. */
+.leaveRoomBtn {
+  border-color: var(--warn-border);
+  color: var(--warn);
+  background: var(--warn-soft);
+}
+.leaveRoomBtn:hover { border-color: var(--warn); color: var(--text-on-gold); background: var(--warn); }
+
 .guestTag {
   display: inline-flex;
   align-items: center;

@@ -274,8 +274,10 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     @Override
     @Transactional
     public RoomResponse startAiPractice(Long userId) {
+        // 게스트도 허용한다 — 게스트는 이미 사람과의 피지컬 캐주얼 대국이 가능하므로 '봇과의 연습'만 막을 이유가 없고,
+        // 상대를 기다리지 않고 피지컬(이 서비스의 차별점)을 체험시키는 게 가입 전환에 유리하다.
+        // 레이팅·전적은 Game.isRated 가 봇·게스트를 모두 제외하므로 어뷰징 위험도 없다.
         User user = findUserById(userId);
-        if (user.isGuest()) throw new OmokException(ErrorCode.GUEST_FORBIDDEN); // 피지컬 AI 연습은 회원 전용
         ensureCanHostNewRoom(userId);
         User bot = loadUserPort.findByEmail(AI_BOT_EMAIL)
                 .orElseThrow(() -> new OmokException(ErrorCode.USER_NOT_FOUND));

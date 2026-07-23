@@ -48,6 +48,7 @@
   --danger-border: rgba(223, 91, 84, 0.4);
   --warn: #f0964a;
   --warn-soft: rgba(240, 150, 74, 0.12);
+  --warn-border: rgba(240, 150, 74, 0.42);
   --info: #6db3b0;             /* 차분한 청자색 (나/관전 등) */
   --info-soft: rgba(109, 179, 176, 0.14);
   --info-border: rgba(109, 179, 176, 0.4);

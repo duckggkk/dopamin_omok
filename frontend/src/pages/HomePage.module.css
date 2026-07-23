@@ -200,7 +200,8 @@
   text-decoration: none;
   transition: transform var(--t) var(--ease), border-color var(--t) var(--ease);
 }
-.statLink { cursor: pointer; }
+/* 프로필 카드는 <button>(게스트에겐 이동 대신 안내를 띄운다) — 폰트·정렬만 링크와 같게 맞춘다. */
+.statLink { cursor: pointer; font: inherit; text-align: left; }
 .statLink:hover { transform: translateY(-2px); border-color: var(--gold-soft-border); }
 .statIcon { font-size: 1.4rem; }
 .statValue { font-size: 1.7rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.1; }
