@@ -79,8 +79,10 @@ const HomePage = () => {
     try {
       const res = await gameApi.createRoom(options);
       if (res.data.data) navigate(`/game/${res.data.data.roomCode}`);
-    } catch {
-      showToast('방 생성에 실패했습니다.', 'error');
+    } catch (err) {
+      // 서버 메시지를 그대로 보여준다 — '이미 열어둔 방이 있습니다' 처럼
+      // 사용자가 다음에 뭘 해야 할지 알려주는 안내가 있기 때문.
+      showToast(getApiErrorMessage(err, '방 생성에 실패했습니다.'), 'error');
     } finally {
       setBusy(false);
     }

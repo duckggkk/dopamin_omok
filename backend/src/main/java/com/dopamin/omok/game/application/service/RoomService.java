@@ -31,6 +31,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,12 +46,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @Transactional(readOnly = true)
 public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, SpectateRoomUseCase,
         LeaveRoomUseCase, RequestRematchUseCase, GetRoomUseCase, ReadyGameUseCase, StartGameUseCase,
-        ChangeStoneSkinUseCase, SwapColorsUseCase, StartAiPracticeUseCase, StartPhysicalSandboxUseCase {
+        ChangeStoneSkinUseCase, SwapColorsUseCase, StartAiPracticeUseCase, StartPhysicalSandboxUseCase,
+        CleanupStaleRoomsUseCase {
 
     /** 피지컬 AI 연습 상대 봇 계정 식별용 이메일(V33 마이그레이션으로 시드). */
     private static final String AI_BOT_EMAIL = "ai-practice-bot@dopamin.local";
 
     private final com.dopamin.omok.global.websocket.DisconnectGraceManager disconnectGraceManager;
+    private final com.dopamin.omok.global.websocket.WebSocketSessionRegistry sessionRegistry;
     private final LoadRoomPort loadRoomPort;
     private final SaveRoomPort saveRoomPort;
     private final LoadGamePlayerPort loadGamePlayerPort;
@@ -73,6 +76,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     public RoomResponse createRoom(Long userId, GameType gameType, OmokRule omokRule,
                                    TimeLimit timeLimit, ByoyomiOption byoyomiOption, boolean ranked) {
         User user = findUserById(userId);
+        ensureCanHostNewRoom(userId);
         // 게스트(비회원)는 랭크전을 열 수 없다 — 항상 캐주얼로 강제한다(레이팅 어뷰징 방지).
         boolean effectiveRanked = ranked && !user.isGuest();
         String roomCode = generateUniqueRoomCode();
@@ -272,6 +276,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     public RoomResponse startAiPractice(Long userId) {
         User user = findUserById(userId);
         if (user.isGuest()) throw new OmokException(ErrorCode.GUEST_FORBIDDEN); // 피지컬 AI 연습은 회원 전용
+        ensureCanHostNewRoom(userId);
         User bot = loadUserPort.findByEmail(AI_BOT_EMAIL)
                 .orElseThrow(() -> new OmokException(ErrorCode.USER_NOT_FOUND));
 
@@ -296,6 +301,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
     @Transactional
     public RoomResponse startPhysicalSandbox(Long userId) {
         User user = findUserById(userId);
+        ensureCanHostNewRoom(userId);
 
         // 상대 없이 나 혼자 들어가는 피지컬 방(캐주얼=레이팅 미반영). 방장(흑) 한 명만 참가한다.
         String roomCode = generateUniqueRoomCode();
@@ -504,6 +510,78 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
         RoomResponse response = buildRoomResponse(room, newGame);
         roomEventPublisherPort.publishStatus(room.getRoomCode(), response);
         return response;
+    }
+
+    /**
+     * 계정당 활성 방 1개 제약 — 방을 새로 만들기 전에 호출한다.
+     * <p>
+     * 이미 방장으로 열어둔 방이 있으면 거부하되, 그 방이 "대기 중이고 나 혼자뿐"이라면
+     * 방치된 방으로 보고 조용히 닫은 뒤 진행한다. 이 자동 회수가 없으면
+     * 브라우저를 강제 종료하는 등으로 남은 유령 방 때문에 정상 사용자가 새 방을
+     * 영영 못 만드는 상황이 생긴다(정리 스케줄러가 돌 때까지 최대 수십 분).
+     * <p>
+     * 반대로 남이 들어와 있거나 대국 중인 방은 절대 닫지 않는다 —
+     * 상대가 기다리던 방이나 진행 중인 대국을 실수로 날리는 것이 훨씬 큰 피해다.
+     */
+    private void ensureCanHostNewRoom(Long userId) {
+        loadRoomPort.findActiveHostedRoom(userId).ifPresent(existing -> {
+            // 봇(AI 연습 상대)은 사람이 아니므로 "나 혼자"인지 셀 때 제외한다.
+            long humanMembers = loadGamePlayerPort.findByRoomId(existing.getId()).stream()
+                    .filter(gp -> !gp.getUser().isBot())
+                    .count();
+
+            if (!existing.isWaiting() || humanMembers > 1) {
+                throw new OmokException(ErrorCode.ROOM_ALREADY_HOSTING);
+            }
+
+            log.info("방치된 방 자동 회수: room={} host={}", existing.getRoomCode(), userId);
+            discardEmptyRoom(existing, "새 방을 만들어 이전 방이 닫혔습니다.");
+        });
+    }
+
+    @Override
+    @Transactional
+    public int cleanupStaleRooms(int staleMinutes) {
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(staleMinutes);
+        int closed = 0;
+
+        for (Room room : loadRoomPort.findStaleWaitingRooms(cutoff)) {
+            // 아직 누군가 접속해 있는 방은 건너뛴다.
+            // (리매치를 기다리며 오래 머무는 정상 방을 닫아버리지 않기 위한 안전장치)
+            if (sessionRegistry.hasActiveSession(room.getRoomCode())) continue;
+
+            discardEmptyRoom(room, "오랫동안 사용되지 않아 방이 닫혔습니다.");
+            closed++;
+        }
+        return closed;
+    }
+
+    /**
+     * 아무도 없는(또는 방장 혼자인) 대기방을 닫는다.
+     * <p>
+     * {@link #closeRoomByHost} 와 달리 승패·레이팅을 건드리지 않는다 — 대기 중인 방에는
+     * 정산할 대국이 없기 때문이다. 다만 데이터 정합성을 위해, 어떤 이유로든 남아 있는
+     * 진행 중 게임은 무효(abandon) 처리한다.
+     */
+    private void discardEmptyRoom(Room room, String noticeMessage) {
+        String roomCode = room.getRoomCode();
+
+        room.close();
+        saveRoomPort.save(room);
+
+        loadGamePort.findActiveGameByRoomCode(roomCode).ifPresent(game -> {
+            game.abandon();
+            saveGamePort.save(game);
+        });
+
+        deleteGamePlayerPort.deleteByRoomId(room.getId());
+        rematchRequests.remove(roomCode);
+
+        // 피지컬 방이었다면 메모리 세션도 정리한다(클래식이면 null 이라 무해).
+        // 대기 중이라 저장할 리플레이는 없으므로 반환값은 버린다.
+        physicalGameLifecycle.stopSession(roomCode);
+
+        roomEventPublisherPort.publishClosed(roomCode, noticeMessage);
     }
 
     private void closeRoomByHost(Room room, String roomCode) {

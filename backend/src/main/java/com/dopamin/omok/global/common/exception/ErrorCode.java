@@ -46,6 +46,7 @@ public enum ErrorCode {
     STONE_SKIN_CHANGE_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "대기 중에만 바둑알 스킨을 바꿀 수 있습니다."),
     COLOR_SWAP_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "대기 중에만 흑/백을 바꿀 수 있습니다."),
     ROOM_RANKED_MEMBERS_ONLY(HttpStatus.FORBIDDEN, "랭크 대국은 회원만 참가할 수 있습니다. 회원가입 후 이용해주세요."),
+    ROOM_ALREADY_HOSTING(HttpStatus.CONFLICT, "이미 열어둔 방이 있습니다. 기존 방에서 나온 뒤 새 방을 만들어주세요."),
     GUEST_FORBIDDEN(HttpStatus.FORBIDDEN, "게스트는 이용할 수 없는 기능입니다. 회원가입 후 이용해주세요."),
 
     // Game

@@ -10,11 +10,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 public class RoomPersistenceAdapter implements LoadRoomPort, SaveRoomPort {
+
+    /** '살아 있는 방'의 정의 — 아직 닫히지 않은 상태. */
+    private static final List<RoomStatus> ACTIVE_STATUSES =
+            List.of(RoomStatus.WAITING, RoomStatus.IN_PROGRESS);
 
     private final RoomJpaRepository roomJpaRepository;
 
@@ -26,6 +32,16 @@ public class RoomPersistenceAdapter implements LoadRoomPort, SaveRoomPort {
     @Override
     public boolean existsByRoomCode(String roomCode) {
         return roomJpaRepository.existsByRoomCode(roomCode);
+    }
+
+    @Override
+    public Optional<Room> findActiveHostedRoom(Long hostId) {
+        return roomJpaRepository.findFirstByHostIdAndStatusInOrderByIdDesc(hostId, ACTIVE_STATUSES);
+    }
+
+    @Override
+    public List<Room> findStaleWaitingRooms(LocalDateTime createdBefore) {
+        return roomJpaRepository.findByStatusAndCreatedAtBefore(RoomStatus.WAITING, createdBefore);
     }
 
     @Override
