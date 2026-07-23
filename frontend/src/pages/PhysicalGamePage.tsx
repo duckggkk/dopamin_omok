@@ -38,6 +38,11 @@ import styles from './PhysicalGamePage.module.css';
 const CANVAS_PX = 600;
 const PHYSICAL_BGM_SRC = '/audio/physical-omok-bgm.mp3';
 
+// 캐릭터 보간 계수 — 렌더 위치가 매 프레임 서버 목표 위치로 접근하는 비율(클수록 즉각적).
+// 조이스틱→방향버튼 전환과 함께, 캐릭터가 입력에 한 박자 늦게 따라오던 '밀림'을 줄이려고
+// 0.28→0.4 로 올려 서버 위치를 더 바짝 추적한다(연속 이동 시 트레일 간격이 줄어든다).
+const MOVE_LERP = 0.4;
+
 // 아이템 사용 시 효과음(고유)
 const USE_SFX: Record<PhysicalItemType, SfxName> = {
   SPEED_BOOST: 'use_speed',
@@ -561,8 +566,8 @@ const PhysicalGamePage = () => {
     for (const p of snap.players) {
       const tx = at(p.x), ty = at(p.y);
       const rp = renderPosRef.current[p.color] ?? { x: tx, y: ty };
-      rp.x += (tx - rp.x) * 0.28;
-      rp.y += (ty - rp.y) * 0.28;
+      rp.x += (tx - rp.x) * MOVE_LERP;
+      rp.y += (ty - rp.y) * MOVE_LERP;
       renderPosRef.current[p.color] = rp;
       drawCharacter(ctx, rp.x, rp.y, gap, p, p.color === mine);
     }

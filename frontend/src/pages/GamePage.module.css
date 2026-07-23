@@ -307,6 +307,20 @@
 }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
+/* 두 플레이어 카드를 바둑판 위에 나란히(좌: 흑 / 우: 백) 배치 — 피지컬 오목 HUD와 동일 */
+.playersRow {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 656px; /* 바둑판 프레임 폭(NATURAL_WIDTH)과 맞춰 좌우 정렬 */
+  align-items: stretch;
+}
+.playersRow .playerCard {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+}
+
 .boardWrapper {
   display: flex;
   flex-direction: column;

@@ -1,9 +1,12 @@
 package com.dopamin.omok.game.adapter.out.persistence;
 
 import com.dopamin.omok.game.domain.GameType;
+import com.dopamin.omok.game.domain.QGamePlayer;
 import com.dopamin.omok.game.domain.QRoom;
 import com.dopamin.omok.game.domain.Room;
+import com.dopamin.omok.user.domain.UserRole;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +30,13 @@ public class RoomRepositoryCustomImpl implements RoomRepositoryCustom {
 
         BooleanBuilder where = new BooleanBuilder();
         where.and(room.status.eq(condition.status()));
+        // AI 연습 방(봇이 참가한 방)은 로비 목록(대기/관전/추천)에 노출하지 않는다.
+        // 연습을 시작한 본인은 생성 응답의 방 코드로 바로 입장하므로 목록에 뜰 필요가 없다.
+        QGamePlayer gp = QGamePlayer.gamePlayer;
+        where.and(JPAExpressions.selectOne()
+                .from(gp)
+                .where(gp.room.eq(room), gp.user.role.eq(UserRole.BOT))
+                .notExists());
         if (condition.gameType() != null) {
             where.and(room.gameType.eq(condition.gameType()));
         }

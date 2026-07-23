@@ -65,8 +65,8 @@ app:
     win-settle-ms: 2000       # 5목이 2초 유지돼야 승리 확정 — 그 사이 끊으면 무효(러시 방지 + 역전 여지)
     countdown-ms: 3000        # 시작 시 보드/캐릭터 세팅 후 3·2·1 카운트다운(이 동안 입력·이동 차단)
     tick-interval-ms: 60      # 서버 틱(이동/스폰/스냅샷) 주기 ≈ 16Hz
-    item-spawn-interval-ms: 7000
-    max-items-on-field: 3
+    item-spawn-interval-ms: 3000 # 아이템 스폰
+    max-items-on-field: 5
     speed-boost-duration-ms: 5000
     speed-boost-move-cooldown-ms: 80  # 부스트 중 이동 간격(기본의 절반)
     item-weights:             # 출현 가중치(흔할수록 큼) — 약한 부스트 흔하게, 역전 폭탄 드물게

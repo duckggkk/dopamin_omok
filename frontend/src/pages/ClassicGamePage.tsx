@@ -324,15 +324,27 @@ const ClassicGamePage = () => {
       )}
 
       <div className={styles.gameArea}>
-        <PlayerCard
-          color="BLACK"
-          player={blackPlayer}
-          myUserId={user?.id}
-          roomStatus={room.status}
-          currentGame={currentGame}
-          onShowProfile={setProfileUserId}
-          onChangeSkin={() => setSkinPickerOpen(true)}
-        />
+        {/* 두 플레이어 카드를 모두 바둑판 위에 나란히 배치(피지컬 오목 HUD와 동일한 형태) */}
+        <div className={styles.playersRow}>
+          <PlayerCard
+            color="BLACK"
+            player={blackPlayer}
+            myUserId={user?.id}
+            roomStatus={room.status}
+            currentGame={currentGame}
+            onShowProfile={setProfileUserId}
+            onChangeSkin={() => setSkinPickerOpen(true)}
+          />
+          <PlayerCard
+            color="WHITE"
+            player={whitePlayer}
+            myUserId={user?.id}
+            roomStatus={room.status}
+            currentGame={currentGame}
+            onShowProfile={setProfileUserId}
+            onChangeSkin={() => setSkinPickerOpen(true)}
+          />
+        </div>
 
         <div className={styles.boardWrapper}>
           <p className={styles.status}>{statusMessage}</p>
@@ -352,16 +364,6 @@ const ClassicGamePage = () => {
             whiteStoneEffect={whitePlayer?.stoneEffect ?? null}
           />
         </div>
-
-        <PlayerCard
-          color="WHITE"
-          player={whitePlayer}
-          myUserId={user?.id}
-          roomStatus={room.status}
-          currentGame={currentGame}
-          onShowProfile={setProfileUserId}
-          onChangeSkin={() => setSkinPickerOpen(true)}
-        />
       </div>
 
       <div className={styles.sidebar}>
