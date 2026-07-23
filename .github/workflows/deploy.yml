@@ -56,9 +56,15 @@ jobs:
     env:
       OWNER_REPO: ${{ github.repository }}   # GHCR 경로는 소문자여야 함(저장소명이 소문자라 가정)
     steps:
+      # ${{ }} 를 run: 안에 직접 넣으면 그 값이 셸 명령의 일부로 "붙여넣기" 된다.
+      # head_sha 는 GitHub 이 만드는 40자리 16진수라 지금은 안전하지만,
+      # 브랜치명처럼 사람이 정하는 값에 같은 패턴을 쓰면 셸 인젝션이 된다.
+      # 습관을 굳히지 않도록 env 로 받아서 셸 변수로만 다룬다.
       - name: Resolve deploy SHA
         id: resolve
-        run: echo "sha=${{ github.event.workflow_run.head_sha || github.sha }}" >> "$GITHUB_OUTPUT"
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: echo "sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
 
       # ⚠️ 서드파티 Action 은 태그(v4)가 아니라 커밋 SHA 로 고정한다.
       #   태그는 작성자가 언제든 다른 커밋으로 옮길 수 있어(supply chain),
@@ -148,7 +154,10 @@ jobs:
             # 나중에 서버에서 deploy.sh 를 수동 실행하거나 compose 를 직접 띄워도
             # 같은 버전이 그대로 재현된다(수동 실행만 :latest 로 튀는 사고 방지).
             # 롤백도 이 두 줄의 SHA 만 바꿔서 deploy.sh 를 돌리면 된다.
-            cp .env.prod .env.prod.bak
+            # -p 로 원본의 권한·소유자를 그대로 유지한다.
+            # .env.prod 는 DB 비밀번호·JWT 시크릿이 들어 있는 파일이라
+            # 백업본이 더 느슨한 권한으로 생기면 안 된다.
+            cp -p .env.prod .env.prod.bak
             if grep -q '^IMAGE_BACKEND=' .env.prod; then
               sed -i "s|^IMAGE_BACKEND=.*|IMAGE_BACKEND=${BACKEND_IMAGE}|" .env.prod
             else
