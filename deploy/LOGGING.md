@@ -87,6 +87,30 @@ docker logs omok_backend 2>&1 | grep 'a1b2c3d4'
 {service="backend"} |= "-> 5"
 ```
 
+### 접근 로그(웹 요청) — nginx / Caddy
+
+Promtail 은 **모든 컨테이너**의 stdout 을 수집하므로 백엔드뿐 아니라 웹 서버 로그도 이미 Loki 에 있다.
+드롭다운/쿼리의 `service` 만 바꾸면 된다.
+
+```logql
+# 프론트(nginx) 접근·에러 로그 — SPA·/api·/ws 프록시 요청
+{service="frontend"}
+
+# Caddy(외부 진입점) 접근 로그 — 가장 바깥에서 본 모든 요청(JSON)
+{service="caddy"}
+
+# Caddy 접근 로그에서 5xx 만 (JSON 필드 파싱)
+{service="caddy"} | json | status >= 500
+
+# 느린 요청 Top (응답 1초 초과)
+{service="caddy"} | json | duration > 1
+```
+
+> Caddy 로그는 JSON 이라 `| json` 으로 `status`·`duration`·`uri`·`remote_ip` 등을
+> 필드로 뽑아 필터·집계할 수 있다. 민감정보는 자동으로 가려진다 — `Authorization` 헤더·쿠키는
+> Caddy 기본값으로, OAuth 콜백의 `code`·`state` 쿼리 파라미터는 `Caddyfile` 의 log 필터로
+> `REDACTED` 처리된다(이메일 인증코드·액세스토큰은 각각 POST 본문·URL 프래그먼트라 URL 에 안 남음).
+
 - 오른쪽 위 **시간 범위**로 기간을 좁힌다(예: Last 1 hour, 또는 사건 발생 시각 전후).
 - `|=` 포함 / `!=` 제외 / `|~` 정규식 / `!~` 정규식 제외.
 

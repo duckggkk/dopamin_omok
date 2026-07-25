@@ -13,6 +13,37 @@
 {$DOMAIN} {
 	encode gzip zstd
 
+	# ── 접근 로그(Access Log) ────────────────────────────────────────────────
+	# 외부 진입점(Caddy)이 받은 모든 요청을 기록한다. 여기가 진짜 '웹 접근 로그'다.
+	#   - nginx(frontend) 컨테이너 로그는 Promtail 이 이미 수집하지만, nginx 는 Caddy 뒤라
+	#     TLS/HTTP3 협상·/grafana 직접 프록시·점검 503·메트릭 404 처럼 nginx 를 거치지 않는
+	#     요청은 못 본다. '가장 바깥'에서 본 상태코드·응답시간을 남기는 게 이 로그다.
+	#   - output stdout: 도커 stdout 으로 내보내면 Promtail 이 자동 수집 → Loki 에서
+	#     service="caddy" 로 조회된다(Promtail 설정은 손댈 필요 없음 — 모든 컨테이너 자동 수집).
+	#   - format: status·duration·uri·remote_ip 가 필드로 남아 Grafana 에서
+	#     `| json` 으로 파싱·집계하기 좋다. 인증 헤더(Authorization)·쿠키는 Caddy 가
+	#     기본적으로 가려서(redact) 찍으므로 토큰이 로그로 새지 않는다.
+	#
+	# 쿼리스트링 민감값 가리기(아래 filter):
+	#   - 구글 OAuth 콜백(/api/auth/oauth2/google/callback?code=...&state=...)의
+	#     code(인가코드)·state(CSRF 난수)가 URL 에 실려 서버로 온다. 인가코드는 일회용·수초
+	#     만료지만, 14일 보관되는 로그에 굳이 남길 이유가 없어 값만 REDACTED 로 치환한다.
+	#     (경로·상태코드·응답시간은 그대로 남아 장애 조사엔 지장 없음)
+	#   - 그 외 민감정보는 애초에 URL 에 없다: 이메일 인증코드는 POST 본문으로,
+	#     로그인 액세스토큰은 URL 프래그먼트(#)로 오가서 접근 로그(URL)에 안 남는다.
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request>uri query {
+					replace code REDACTED
+					replace state REDACTED
+				}
+			}
+		}
+	}
+
 	# ── HSTS ────────────────────────────────────────────────────────────
 	# 브라우저가 이 도메인을 앞으로 1년간 https 로만 접속하게 강제한다.
 	# 사용자가 주소창에 http:// 를 직접 입력하거나 오래된 http 링크를 눌러도
