@@ -58,6 +58,15 @@ bash deploy/scripts/backup.sh
 log "4/6  컨테이너 재기동 (Flyway 마이그레이션 자동 실행)"
 $COMPOSE up -d --remove-orphans
 
+# Caddyfile 은 bind-mount 설정 파일이라, 위 up -d 만으로는 실행 중인 Caddy 에 반영되지 않는다.
+# (Caddy 서비스 정의가 그대로면 compose 가 컨테이너를 재생성하지 않고,
+#  Caddy 는 --watch 없이 떠 있어 시작할 때 읽은 설정을 그대로 계속 쓴다)
+# 그래서 Caddyfile 변경(접근 로그 등)을 확실히 적용하려면 caddy 만 강제 재생성한다.
+#   - --no-deps: caddy 만 다시 만들고 backend/db/redis 는 건드리지 않는다(불필요한 DB 재시작 방지).
+#   - 지금은 점검 모드(1단계에서 ON)라 재생성 중 수 초 블립이 사용자에게 노출되지 않는다.
+#   - TLS 인증서는 caddy_data 볼륨에 남아 재발급되지 않는다.
+$COMPOSE up -d --no-deps --force-recreate caddy
+
 log "5/6  백엔드 헬스체크 대기 (최대 120초)"
 healthy=0
 for _ in $(seq 1 40); do
