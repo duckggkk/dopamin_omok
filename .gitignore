@@ -62,3 +62,6 @@ study/
 
 # Local test run records
 local-test-results/
+
+# ai에이전트
+CLAUDE.md

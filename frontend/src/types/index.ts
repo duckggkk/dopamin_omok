@@ -209,7 +209,7 @@ export interface GameMove {
 
 export interface ChatMessage {
   senderNickname: string;
-  senderColor: StoneColor | null;
+  senderColor?: StoneColor | null;
   spectator: boolean;
   content: string;
   sentAt: string;

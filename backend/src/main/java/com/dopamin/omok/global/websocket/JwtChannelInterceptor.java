@@ -59,7 +59,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        // “STOMP 명령어로 판단할 수 없는 프레임이므로 통과시킨다 (다음 인터셉터에서 판단)
+        // “STOMP 명령어로 판단할 수 없는 프레임이므로 통과시킨다 (다음 스프링 채널 처리 흐름에서 판단)
         // 예외를 안 던지는 이유는 STOMP heartbeat나 프레임워크 내부 메시지처럼 인증 대상이 아닌 메시지까지 막아서
         if (accessor == null || accessor.getCommand() == null) {
             return message;
@@ -126,12 +126,14 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
         Long userId = requireUserId(accessor);
 
+        //방
         Matcher roomTopic = ROOM_TOPIC_PATTERN.matcher(destination);
         if (roomTopic.matches()) {
             requireRoomMember(roomTopic.group(1), userId);
             return;
         }
 
+        //광장
         Matcher plazaTopic = PLAZA_TOPIC_PATTERN.matcher(destination);
         if (plazaTopic.matches()) {
             // 채널 ID 형식이 서버 발급 규칙과 다르면 거부한다.
