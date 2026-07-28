@@ -264,8 +264,7 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
                 : game.getBlackPlayer();
         winner.recordWin();
         loser.recordLoss();
-        // GameService(착수/기권/시간초과)는 일반 오목 전용 경로 → 일반 레이팅만 갱신.
-        EloRating.applyResult(winner, loser, false);
+        EloRating.applyResult(winner, loser, game.getGameType());
     }
 
     private void recordDraw(Game game) {
@@ -274,7 +273,7 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         User white = game.getWhitePlayer();
         black.recordDraw();
         white.recordDraw();
-        EloRating.applyDraw(black, white, false);
+        EloRating.applyDraw(black, white, game.getGameType());
     }
 
     private User findUserById(Long userId) {

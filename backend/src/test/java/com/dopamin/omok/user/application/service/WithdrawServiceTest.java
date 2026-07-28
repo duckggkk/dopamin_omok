@@ -2,6 +2,7 @@ package com.dopamin.omok.user.application.service;
 
 import com.dopamin.omok.auth.application.port.out.DeleteRefreshTokenPort;
 import com.dopamin.omok.game.application.port.out.LoadGamePlayerPort;
+import com.dopamin.omok.game.domain.GameType;
 import com.dopamin.omok.global.common.exception.ErrorCode;
 import com.dopamin.omok.global.common.exception.OmokException;
 import com.dopamin.omok.user.application.port.out.LoadUserPort;
@@ -90,7 +91,7 @@ class WithdrawServiceTest {
     void withdrawKeepsGameRecords() {
         User user = localUser();
         user.recordWin();
-        user.adjustRating(false, 30);
+        user.adjustRating(GameType.CLASSIC, 30);
         when(loadUserPort.findById(USER_ID)).thenReturn(Optional.of(user));
         when(loadGamePlayerPort.existsInActiveRoom(USER_ID)).thenReturn(false);
         when(passwordEncoder.matches(any(), any())).thenReturn(true);

@@ -97,6 +97,16 @@ public class Game {
         return room.getRoomCode();
     }
 
+    /**
+     * 이 대국의 종류. 레이팅을 어느 점수판에 반영할지가 여기서만 결정되도록 방에 위임한다.
+     *
+     * <p>호출부가 상수를 직접 넘기면(예: {@code applyResult(..., false)}) 실제 방 종류와
+     * 어긋나도 예외 없이 잘못된 레이팅이 깎이므로, 항상 이 값을 거치게 한다.</p>
+     */
+    public GameType getGameType() {
+        return room.getGameType();
+    }
+
     public void switchTurn() {
         this.currentTurn = (this.currentTurn == StoneColor.BLACK)
                 ? StoneColor.WHITE

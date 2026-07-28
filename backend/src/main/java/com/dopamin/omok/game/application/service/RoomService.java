@@ -398,7 +398,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             winner.recordWin();
             if (loser != null) {
                 loser.recordLoss();
-                EloRating.applyResult(winner, loser, true); // 피지컬 종료 이벤트 → 피지컬 레이팅
+                EloRating.applyResult(winner, loser, game.getGameType());
             }
         }
         saveGamePort.save(game);
@@ -602,7 +602,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
                 if (game.isRated()) {
                     winner.recordWin();
                     loser.recordLoss();
-                    EloRating.applyResult(winner, loser, room.getGameType() == GameType.PHYSICAL);
+                    EloRating.applyResult(winner, loser, game.getGameType());
                 }
             } else {
                 game.abandon();
@@ -630,7 +630,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             if (game.isRated()) {
                 winner.recordWin();
                 loser.recordLoss();
-                EloRating.applyResult(winner, loser, room.getGameType() == GameType.PHYSICAL);
+                EloRating.applyResult(winner, loser, game.getGameType());
             }
             saveGamePort.save(game);
 

@@ -1,5 +1,6 @@
 package com.dopamin.omok.user.domain;
 
+import com.dopamin.omok.game.domain.GameType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -269,20 +270,29 @@ public class User {
         return this.physicalRating == null ? EloRating.DEFAULT_RATING : this.physicalRating;
     }
 
-    /** 모드(physical 여부)에 해당하는 레이팅을 반환한다. */
-    public int getRating(boolean physical) {
-        return physical ? getPhysicalRating() : getClassicRating();
+    /**
+     * 게임 종류에 해당하는 레이팅을 반환한다.
+     *
+     * <p>default 절을 두지 않은 switch <b>식</b>이라, GameType 에 상수가 추가되면
+     * 여기서 컴파일 에러가 난다. 새 종류가 어느 점수판을 쓸지 결정하지 않은 채로
+     * 조용히 일반 레이팅이 깎이는 일을 막기 위한 의도적 장치다.</p>
+     */
+    public int getRating(GameType type) {
+        return switch (type) {
+            case CLASSIC -> getClassicRating();
+            case PHYSICAL -> getPhysicalRating();
+        };
     }
 
     /**
-     * ELO 계산 결과(delta)를 해당 모드 레이팅에 더한다.
+     * ELO 계산 결과(delta)를 해당 종류의 레이팅에 더한다.
      * 하한(EloRating.MIN_RATING) 미만으로는 내려가지 않는다.
      */
-    public void adjustRating(boolean physical, int delta) {
-        if (physical) {
-            this.physicalRating = Math.max(EloRating.MIN_RATING, getPhysicalRating() + delta);
-        } else {
-            this.classicRating = Math.max(EloRating.MIN_RATING, getClassicRating() + delta);
+    public void adjustRating(GameType type, int delta) {
+        int updated = Math.max(EloRating.MIN_RATING, getRating(type) + delta);
+        switch (type) {
+            case CLASSIC -> this.classicRating = updated;
+            case PHYSICAL -> this.physicalRating = updated;
         }
     }
 
