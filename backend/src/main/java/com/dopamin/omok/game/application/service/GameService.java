@@ -54,6 +54,8 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
         Room room = loadRoomPort.findByRoomCode(roomCode)
                 .orElseThrow(() -> new OmokException(ErrorCode.ROOM_NOT_FOUND));
 
+        requireClassicGame(game);
+
         if (!game.isParticipant(userId)) {
             throw new OmokException(ErrorCode.NOT_GAME_PARTICIPANT);
         }
@@ -120,6 +122,8 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
     public GameResponse surrender(String roomCode, Long userId) {
         // 착수와 동시에 들어오면 승패가 두 번 기록될 수 있으므로 같은 락을 쓴다.
         Game game = findActiveGameForUpdate(roomCode);
+
+        requireClassicGame(game);
 
         if (!game.isParticipant(userId)) {
             throw new OmokException(ErrorCode.NOT_GAME_PARTICIPANT);
@@ -220,6 +224,20 @@ public class GameService implements PlaceStoneUseCase, SurrenderUseCase,
             updateWinLoss(game, winner);
             saveGamePort.save(game);
             throw new OmokException(ErrorCode.PLAYER_TIMEOUT);
+        }
+    }
+
+    /**
+     * GameService 의 상태 변경 경로(착수·기권·시간초과)는 클래식 전용이다.
+     * 피지컬은 PhysicalGameService 가 자기 세션에서 승패를 정하고 이벤트로 결과를 넘긴다.
+     *
+     * <p>STOMP 인터셉터는 /app/game/{code}/* 를 '방 멤버인가'로만 통과시키고 방 종류는 보지 않는다.
+     * 그래서 피지컬 방 코드로 이 경로를 부르면 두 시스템이 같은 대국을 각자 끝내려 든다.
+     * 서버가 직접 막는다.</p>
+     */
+    private void requireClassicGame(Game game) {
+        if (game.getGameType() != GameType.CLASSIC) {
+            throw new OmokException(ErrorCode.WRONG_GAME_TYPE_ENDPOINT);
         }
     }
 

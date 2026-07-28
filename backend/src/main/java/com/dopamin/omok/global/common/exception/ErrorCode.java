@@ -61,6 +61,7 @@ public enum ErrorCode {
     RENJU_FORBIDDEN_MOVE(HttpStatus.BAD_REQUEST, "렌주룰: 금수(3-3·4-4·장목) 자리입니다. 다른 곳에 두세요."),
     NOT_GAME_PARTICIPANT(HttpStatus.FORBIDDEN, "게임 참가자가 아닙니다."),
     PLAYER_TIMEOUT(HttpStatus.BAD_REQUEST, "시간 초과로 패배 처리되었습니다."),
+    WRONG_GAME_TYPE_ENDPOINT(HttpStatus.BAD_REQUEST, "이 게임 종류에서는 사용할 수 없는 요청입니다."),
 
     // Shop
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "아이템을 찾을 수 없습니다."),
