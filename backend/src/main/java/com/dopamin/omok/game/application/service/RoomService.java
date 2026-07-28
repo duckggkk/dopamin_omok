@@ -252,6 +252,9 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             saveGamePlayerPort.save(player);
         }
 
+        // 새 판 시작 — 지난 판에서 누적된 연결 끊김 유예 상태(타이머·횟수)를 초기화한다.
+        disconnectGraceManager.clearRoom(roomCode);
+
         room.startGame();
         saveRoomPort.save(room);
 
@@ -498,6 +501,9 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             saveGamePlayerPort.save(gp);
         });
 
+        // 새 판 시작 — 지난 판에서 누적된 연결 끊김 유예 상태(타이머·횟수)를 초기화한다.
+        disconnectGraceManager.clearRoom(room.getRoomCode());
+
         room.startGame();
         saveRoomPort.save(room);
 
@@ -578,6 +584,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
 
         deleteGamePlayerPort.deleteByRoomId(room.getId());
         rematchRequests.remove(roomCode);
+        disconnectGraceManager.clearRoom(roomCode);
 
         // 피지컬 방이었다면 메모리 세션도 정리한다(클래식이면 null 이라 무해).
         // 대기 중이라 저장할 리플레이는 없으므로 반환값은 버린다.
@@ -612,6 +619,7 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
 
         deleteGamePlayerPort.deleteByRoomId(room.getId());
         rematchRequests.remove(roomCode);
+        disconnectGraceManager.clearRoom(roomCode);
         // 피지컬 메모리 세션 정리(클래식이면 null) + 그때까지의 리플레이 저장
         PhysicalReplayData replay = physicalGameLifecycle.stopSession(roomCode);
         if (replay != null) savePhysicalReplayPort.save(replay);
