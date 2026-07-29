@@ -20,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -87,13 +89,21 @@ public class UserService implements GetUserUseCase, UpdateProfileUseCase, GetRan
             case PHYSICAL -> loadUserPort.findTopRankedByPhysicalRating(capped);
             case TOTAL -> loadUserPort.findTopRanked(capped);
         };
-        List<RankingResponse> ranking = new java.util.ArrayList<>(users.size());
+        // 모드별 전적은 한 명씩 조회하면 100명 × (승/패/무) = 최대 300 쿼리가 나간다.
+        // 명단이 확정된 뒤 한 번에 모아 온다(통합은 users 누적 컬럼이라 추가 쿼리 없음).
+        List<Long> userIds = users.stream().map(User::getId).toList();
+        Map<Long, ModeStats> statsByUser = switch (mode) {
+            case CLASSIC -> loadUserGameStatsPort.statsByModeForUsers(userIds, GameType.CLASSIC);
+            case PHYSICAL -> loadUserGameStatsPort.statsByModeForUsers(userIds, GameType.PHYSICAL);
+            case TOTAL -> Map.of();
+        };
+
+        List<RankingResponse> ranking = new ArrayList<>(users.size());
         for (int i = 0; i < users.size(); i++) {
             User u = users.get(i);
             ModeStats stats = switch (mode) {
-                case CLASSIC -> loadUserGameStatsPort.statsByMode(u.getId(), GameType.CLASSIC);
-                case PHYSICAL -> loadUserGameStatsPort.statsByMode(u.getId(), GameType.PHYSICAL);
-                // 통합은 users 테이블 누적 컬럼을 그대로 사용(추가 쿼리 없음)
+                // 전적이 한 판도 없으면 맵에 키가 없다 — 0전으로 표시한다.
+                case CLASSIC, PHYSICAL -> statsByUser.getOrDefault(u.getId(), ModeStats.of(0, 0, 0));
                 case TOTAL -> ModeStats.of(u.getWins(), u.getLosses(), u.getDraws());
             };
             ranking.add(RankingResponse.of(i + 1, u, stats));
