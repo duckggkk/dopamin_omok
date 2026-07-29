@@ -17,8 +17,7 @@
 
 ## 개발 기록
 구현 과정에서 마주친 문제와 판단 근거를 [dev-log/](dev-log/) 에 정리해 두었습니다.
-JWT 검증 구조 변경, Redis 도입에 따른 책임 분리, 쿼리 최적화, `latest` 태그로 인한
-배포 장애 분석 등을 다룹니다.
+JWT 검증 구조 변경, Redis 도입에 따른 책임 분리, 쿼리 최적화 등을 다룹니다.
 
 
 ## 화면
@@ -123,60 +122,6 @@ Prometheus ──> Actuator metrics ──> Grafana
 Container logs ──> Promtail ──> Loki ──> Grafana
 ```
 
-## 로컬 실행
-
-### 요구 사항
-
-- Docker Desktop
-- Docker Compose
-
-### 핵심 서비스 실행
-
-```bash
-docker compose -f docker-compose.dev.yml up --build db redis backend frontend
-```
-
-| 서비스 | 주소 |
-|---|---|
-| Frontend | http://localhost:3000 |
-| Backend | http://localhost:8080 |
-| Swagger UI | http://localhost:8080/api/swagger-ui/index.html |
-| MySQL | `localhost:3307` |
-| Redis | `localhost:6379` |
-
-관측 서비스까지 모두 실행하려면 서비스 이름을 생략합니다.
-
-```bash
-docker compose -f docker-compose.dev.yml up --build
-```
-
-| 관측 서비스 | 주소 |
-|---|---|
-| Grafana | http://localhost:3001 |
-| Prometheus | http://localhost:9090 |
-
-로컬 기본값은 개발 전용입니다. 공개 배포에서는 `.env`에 DB·JWT·OAuth·메일·관측 도구의
-운영용 비밀값을 설정해야 합니다.
-
-## 테스트와 빌드
-
-```bash
-# Backend
-cd backend
-./gradlew test
-
-# Frontend
-cd frontend
-npm ci
-npm run lint      # ESLint (flat config)
-npm run test      # Vitest — 규칙 엔진·AI·토큰 저장소·전적·터치 UI 훅
-npm run build     # TypeScript 검사 + 프로덕션 번들 생성
-```
-
-Windows PowerShell에서는 백엔드 테스트를 `./gradlew test` 대신 `.\gradlew.bat test`로 실행할 수 있습니다.
-일반 백엔드 테스트는 H2를 사용하며, 실제 MySQL 쿼리 성능 비교는 `mysqlBenchmarkTest` 작업으로
-별도 실행할 수 있습니다.
-
 ## API
 
 - REST API 기본 경로: `/api`
@@ -185,14 +130,6 @@ Windows PowerShell에서는 백엔드 테스트를 `./gradlew test` 대신 `.\gr
 - OpenAPI JSON: `/api/v3/api-docs`
 - 운영 환경에서는 Swagger UI와 OpenAPI 문서 노출을 비활성화합니다.
 
-## 배포와 관측
-
-- GitHub Actions에서 백엔드 테스트와 프론트엔드 타입 검사·빌드를 수행합니다.
-- `main` 브랜치 CI가 성공하면 컨테이너 이미지를 GHCR에 게시하고 운영 서버에 배포합니다.
-- Caddy가 HTTPS 인증서와 외부 진입점을 담당합니다.
-- Prometheus가 Actuator 메트릭을 수집하고 Grafana에서 시각화합니다.
-- Promtail이 컨테이너 로그를 Loki로 전달합니다.
-- 운영 구성에는 헬스 체크, 점검 페이지, 로그 용량 제한, DB 백업 스크립트가 포함됩니다.
 
 ## 현재 범위
 
