@@ -10,15 +10,11 @@ import com.dopamin.omok.game.application.port.in.ChangeStoneSkinUseCase;
 import com.dopamin.omok.game.application.port.in.GetRoomUseCase;
 import com.dopamin.omok.game.application.port.in.PlaceStoneUseCase;
 import com.dopamin.omok.game.application.port.in.ReadyGameUseCase;
+import com.dopamin.omok.game.application.port.in.SendChatMessageUseCase;
 import com.dopamin.omok.game.application.port.in.StartGameUseCase;
 import com.dopamin.omok.game.application.port.in.SurrenderUseCase;
 import com.dopamin.omok.game.application.port.in.SwapColorsUseCase;
-import com.dopamin.omok.game.application.port.out.LoadGamePlayerPort;
-import com.dopamin.omok.game.application.port.out.LoadRoomPort;
 import com.dopamin.omok.game.application.port.out.RoomEventPublisherPort;
-import com.dopamin.omok.game.domain.GamePlayer;
-import com.dopamin.omok.game.domain.Room;
-import com.dopamin.omok.game.domain.StoneColor;
 import com.dopamin.omok.global.common.exception.OmokException;
 import com.dopamin.omok.global.common.response.ApiResponse;
 import com.dopamin.omok.global.security.principal.AuthUser;
@@ -37,8 +33,6 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Controller;
 
-import java.time.LocalDateTime;
-
 @Slf4j
 @Controller
 @RequiredArgsConstructor
@@ -51,8 +45,7 @@ public class GameWebSocketController {
     private final StartGameUseCase startGameUseCase;
     private final ChangeStoneSkinUseCase changeStoneSkinUseCase;
     private final SwapColorsUseCase swapColorsUseCase;
-    private final LoadRoomPort loadRoomPort;
-    private final LoadGamePlayerPort loadGamePlayerPort;
+    private final SendChatMessageUseCase sendChatMessageUseCase;
     private final WebSocketSessionRegistry sessionRegistry;
     private final RoomEventPublisherPort roomEventPublisher;
 
@@ -174,19 +167,13 @@ public class GameWebSocketController {
             SimpMessageHeaderAccessor headerAccessor) {
         AuthUser user = extractUser(headerAccessor);
         if (user == null) return ApiResponse.error("인증이 필요합니다.");
-        Long userId = user.id();
-        String nickname = user.nickname();
-        registerSession(headerAccessor, roomCode, userId);
+        registerSession(headerAccessor, roomCode, user.id());
         try {
-            Room room = loadRoomPort.findByRoomCode(roomCode)
-                    .orElseThrow(() -> new OmokException(com.dopamin.omok.global.common.exception.ErrorCode.ROOM_NOT_FOUND));
-            GamePlayer gp = loadGamePlayerPort.findByRoomIdAndUserId(room.getId(), userId)
-                    .orElseThrow(() -> new OmokException(com.dopamin.omok.global.common.exception.ErrorCode.NOT_IN_ROOM));
-            StoneColor color = gp.isSpectator() ? null : gp.getColor();
-            boolean spectator = gp.isSpectator();
-            return ApiResponse.success(new ChatMessageResponse(nickname, color, spectator, request.content(), LocalDateTime.now()));
+            ChatMessageResponse response = sendChatMessageUseCase.sendChatMessage(
+                    roomCode, user.id(), user.nickname(), request.content());
+            return ApiResponse.success(response);
         } catch (Exception e) {
-            log.warn("Chat player lookup error for room {}: {}", roomCode, e.getMessage());
+            log.warn("WebSocket chat error for room {}: {}", roomCode, e.getMessage());
             return ApiResponse.error(clientMessage(e));
         }
     }
