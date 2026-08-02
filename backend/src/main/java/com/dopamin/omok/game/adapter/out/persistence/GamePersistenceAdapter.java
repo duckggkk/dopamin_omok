@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -29,6 +30,11 @@ public class GamePersistenceAdapter implements LoadGamePort, SaveGamePort {
     @Override
     public Optional<Game> findActiveGameByRoomCodeForUpdate(String roomCode) {
         return gameJpaRepository.findActiveGameByRoomCodeForUpdate(roomCode);
+    }
+
+    @Override
+    public List<Game> findActivePhysicalGamesForUpdate() {
+        return gameJpaRepository.findActivePhysicalGamesForUpdate();
     }
 
     @Override

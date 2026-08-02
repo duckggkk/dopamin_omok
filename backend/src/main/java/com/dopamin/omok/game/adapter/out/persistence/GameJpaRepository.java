@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface GameJpaRepository extends JpaRepository<Game, Long> {
@@ -30,6 +31,18 @@ public interface GameJpaRepository extends JpaRepository<Game, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT g FROM Game g WHERE g.room.roomCode = :roomCode AND g.status = com.dopamin.omok.game.domain.GameStatus.IN_PROGRESS")
     Optional<Game> findActiveGameByRoomCodeForUpdate(@Param("roomCode") String roomCode);
+
+    /**
+     * 서버가 새로 시작되면 메모리 피지컬 세션은 하나도 없으므로, DB에 남은 진행 중 피지컬 게임은
+     * 복구 불가능한 고아 상태다. 여러 프로세스가 동시에 기동되더라도 같은 행을 중복 정리하지 않도록
+     * 게임 행을 잠그며, 잠금 순서를 고정하기 위해 id 순으로 조회한다.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT g FROM Game g " +
+           "WHERE g.status = com.dopamin.omok.game.domain.GameStatus.IN_PROGRESS " +
+           "AND g.room.gameType = com.dopamin.omok.game.domain.GameType.PHYSICAL " +
+           "ORDER BY g.id")
+    List<Game> findActivePhysicalGamesForUpdate();
 
     @Query("SELECT g FROM Game g WHERE g.room.roomCode = :roomCode ORDER BY g.gameNumber DESC LIMIT 1")
     Optional<Game> findLatestGameByRoomCode(@Param("roomCode") String roomCode);

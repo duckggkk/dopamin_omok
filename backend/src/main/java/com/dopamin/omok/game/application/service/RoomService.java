@@ -47,7 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, SpectateRoomUseCase,
         LeaveRoomUseCase, RequestRematchUseCase, GetRoomUseCase, ReadyGameUseCase, StartGameUseCase,
         ChangeStoneSkinUseCase, SwapColorsUseCase, StartAiPracticeUseCase, StartPhysicalSandboxUseCase,
-        CleanupStaleRoomsUseCase {
+        CleanupStaleRoomsUseCase, CleanupOrphanedPhysicalGamesUseCase {
 
     /** 피지컬 AI 연습 상대 봇 계정 식별용 이메일(V33 마이그레이션으로 시드). */
     private static final String AI_BOT_EMAIL = "ai-practice-bot@dopamin.local";
@@ -562,6 +562,41 @@ public class RoomService implements CreateRoomUseCase, JoinRoomUseCase, Spectate
             closed++;
         }
         return closed;
+    }
+
+    /**
+     * 프로세스 기동 직후에는 피지컬 런타임 세션이 비어 있으므로 DB에 남은 IN_PROGRESS 피지컬 게임을
+     * 복구할 방법이 없다. 승패와 레이팅은 건드리지 않고 게임을 무효 처리한 뒤 방과 참가자 상태를
+     * 함께 정리한다. 조회부터 상태 변경까지 한 트랜잭션에서 행 잠금을 유지한다.
+     *
+     * <p>이 정책은 단일 백엔드 인스턴스를 전제로 한다. 다중 인스턴스 전환 시에는 공유 게임 소유권을
+     * 확인한 뒤 고아 여부를 판단하도록 교체해야 한다.</p>
+     */
+    @Override
+    @Transactional
+    public int cleanupOrphanedPhysicalGames() {
+        List<Game> orphanedGames = loadGamePort.findActivePhysicalGamesForUpdate();
+
+        for (Game game : orphanedGames) {
+            Room room = game.getRoom();
+            String roomCode = room.getRoomCode();
+
+            game.abandon();
+            room.close();
+            saveGamePort.save(game);
+            saveRoomPort.save(room);
+
+            // 닫힌 방의 멤버십이 남아 새 방 참가/생성을 방해하지 않도록 함께 제거한다.
+            deleteGamePlayerPort.deleteByRoomId(room.getId());
+            rematchRequests.remove(roomCode);
+            disconnectGraceManager.clearRoom(roomCode);
+
+            roomEventPublisherPort.publishClosed(
+                    roomCode, "서버 재시작으로 진행 중이던 피지컬 대국이 종료되었습니다.");
+            log.warn("고아 피지컬 대국 정리: room={} game={}", roomCode, game.getId());
+        }
+
+        return orphanedGames.size();
     }
 
     /**
