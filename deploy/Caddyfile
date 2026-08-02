@@ -86,7 +86,16 @@
 	}
 
 	# ── 평상시: 프론트(nginx)로 프록시 (SPA + /api + /ws WebSocket 자동 처리) ──
+	#
+	# X-Request-Id 를 여기, 가장 바깥(엣지)에서 채번한다. nginx 는 커스텀 헤더를
+	# 별도 설정 없이 그대로 통과시키고(Host/Connection 외엔 기본 통과), backend 의
+	# TraceIdFilter 가 이 값을 이어받아 로그 MDC 의 traceId 로 쓴다(직접 채번하지 않고
+	# 재사용) — 그래서 Caddy 접근 로그와 backend 로그가 같은 ID 로 엮인다.
+	# {http.request.uuid} 를 한 번이라도 참조하면 Caddy 가 이 요청의 접근 로그에도
+	# uuid 필드로 자동으로 남긴다(v2.8+, 별도 log_append 불필요).
 	handle {
-		reverse_proxy frontend:80
+		reverse_proxy frontend:80 {
+			header_up X-Request-Id {http.request.uuid}
+		}
 	}
 }

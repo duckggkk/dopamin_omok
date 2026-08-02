@@ -22,6 +22,10 @@ import java.util.UUID;
  *
  * <p>외부에서 {@code X-Request-Id} 를 보내오면 이어받되(분산 추적 호환), 신뢰할 수 없는
  * 입력이므로 길이·문자를 제한해 로그 오염/주입을 막는다.
+ * 운영에서는 이 헤더를 가장 바깥의 Caddy 가 채번한다({@code deploy/Caddyfile} 의
+ * {@code header_up X-Request-Id} 참고) — 그래서 Caddy 접근 로그와 여기 backend 로그가
+ * 같은 ID 로 엮인다. 여기서 새로 만드는 건 Caddy 를 거치지 않는 직접 호출(로컬 개발 등)에
+ * 대한 대비책이다.
  *
  * <p>가장 앞 순서로 동작시켜(보안 필터보다 먼저) 인증 실패 로그에도 traceId 가 찍히게 한다.
  */

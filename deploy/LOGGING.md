@@ -48,7 +48,7 @@ docker logs --since 2026-06-20T09:00:00 omok_backend
 docker logs omok_backend 2>&1 | grep ERROR
 
 # 특정 추적 ID(traceId)로 한 요청 전체 모아보기
-docker logs omok_backend 2>&1 | grep 'a1b2c3d4'
+docker logs omok_backend 2>&1 | grep '3fa85f64-5717-4562-b3fc-2c963f66afa6'
 ```
 
 컨테이너 이름: `omok_backend`, `omok_frontend`, `omok_db`, `omok_caddy`,
@@ -75,7 +75,7 @@ docker logs omok_backend 2>&1 | grep 'a1b2c3d4'
 {service="backend"} |= "ERROR"
 
 # 특정 traceId 로 한 요청 전체 추적 (요청별 디버깅의 핵심)
-{service="backend"} |= "a1b2c3d4"
+{service="backend"} |= "3fa85f64-5717-4562-b3fc-2c963f66afa6"
 
 # 이메일 발송 관련만
 {service="backend"} |= "이메일"
@@ -110,6 +110,9 @@ Promtail 은 **모든 컨테이너**의 stdout 을 수집하므로 백엔드뿐 
 > 필드로 뽑아 필터·집계할 수 있다. 민감정보는 자동으로 가려진다 — `Authorization` 헤더·쿠키는
 > Caddy 기본값으로, OAuth 콜백의 `code`·`state` 쿼리 파라미터는 `Caddyfile` 의 log 필터로
 > `REDACTED` 처리된다(이메일 인증코드·액세스토큰은 각각 POST 본문·URL 프래그먼트라 URL 에 안 남음).
+>
+> `uuid` 필드가 backend 의 traceId 와 같은 값이다(§3) — `{service="caddy"} | json | uuid="<값>"`
+> 로 검색하면 "Caddy 가 이 요청을 어떤 상태코드·응답시간으로 봤는지"를 backend 로그와 나란히 볼 수 있다.
 
 - 오른쪽 위 **시간 범위**로 기간을 좁힌다(예: Last 1 hour, 또는 사건 발생 시각 전후).
 - `|=` 포함 / `!=` 제외 / `|~` 정규식 / `!~` 정규식 제외.
@@ -121,20 +124,30 @@ Explore 오른쪽 위 **Live** 버튼 → 실시간 스트리밍(= `docker logs 
 
 ## 3. traceId 로 요청 추적하기 (제일 중요)
 
-요청마다 8자리 추적 ID 가 붙는다. 사용법:
+요청마다 추적 ID 가 붙는다. **운영에서는 가장 바깥의 Caddy 가 이 ID 를 채번**하고
+(`deploy/Caddyfile` 의 `header_up X-Request-Id {http.request.uuid}`), nginx 는 커스텀
+헤더라 별도 설정 없이 그대로 통과시키며, backend 의 `TraceIdFilter` 는 새로 만들지 않고
+이어받아 MDC 에 심는다. 그래서 이 ID 하나로 **Caddy 접근 로그 → nginx 접근 로그 →
+backend 로그**를 전부 엮을 수 있다. 형식은 UUID(예: `3fa85f64-5717-4562-b3fc-2c963f66afa6`) —
+Caddy 를 거치지 않고 backend 를 직접 호출한 경우(로컬 개발 등)에만 backend 가 예외적으로
+8자리 짧은 ID 를 새로 만든다.
 
-1. 사용자가 오류를 겪으면, 응답 헤더 **`X-Request-Id`** 값(예: `a1b2c3d4`)을 알아낸다.
+1. 사용자가 오류를 겪으면, 응답 헤더 **`X-Request-Id`** 값을 알아낸다.
    (브라우저 개발자도구 Network 탭 → 해당 요청 → Response Headers)
 2. 그 값으로 검색하면 그 한 번의 요청이 거친 **컨트롤러·서비스·비동기 메일 발송 로그까지 전부** 한 줄기로 모인다.
    ```logql
-   {service="backend"} |= "a1b2c3d4"
+   {service="backend"} |= "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+   ```
+3. 같은 값으로 Caddy 쪽도 검색하면(§2) "엣지에서 본 상태코드·응답시간"까지 같이 확인된다.
+   ```logql
+   {service="caddy"} | json | uuid="3fa85f64-5717-4562-b3fc-2c963f66afa6"
    ```
 
 로그 한 줄 예시(운영 형식):
 ```
-2026-06-20 09:12:33.444 INFO  [a1b2c3d4] [http-nio-8080-exec-3] c.d.o.g.l.TraceIdFilter - POST /api/auth/login -> 200 (45ms)
+2026-06-20 09:12:33.444 INFO  [3fa85f64-5717-4562-b3fc-2c963f66afa6] [http-nio-8080-exec-3] c.d.o.g.l.TraceIdFilter - POST /api/auth/login -> 200 (45ms)
 ```
-`[a1b2c3d4]` 가 traceId, `-> 200 (45ms)` 가 응답 상태와 소요시간이다.
+`[3fa85f64-...]` 가 traceId, `-> 200 (45ms)` 가 응답 상태와 소요시간이다.
 
 ---
 
