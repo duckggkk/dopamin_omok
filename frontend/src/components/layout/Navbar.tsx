@@ -95,10 +95,11 @@ const Navbar = () => {
   }, [location.pathname]);
 
   const handleLogout = async () => {
-    if (inRoom) {
-      if (!window.confirm('로그아웃하면 방에서 퇴장됩니다.\n(방장이라면 방이 사라집니다)\n정말 로그아웃하시겠습니까?')) {
-        return;
-      }
+    const confirmMessage = inRoom
+      ? '로그아웃하면 방에서 퇴장됩니다.\n(방장이라면 방이 사라집니다)\n정말 로그아웃하시겠습니까?'
+      : '정말 로그아웃하시겠습니까?';
+    if (!window.confirm(confirmMessage)) {
+      return;
     }
     try {
       await authApi.logout();

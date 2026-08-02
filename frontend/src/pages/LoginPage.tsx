@@ -64,6 +64,18 @@ const LoginPage = () => {
   const handleGuestStart = async () => {
     setError('');
     setIsEmailNotVerified(false);
+
+    // 이미 이 브라우저에 로그인된 세션이 있으면(다른 탭에서 로그인했을 수 있음) 새 게스트를
+    // 만들지 않는다 — 게스트 토큰은 아래에서 항상 localStorage 에 저장하므로, 새 게스트를
+    // 또 만들면 기존 탭이 들고 있던 계정을 조용히 덮어써 버린다(같은 브라우저 두 탭이 같은
+    // 사람으로 인식되는 원인). 대신 물어보고, 계속하면 기존 계정으로 이동시킨다.
+    if (tokenStorage.getAccessToken()) {
+      if (window.confirm('이미 로그인되어 있는 계정이 있습니다.\n새 게스트를 만들지 않고 기존 계정으로 이동할까요?')) {
+        navigate('/');
+      }
+      return;
+    }
+
     setIsGuestLoading(true);
 
     try {
