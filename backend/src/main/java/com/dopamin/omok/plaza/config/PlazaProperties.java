@@ -13,7 +13,8 @@ public record PlazaProperties(
         int channelCapacity,
         long tickIntervalMs,
         int moveStep,       // 틱당 이동 픽셀
-        int spawnMargin     // 스폰 시 월드 경계로부터의 최소 여백
+        int spawnMargin,    // 스폰 시 월드 경계로부터의 최소 여백
+        long joinTimeoutMs  // REST allocate 후 이 시간 내 WS join 이 안 오면 좀비 채널로 간주해 정리
 ) {
     public PlazaProperties {
         if (worldWidth <= 0) worldWidth = 1600;
@@ -22,5 +23,6 @@ public record PlazaProperties(
         if (tickIntervalMs <= 0) tickIntervalMs = 100; // 걷기엔 100ms면 충분(클라가 보간)
         if (moveStep <= 0) moveStep = 12;
         if (spawnMargin < 0) spawnMargin = 100;
+        if (joinTimeoutMs <= 0) joinTimeoutMs = 30_000;
     }
 }

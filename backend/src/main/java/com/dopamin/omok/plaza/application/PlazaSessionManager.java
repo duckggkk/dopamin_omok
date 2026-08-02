@@ -49,6 +49,7 @@ public class PlazaSessionManager {
 
     private static final class Channel {
         final String id;
+        final long createdAtMs = System.currentTimeMillis();
         final ReentrantLock lock = new ReentrantLock();
         final Map<Long, PlazaPlayer> players = new LinkedHashMap<>();
         /** 직전 틱에 누군가 움직였는지 — 모두 멈춘 직후 '정지 프레임' 1장만 더 보내고 이후 틱은 건너뛰기 위함. */
@@ -240,11 +241,19 @@ public class PlazaSessionManager {
 
     // ===================== 틱 =====================
 
-    private void tickSafely() {
+    void tickSafely() {
+        long now = System.currentTimeMillis();
+        List<Channel> staleChannels = null; // allocate() 만 되고 join() 이 안 온 좀비 채널(락 해제 후 별도 정리)
         for (Channel c : channels.values()) {
             c.lock.lock();
             try {
-                if (c.players.isEmpty()) continue;
+                if (c.players.isEmpty()) {
+                    if (now - c.createdAtMs >= props.joinTimeoutMs()) {
+                        if (staleChannels == null) staleChannels = new ArrayList<>();
+                        staleChannels.add(c);
+                    }
+                    continue;
+                }
                 boolean moving = false;
                 for (PlazaPlayer p : c.players.values()) {
                     if (p.isMoving()) {
@@ -262,6 +271,12 @@ public class PlazaSessionManager {
             } finally {
                 c.lock.unlock();
             }
+        }
+        // c.lock 을 모두 놓은 뒤에 정리한다 — cleanupIfEmpty 는 allocationLock → c.lock 순으로 잡으므로,
+        // 여기서 c.lock 을 쥔 채로 부르면 allocate() 와 반대 순서로 걸려 데드락 위험이 있다.
+        if (staleChannels != null) {
+            for (Channel c : staleChannels) cleanupIfEmpty(c);
+            log.debug("광장 좀비 채널 정리: {}개 (join 미입장)", staleChannels.size());
         }
     }
 

@@ -82,6 +82,7 @@ app:
     tick-interval-ms: 100     # 서버 틱(이동/스냅샷) — 걷기엔 충분(클라가 보간) ≈ 10Hz
     move-step: 12             # 틱당 이동 픽셀
     spawn-margin: 120         # 스폰 시 월드 경계 여백
+    join-timeout-ms: 30000    # REST allocate 후 이 시간 내 WS join 안 하면 좀비 채널로 간주해 정리
 
 logging:
   charset:
