@@ -23,7 +23,7 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error),
+  (error) => Promise.reject(error), //요청 준비 과정에서 에러시 현재 에러 반환 (호출부에서 에러 처리)
 );
 
 let isRefreshing = false;
@@ -32,6 +32,7 @@ let failedQueue: Array<{
   reject: (reason?: unknown) => void;
 }> = [];
 
+//토큰 만료 시 동시요청 방지용 큐
 const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) reject(error);
@@ -40,25 +41,31 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
+//함수 구현이 아니라 인자 구현임
 apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
+  (response) => response, //정상 리스폰, 정상 응답이면 통과
+  async (error) => { //에러 리스폰
     const originalRequest = error.config;
 
+    //토큰 필요없는 api주소
     const isAuthEndpoint = originalRequest.url?.includes('/auth/login') ||
       originalRequest.url?.includes('/auth/register') ||
       originalRequest.url?.includes('/auth/refresh');
 
+    //토큰 만료시
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      //토큰 발급 진행중이면
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then((token) => {
+        return new Promise((resolve, reject) => { // Promise = java의 CompletableFuture // resolve,reject는 약속된 인자, 호출부는 대기
+          failedQueue.push({ resolve, reject });  // 여기서 resolve,  reject를 사용x
+        }).then((token) => { // resolve되면 콜백함수
           originalRequest.headers.Authorization = `Bearer ${token}`;
-          return apiClient(originalRequest);
+          return apiClient(originalRequest);      
         });
+        //reject의 경우는 실패 콜백 없으면 실패 자동 전파
       }
 
+      //토큰 발급 진행중 아니면
       originalRequest._retry = true;
       isRefreshing = true;
 
@@ -74,6 +81,7 @@ apiClient.interceptors.response.use(
         processQueue(null, accessToken);
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
+        //에러 발생시
       } catch (refreshError) {
         processQueue(refreshError, null);
         tokenStorage.clearTokens();
