@@ -2,7 +2,8 @@ const ACCESS_TOKEN_KEY = 'omok_access_token';
 const REFRESH_TOKEN_KEY = 'omok_refresh_token';
 const REMEMBER_KEY = 'omok_remember';
 
-// '로그인 상태 유지' 여부. 미설정(기존 사용자)은 유지=true 로 본다(기존 동작 보존). 명시적으로 '0' 일 때만 세션 한정.
+// '로그인 상태 유지' 여부. 미설정(기존 사용자)은 유지=true 로 본다(기존 동작 보존).
+// 0일때만 세션 한정( 로그인 유지 x )
 const isRemembered = (): boolean => localStorage.getItem(REMEMBER_KEY) !== '0';
 // 유지 ON → localStorage(브라우저 닫아도 보존), OFF → sessionStorage(닫으면 소멸)
 const primary = (): Storage => (isRemembered() ? localStorage : sessionStorage);
@@ -24,7 +25,7 @@ export const tokenStorage = {
   setTokens: (accessToken: string, refreshToken?: string | null): void => {
     primary().setItem(ACCESS_TOKEN_KEY, accessToken);
     secondary().removeItem(ACCESS_TOKEN_KEY);
-    if (refreshToken) {
+    if (refreshToken) { //실제론 쿠키로 받으므로 저장안됨, 죽은코드
       primary().setItem(REFRESH_TOKEN_KEY, refreshToken);
       secondary().removeItem(REFRESH_TOKEN_KEY);
     } else {

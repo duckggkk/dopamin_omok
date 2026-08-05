@@ -10,6 +10,7 @@ import pageStyles from './LoginPage.module.css';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  //객체 구조 분해 타입, useAuthStore의 형태중 특정필드?함수?를 집어올 수 있음
   const { login } = useAuthStore();
   const [searchParams] = useSearchParams();
   const isJustVerified = searchParams.get('verified') === '1';
@@ -27,13 +28,13 @@ const LoginPage = () => {
   const [isGuestLoading, setIsGuestLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); //브라우저 기본동작 막기 (폼제출)
     setError('');
     setIsEmailNotVerified(false);
     setIsLoading(true);
 
     try {
-      const tokenRes = await authApi.login(form);
+      const tokenRes = await authApi.login(form); //api 호출 
       const { accessToken, refreshToken } = tokenRes.data.data!;
 
       tokenStorage.setRemember(keepLogin); // 저장 위치(영구/세션) 결정 — setTokens·login 보다 먼저
