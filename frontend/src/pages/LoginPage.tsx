@@ -12,11 +12,11 @@ const LoginPage = () => {
   const navigate = useNavigate();
   //객체 구조 분해 타입, useAuthStore의 형태중 특정필드?함수?를 집어올 수 있음
   const { login } = useAuthStore();
-  const [searchParams] = useSearchParams();
-  const isJustVerified = searchParams.get('verified') === '1';
-  const isSessionExpired = searchParams.get('reason') === 'session_expired';
-  const isWithdrawn = searchParams.get('reason') === 'withdrawn';
-  const isOAuthError = searchParams.get('error') === 'oauth';
+  const [searchParams] = useSearchParams(); //현재 user의 쿼리스트링 읽기 (로그인 페이지 가기용도)
+  const isJustVerified = searchParams.get('verified') === '1'; //이메일 인증 성공
+  const isSessionExpired = searchParams.get('reason') === 'session_expired'; //세션 만료
+  const isWithdrawn = searchParams.get('reason') === 'withdrawn'; // 회원 탈퇴 완료
+  const isOAuthError = searchParams.get('error') === 'oauth'; //구글 oauth 실패
   // 구글 로그인 버튼 노출 여부 — 구글 콘솔 설정을 마친 뒤 VITE_GOOGLE_LOGIN_ENABLED=true 로 켠다.
   // (설정 전 운영에서 깨진 버튼이 보이지 않도록 기본은 숨김)
   const googleLoginEnabled = import.meta.env.VITE_GOOGLE_LOGIN_ENABLED === 'true';

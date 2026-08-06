@@ -25,7 +25,7 @@ const KifuViewer = ({ game, onClose, loadMoves }: Props) => {
 
   useEffect(() => {
     let cancelled = false;
-    const fetchMoves = loadMoves ?? gameApi.getGameMovesById;
+    const fetchMoves = loadMoves ?? gameApi.getGameMovesById; // 널 병합 연산자 좌항이 null/und이면 우항 사용
     fetchMoves(game.id)
       .then((res) => {
         if (cancelled) return;
